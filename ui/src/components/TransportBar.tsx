@@ -8,30 +8,22 @@ interface TransportBarProps {
 }
 
 export default function TransportBar({ isPlaying, onPlayToggle, bpm, onBpmChange }: TransportBarProps) {
-  const [metronomeOn, setMetronomeOn] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentBeat, setCurrentBeat] = useState(1);
 
-  // Track elapsed time during playback
   useEffect(() => {
     if (!isPlaying) return;
-    
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
       setElapsedTime(elapsed);
-      
-      // Calculate current beat (assuming 4/4)
       const beatsPerSecond = bpm / 60;
       const totalBeats = elapsed * beatsPerSecond;
-      const beatInBar = Math.floor(totalBeats % 4) + 1;
-      setCurrentBeat(beatInBar);
+      setCurrentBeat(Math.floor(totalBeats % 4) + 1);
     }, 50);
-    
     return () => clearInterval(interval);
   }, [isPlaying, bpm]);
 
-  // Format time as MM:SS.ms
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -44,48 +36,22 @@ export default function TransportBar({ isPlaying, onPlayToggle, bpm, onBpmChange
       <button className={isPlaying ? 'playing' : ''} onClick={onPlayToggle}>
         {isPlaying ? 'STOP' : 'PLAY'}
       </button>
-      
       <div className="time-display">
         <span className="time-label">TIME</span>
         <span className="time-value">{formatTime(elapsedTime)}</span>
       </div>
-
       <div className="beat-display">
         <span className="time-label">BEAT</span>
         <div className="beat-indicators">
           {[1, 2, 3, 4].map((beat) => (
-            <span
-              key={beat}
-              className={'beat-dot ' + (isPlaying && currentBeat === beat ? 'active' : '')}
-            />
+            <span key={beat} className={'beat-dot ' + (isPlaying && currentBeat === beat ? 'active' : '')} />
           ))}
         </div>
       </div>
-
       <div className="bpm-control">
         <span>BPM:</span>
-        <input
-          type="number"
-          value={bpm}
-          min={60}
-          max={200}
-          onChange={(e) => onBpmChange(Number(e.target.value))}
-        />
+        <input type="number" value={bpm} min={60} max={200} onChange={(e) => onBpmChange(Number(e.target.value))} />
       </div>
-
-      <button
-        className={'metronome-btn ' + (metronomeOn ? 'active' : '')}
-        onClick={() => setMetronomeOn(!metronomeOn)}
-        title="Toggle metronome"
-      >
-        METRONOME
-      </button>
-
-      <div className="key-signature">
-        <span className="time-label">KEY</span>
-        <span className="key-value">A minor</span>
-      </div>
-
       <span className="time-signature">4/4</span>
     </div>
   );
