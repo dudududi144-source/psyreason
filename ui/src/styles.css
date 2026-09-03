@@ -1,0 +1,155 @@
+
+/* Cable View */
+.cable-view {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.cable-view-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cable-view-header h2 {
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.cable-view-header .hint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.cable-canvas {
+  background: #08080c;
+  border-radius: 4px;
+}
+
+.port {
+  cursor: crosshair;
+}
+
+.port:hover {
+  fill: var(--accent);
+}
+
+.cable-path {
+  cursor: pointer;
+  transition: stroke-width 0.1s;
+}
+
+.cable-path:hover {
+  stroke-width: 5;
+}
+
+/* Piano Roll */
+.piano-roll-ui {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.piano-roll-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.piano-roll-toolbar button {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.piano-roll-toolbar button.active {
+  background: var(--accent);
+  color: #000;
+}
+
+.piano-roll-toolbar .info {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.piano-roll-container {
+  overflow: auto;
+  max-height: 500px;
+}
+
+.piano-roll-grid {
+  display: flex;
+}
+
+.key-labels {
+  display: flex;
+  flex-direction: column;
+}
+
+.key-label {
+  width: 48px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  font-size: 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+.key-label.white {
+  background: #2a2a35;
+  color: var(--text);
+}
+
+.key-label.black {
+  background: #15151d;
+  color: var(--text-dim);
+}
+
+.grid-rows {
+  flex: 1;
+}
+
+.grid-row {
+  display: flex;
+}
+
+.grid-cell {
+  border: 1px solid #1a1a22;
+  background: #101016;
+}
+
+.grid-cell.black-row {
+  background: #0c0c12;
+}
+
+.grid-cell.beat-line {
+  border-left: 1px solid #333345;
+}
+
+.grid-cell.bar-line {
+  border-left: 2px solid #4a4a6a;
+}
+
+.grid-cell.active {
+  background: var(--accent);
+}
+
+.grid-cell:hover {
+  background: #2a2a3a;
+}
+
+.grid-cell.active:hover {
+  background: #00cc6a;
+}
