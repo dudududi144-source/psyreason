@@ -43,6 +43,9 @@ export interface SongData {
   open: boolean[];
   lead: (number | null)[];
   padChord: number[];
+  bassB?: { on: boolean; semi: number }[];
+  leadB?: (number | null)[];
+  chords?: number[][];
 }
 
 export function defaultSong(): SongData {
@@ -53,12 +56,12 @@ export function defaultSong(): SongData {
   const open = Array(16).fill(false); open[14] = true;
   const lead: (number | null)[] = Array(16).fill(null);
   lead[0] = 69; lead[3] = 70; lead[6] = 72; lead[8] = 69; lead[11] = 68; lead[14] = 65;
-  return { kick, bass, hats, open, lead, padChord: [57, 60, 64] };
+  return { kick, bass, hats, open, lead, padChord: [57, 60, 64], bassB: bass.map((b) => ({ ...b })), leadB: [...lead], chords: [[57, 60, 64], [53, 57, 60]] } as SongData;
 }
 
 export const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
-import { generateSong, generateTrack, generateArrangement } from './generator';
+import { generateSong, generateTrack, generateArrangement, generateSongForStyle, generateArrangementForStyle, styleById, sessionSeed } from './generator';
 
 interface Channel {
   bus: GainNode; duck: GainNode; fader: GainNode; pan: StereoPannerNode; an: AnalyserNode;
@@ -92,6 +95,15 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
+  styleId = 'fullon';
+  generateStyle(styleId: string, session: number, bpmFromStyle = true) {
+    const st = styleById(styleId);
+    this.styleId = styleId;
+    this.seed = sessionSeed(styleId, session);
+    this.song = generateSongForStyle(styleId, this.seed);
+    this.arrangement = generateArrangementForStyle(styleId, this.seed);
+    if (bpmFromStyle) this.bpm = st.bpm + (session % 2 === 1 ? 2 : 0);
+  }
   generate(seed?: number) {
     this.seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
     this.song = generateSong(this.seed);
@@ -189,7 +201,7 @@ export class Engine {
     const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
     const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
-    lp.frequency.setValueAtTime(p.cutoff * 2.2, t); lp.frequency.exponentialRampToValueAtTime(Math.max(80, p.cutoff * 0.5), t + dur);
+    lp.frequency.setValueAtTime(p.cutoff * 2.2 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * 0.5 * this.sweep), t + dur);
     const dr = ctx.createWaveShaper(); dr.curve = this.driveCurve(p.drive);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.005);
@@ -217,7 +229,7 @@ export class Engine {
     const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
     const f = mtof(midi);
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
-    lp.frequency.setValueAtTime(p.cutoff * 1.6, t); lp.frequency.exponentialRampToValueAtTime(Math.max(200, p.cutoff * 0.35), t + dur);
+    lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     for (const det of [-8, 8]) {
@@ -238,6 +250,19 @@ export class Engine {
     }
   }
 
+  sweep = 1;
+
+  vRiser(t: number, dur: number) {
+    const ctx = this.ctx!;
+    const n = ctx.createBufferSource(); n.buffer = this.noise(); n.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(7000, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(0.35, t + dur);
+    g.gain.linearRampToValueAtTime(0.001, t + dur + 0.1);
+    n.connect(bp); bp.connect(g); g.connect(this.master!);
+    n.start(t); n.stop(t + dur + 0.15);
+  }
+
   // ---------- scheduler (lookahead, sample-accurate start times) ----------
   private tick = () => {
     const ctx = this.ctx!; const stepDur = 60 / this.bpm / 4;
@@ -250,15 +275,26 @@ export class Engine {
   };
   private schedule(g: number, t: number) {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
-    const { section } = sectionAtBar(bar);
+    const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
+    const barIn = bar - startBar;
     const on = (id: TrackId) => section.active.includes(id);
-    const s = this.song; const stepDur = 60 / this.bpm / 4;
+    const s = this.song as any; const stepDur = 60 / this.bpm / 4;
+    const useB = barIn % 4 >= 2; // A/B pattern variation every 2 bars
+    const lastBar = barIn === section.bars - 1;
+    // filter sweep automation: BUILD opens up, others reset
+    if (step === 0 && barIn === 0) {
+      if (section.name === 'BUILD') { this.sweep = 0.15; }
+      else this.sweep = 1;
+    }
+    if (section.name === 'BUILD') this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
-    if (on('bass') && s.bass[step].on) this.vBass(t, s.bass[step].semi, stepDur * 0.92);
+    if (lastBar && on('kick') && step >= 12) { this.vKick(t); this.vHat(t, false); } // transition fill
+    if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92); }
     if (on('hats') && s.hats[step]) this.vHat(t, false);
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead') && s.lead[step] !== null) this.vLead(t, s.lead[step] as number, stepDur * 3);
-    if (on('pad') && step === 0) this.vPad(t, s.padChord, stepDur * 16 * section.bars > 6 ? 6.5 : stepDur * 16 * 4);
+    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
+    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; this.vPad(t, chords[barIn % chords.length], stepDur * 16); }
+    if (section.name === 'BUILD' && section.bars >= 2 && barIn >= section.bars - 2 && step === 0) this.vRiser(t, stepDur * 16 * 2);
   }
 
   async start() {
