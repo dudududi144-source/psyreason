@@ -182,6 +182,15 @@ function Rack() {
     : [{ key: 'tone', label: 'TONE', min: 3000, max: 12000 }];
   return (
     <div className="view">
+      <div className="chain">
+        <span className="chain-node" style={{ borderColor: '#ff8800', color: '#ff8800' }}>KONG</span><i>→</i>
+        <span className="chain-node" style={{ borderColor: '#ff2bd6', color: '#ff2bd6' }}>THOR·BASS</span><i>→(sidechain)</i>
+        <span className="chain-node" style={{ borderColor: '#ff2bd6', color: '#ff2bd6' }}>THOR·LEAD</span><i>→</i>
+        <span className="chain-node" style={{ borderColor: '#00aaff', color: '#00aaff' }}>DDL-1</span><i>→</i>
+        <span className="chain-node" style={{ borderColor: '#00ffcc', color: '#00ffcc' }}>EUROPA</span><i>→</i>
+        <span className="chain-node" style={{ borderColor: '#aa66ff', color: '#aa66ff' }}>RV-7</span><i>→</i>
+        <span className="chain-node" style={{ borderColor: '#ffffff', color: '#ffffff' }}>MIXER → EQ → COMP → LIMIT</span>
+      </div>
       <div className="rack-tabs">
         {TRACKS.map((t) => (
           <button key={t.id} className={'rack-tab' + (sel === t.id ? ' on' : '')} style={sel === t.id ? { borderColor: t.color, color: t.color } : undefined} onClick={() => setSel(t.id)}>{t.name}</button>
