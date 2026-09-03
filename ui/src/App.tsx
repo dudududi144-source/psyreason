@@ -1,206 +1,219 @@
-import { useState } from 'react';
-import RackView from './components/RackView';
-import SequencerView from './components/SequencerView';
-import CableView from './components/CableView';
-import PianoRollUI from './components/PianoRollUI';
-import BrowserView from './components/BrowserView';
-import TransportBar from './components/TransportBar';
-import Keyboard from './components/Keyboard';
-import LevelMeters from './components/LevelMeters';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { engine } from './audio/engine';
 
-type ViewMode = 'rack' | 'cables' | 'sequencer' | 'pianoroll' | 'browser';
+// ============ KNOB (real, controls engine) ============
+function Knob({ label, value, min, max, onChange, color }: {
+  label: string; value: number; min: number; max: number;
+  onChange: (v: number) => void; color: string;
+}) {
+  const [drag, setDrag] = useState(false);
+  const startY = useRef(0);
+  const startV = useRef(0);
+  const norm = (value - min) / (max - min);
+  const rot = -135 + norm * 270;
+  return (
+    <div className="knob-wrap">
+      <div
+        className="knob2"
+        style={{ borderColor: drag ? color : '#2a2a3a' }}
+        onMouseDown={(e) => { e.preventDefault(); setDrag(true); startY.current = e.clientY; startV.current = value; }}
+        onMouseMove={(e) => {
+          if (!drag) return;
+          const d = (startY.current - e.clientY) * 0.006 * (max - min);
+          onChange(Math.max(min, Math.min(max, startV.current + d)));
+        }}
+        onMouseUp={() => setDrag(false)}
+        onMouseLeave={() => setDrag(false)}
+      >
+        <div className="knob2-ind" style={{ transform: 'translateX(-50%) rotate(' + rot + 'deg)', background: color }} />
+      </div>
+      <div className="knob2-label">{label}</div>
+      <div className="knob2-val" style={{ color }}>{value < 100 ? value.toFixed(0) : Math.round(value)}</div>
+    </div>
+  );
+}
 
-const DEFAULT_CABLE_DEVICES = [
-  {
-    id: 'subtractor1', name: 'SUBTRACTOR', x: 40, y: 40,
-    inputs: [
-      { id: 'sub1-cv-gate', name: 'Gate In', type: 'cv' as const },
-      { id: 'sub1-cv-pitch', name: 'Pitch CV', type: 'cv' as const },
-    ],
-    outputs: [
-      { id: 'sub1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'sub1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'thor1', name: 'THOR', x: 40, y: 200,
-    inputs: [
-      { id: 'thor1-cv-gate', name: 'Gate In', type: 'cv' as const },
-      { id: 'thor1-cv-mod', name: 'Mod CV', type: 'cv' as const },
-    ],
-    outputs: [
-      { id: 'thor1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'thor1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'kong1', name: 'KONG', x: 40, y: 360,
-    inputs: [{ id: 'kong1-trigger', name: 'Trigger', type: 'cv' as const }],
-    outputs: [
-      { id: 'kong1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'kong1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'sync1', name: 'SYNCHRONOUS', x: 340, y: 40,
-    inputs: [
-      { id: 'sync1-in-l', name: 'In L', type: 'audio' as const },
-      { id: 'sync1-in-r', name: 'In R', type: 'audio' as const },
-    ],
-    outputs: [
-      { id: 'sync1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'sync1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'delay1', name: 'DDL-1 DELAY', x: 340, y: 200,
-    inputs: [
-      { id: 'delay1-in-l', name: 'In L', type: 'audio' as const },
-      { id: 'delay1-in-r', name: 'In R', type: 'audio' as const },
-    ],
-    outputs: [
-      { id: 'delay1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'delay1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'reverb1', name: 'RV-7 REVERB', x: 340, y: 360,
-    inputs: [
-      { id: 'reverb1-in-l', name: 'In L', type: 'audio' as const },
-      { id: 'reverb1-in-r', name: 'In R', type: 'audio' as const },
-    ],
-    outputs: [
-      { id: 'reverb1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'reverb1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'mixer1', name: 'MIXER 14:2', x: 640, y: 40,
-    inputs: [
-      { id: 'mixer1-in1-l', name: 'Ch 1 L', type: 'audio' as const },
-      { id: 'mixer1-in1-r', name: 'Ch 1 R', type: 'audio' as const },
-      { id: 'mixer1-in2-l', name: 'Ch 2 L', type: 'audio' as const },
-      { id: 'mixer1-in2-r', name: 'Ch 2 R', type: 'audio' as const },
-    ],
-    outputs: [
-      { id: 'mixer1-master-l', name: 'Master L', type: 'audio' as const },
-      { id: 'mixer1-master-r', name: 'Master R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'vocoder1', name: 'PULSAR VOCODER', x: 640, y: 280,
-    inputs: [
-      { id: 'voc1-carrier', name: 'Carrier', type: 'audio' as const },
-      { id: 'voc1-modulator', name: 'Modulator', type: 'audio' as const },
-    ],
-    outputs: [
-      { id: 'voc1-out-l', name: 'Out L', type: 'audio' as const },
-      { id: 'voc1-out-r', name: 'Out R', type: 'audio' as const },
-    ],
-  },
-  {
-    id: 'lfo1', name: 'LFO', x: 40, y: 500,
-    inputs: [],
-    outputs: [{ id: 'lfo1-cv-out', name: 'CV Out', type: 'cv' as const }],
-  },
-];
+// ============ METER (real, from analyser) ============
+function Meter() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    const loop = () => {
+      const lv = engine.getLevels();
+      if (ref.current) ref.current.style.width = Math.round(lv.l * 100) + '%';
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div className="meter2">
+      <span>L</span>
+      <div className="meter2-track"><div className="meter2-fill" ref={ref} /></div>
+      <span>R</span>
+    </div>
+  );
+}
 
-const DEFAULT_CABLES = [
-  { id: 'cable-1', fromPort: 'sub1-out-l', toPort: 'sync1-in-l', type: 'audio' as const },
-  { id: 'cable-2', fromPort: 'sync1-out-l', toPort: 'mixer1-in1-l', type: 'audio' as const },
-  { id: 'cable-3', fromPort: 'thor1-out-l', toPort: 'delay1-in-l', type: 'audio' as const },
-  { id: 'cable-4', fromPort: 'delay1-out-l', toPort: 'mixer1-in2-l', type: 'audio' as const },
-  { id: 'cable-5', fromPort: 'kong1-out-l', toPort: 'reverb1-in-l', type: 'audio' as const },
-  { id: 'cable-6', fromPort: 'reverb1-out-l', toPort: 'vocoder1-carrier', type: 'audio' as const },
-];
+// ============ SEQUENCER ROW ============
+function SeqRow({ name, color, steps, current, onToggle }: {
+  name: string; color: string; steps: (boolean | number | null | number[])[];
+  current: number; onToggle: (i: number) => void;
+}) {
+  return (
+    <div className="seq-row">
+      <div className="seq-name" style={{ color, borderColor: color }}>{name}</div>
+      <div className="seq-cells">
+        {steps.map((s, i) => {
+          const active = s === true || (typeof s === 'number' && s !== null) || (Array.isArray(s) && s.length > 0);
+          return (
+            <div
+              key={i}
+              className={'seq-cell' + (active ? ' on' : '') + (current === i ? ' now' : '') + (i % 4 === 0 ? ' beat' : '')}
+              style={active ? { background: color, borderColor: color } : undefined}
+              onClick={() => onToggle(i)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
+// ============ KEYBOARD (plays real notes) ============
+const KEYMAP: Record<string, number> = { a: 69, w: 70, s: 71, e: 72, d: 73, f: 74, t: 75, g: 76, h: 77, u: 78, j: 81 };
+function Keyboard() {
+  const [active, setActive] = useState<Set<number>>(new Set());
+  const play = useCallback((midi: number) => {
+    engine.playNote(midi);
+    setActive((p) => new Set(p).add(midi));
+    window.setTimeout(() => setActive((p) => { const n = new Set(p); n.delete(midi); return n; }), 200);
+  }, []);
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const m = KEYMAP[e.key.toLowerCase()];
+      if (m !== undefined) play(m);
+    };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, [play]);
+  const whites = [69, 71, 72, 74, 76, 77, 81];
+  const names = ['A', 'S', 'D', 'F', 'G', 'H', 'J'];
+  return (
+    <div className="kb2">
+      {whites.map((m, i) => (
+        <div key={m} className={'kb2-key' + (active.has(m) ? ' on' : '')} onMouseDown={() => play(m)}>
+          <span>{names[i]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============ MAIN APP ============
 export default function App() {
-  const [viewMode, setViewMode] = useState<ViewMode>('rack');
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [bpm, setBpm] = useState(145);
-  const [cables, setCables] = useState(DEFAULT_CABLES);
-  const [showKeyboard, setShowKeyboard] = useState(false);
-  const [lastNote, setLastNote] = useState<number | null>(null);
+  const [step, setStep] = useState(-1);
+  const [cutoff, setCutoff] = useState(6000);
+  const [reso, setReso] = useState(0.3);
+  const [delayMix, setDelayMix] = useState(0.3);
+  const [reverbMix, setReverbMix] = useState(0.25);
+  const [bassLvl, setBassLvl] = useState(85);
+  const [, force] = useState(0);
 
-  const handleConnect = (fromPort: string, toPort: string, type: 'audio' | 'cv') => {
-    setCables((prev) => [...prev, { id: 'cable-' + Date.now(), fromPort, toPort, type }]);
+  useEffect(() => {
+    engine.onStep = (s) => setStep(s);
+    return () => { engine.onStep = null; };
+  }, []);
+
+  const togglePlay = async () => {
+    if (playing) { engine.stop(); setPlaying(false); }
+    else { await engine.start(); setPlaying(true); }
   };
 
-  const handleDisconnect = (cableId: string) => {
-    setCables((prev) => prev.filter((c) => c.id !== cableId));
+  const toggle = (track: string, i: number) => {
+    const p = engine.pattern as any;
+    if (track === 'lead') {
+      p.lead[i] = p.lead[i] === null ? 69 : null;
+    } else if (track === 'pad') {
+      p.pad[i] = p.pad[i] === null ? [57, 60, 64] : null;
+    } else {
+      p[track][i] = !p[track][i];
+    }
+    force((x) => x + 1);
   };
 
-  const handleNoteOn = (midi: number, velocity: number) => {
-    setLastNote(midi);
-    void velocity;
-  };
+  const p = engine.pattern;
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="logo-section">
-          <h1 className="logo">PSYREASON</h1>
-          <span className="logo-sub">Psytrance Production Studio v0.4</span>
+    <div className="app2">
+      <header className="hd2">
+        <div>
+          <h1 className="logo2">PSYREASON</h1>
+          <div className="sub2">REAL-TIME PSYTRANCE ENGINE — Web Audio</div>
         </div>
-        <nav className="view-switcher">
-          <button className={viewMode === 'rack' ? 'active' : ''} onClick={() => setViewMode('rack')}>RACK</button>
-          <button className={viewMode === 'cables' ? 'active' : ''} onClick={() => setViewMode('cables')}>CABLES</button>
-          <button className={viewMode === 'sequencer' ? 'active' : ''} onClick={() => setViewMode('sequencer')}>SEQUENCER</button>
-          <button className={viewMode === 'pianoroll' ? 'active' : ''} onClick={() => setViewMode('pianoroll')}>PIANO ROLL</button>
-          <button className={viewMode === 'browser' ? 'active' : ''} onClick={() => setViewMode('browser')}>BROWSER</button>
-        </nav>
-        <button
-          className={'keyboard-toggle ' + (showKeyboard ? 'active' : '')}
-          onClick={() => setShowKeyboard(!showKeyboard)}
-        >
-          KEYBOARD
-        </button>
+        <div className="hd2-right">
+          <span className="badge2">145 BPM DEFAULT</span>
+          <span className="badge2">A-MINOR / PHRYGIAN</span>
+        </div>
       </header>
 
-      <TransportBar
-        isPlaying={isPlaying}
-        onPlayToggle={() => setIsPlaying(!isPlaying)}
-        bpm={bpm}
-        onBpmChange={setBpm}
-      />
-
-      <div className="status-strip">
-        <LevelMeters isPlaying={isPlaying} bpm={bpm} />
-        <span className="status-info">
-          {lastNote !== null ? 'Last note: MIDI ' + lastNote : 'Ready'}
-        </span>
+      <div className="transport2">
+        <button className={'play2' + (playing ? ' on' : '')} onClick={togglePlay}>
+          {playing ? '■ STOP' : '▶ PLAY'}
+        </button>
+        <div className="bpm2">
+          <span>BPM</span>
+          <input type="number" value={bpm} min={60} max={200}
+            onChange={(e) => { const v = Number(e.target.value); setBpm(v); engine.setBpm(v); }} />
+        </div>
+        <div className="stepread2">
+          <span>STEP</span>
+          <div className="steps16">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <i key={i} className={step === i ? 'lit' : ''} />
+            ))}
+          </div>
+        </div>
+        <Meter />
       </div>
 
-      {showKeyboard && (
-        <div className="keyboard-panel">
-          <Keyboard onNoteOn={handleNoteOn} />
-        </div>
-      )}
+      <div className="main2">
+        <section className="panel2">
+          <h3>SEQUENCER — click cells to edit, hear it live</h3>
+          <SeqRow name="KICK" color="#ff4444" steps={p.kick} current={step} onToggle={(i) => toggle('kick', i)} />
+          <SeqRow name="BASS" color="#00ff88" steps={p.bass} current={step} onToggle={(i) => toggle('bass', i)} />
+          <SeqRow name="HAT" color="#ffcc00" steps={p.hat} current={step} onToggle={(i) => toggle('hat', i)} />
+          <SeqRow name="OPEN" color="#ff8800" steps={p.openhat} current={step} onToggle={(i) => toggle('openhat', i)} />
+          <SeqRow name="LEAD" color="#00aaff" steps={p.lead} current={step} onToggle={(i) => toggle('lead', i)} />
+          <SeqRow name="PAD" color="#aa66ff" steps={p.pad} current={step} onToggle={(i) => toggle('pad', i)} />
+          <div className="hint2">Rolling bass between kicks • four-on-floor • offbeat hats • phrygian lead</div>
+        </section>
 
-      <main className="main-content">
-        {viewMode === 'rack' && <RackView />}
-        {viewMode === 'cables' && (
-          <CableView
-            devices={DEFAULT_CABLE_DEVICES}
-            cables={cables}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-          />
-        )}
-        {viewMode === 'sequencer' && <SequencerView bpm={bpm} isPlaying={isPlaying} />}
-        {viewMode === 'pianoroll' && (
-          <PianoRollUI
-            lengthBeats={16}
-            onNoteAdd={(midi, startBeat, dur) => console.log('Note added:', midi, startBeat, dur)}
-            onNoteRemove={(id) => console.log('Note removed:', id)}
-          />
-        )}
-        {viewMode === 'browser' && <BrowserView />}
-      </main>
+        <section className="panel2">
+          <h3>SOUND CONTROL — real parameters</h3>
+          <div className="knobs2">
+            <Knob label="CUTOFF" value={cutoff} min={100} max={12000} color="#00ff88"
+              onChange={(v) => { setCutoff(v); engine.setCutoff(v); }} />
+            <Knob label="RESO" value={reso} min={0} max={20} color="#ff6600"
+              onChange={(v) => { setReso(v); engine.setResonance(v); }} />
+            <Knob label="DELAY" value={delayMix} min={0} max={1} color="#00aaff"
+              onChange={(v) => { setDelayMix(v); engine.setDelayMix(v); }} />
+            <Knob label="REVERB" value={reverbMix} min={0} max={1} color="#aa66ff"
+              onChange={(v) => { setReverbMix(v); engine.setReverbMix(v); }} />
+            <Knob label="BASS" value={bassLvl} min={0} max={100} color="#ffcc00"
+              onChange={(v) => { setBassLvl(v); engine.setBassLevel(v / 100); }} />
+          </div>
+          <h3 style={{ marginTop: 18 }}>PLAY LEAD — keys A S D F G H J or click</h3>
+          <Keyboard />
+        </section>
+      </div>
 
-      <footer className="footer">
-        <span>PsyReason v0.4.0 | 23 devices | Built from 15 PSY repos</span>
-        <span>{bpm} BPM | 4/4 | Psytrance | {cables.length} cables</span>
+      <footer className="ft2">
+        <span>PsyReason v1.0 — real Web Audio synthesis: PolyBLEP-class saws, sub bass, FM kick, convolver reverb, feedback delay</span>
+        <span>{playing ? 'RUNNING' : 'IDLE'} • {bpm} BPM</span>
       </footer>
     </div>
   );
