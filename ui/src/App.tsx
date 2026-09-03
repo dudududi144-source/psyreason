@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine } from './audio/engine';
 
-// ============ KNOB (real, controls engine) ============
 function Knob({ label, value, min, max, onChange, color }: {
   label: string; value: number; min: number; max: number;
   onChange: (v: number) => void; color: string;
@@ -33,14 +32,13 @@ function Knob({ label, value, min, max, onChange, color }: {
   );
 }
 
-// ============ METER (real, from analyser) ============
 function Meter() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let raf = 0;
     const loop = () => {
       const lv = engine.getLevels();
-      if (ref.current) ref.current.style.width = Math.round(lv.l * 100) + '%';
+      if (ref.current) ref.current.style.width = Math.round(Math.min(1, lv.l) * 100) + '%';
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -55,10 +53,8 @@ function Meter() {
   );
 }
 
-// ============ SEQUENCER ROW ============
 function SeqRow({ name, color, steps, current, onToggle }: {
-  name: string; color: string; steps: (boolean | number | null | number[])[];
-  current: number; onToggle: (i: number) => void;
+  name: string; color: string; steps: any[]; current: number; onToggle: (i: number) => void;
 }) {
   return (
     <div className="seq-row">
@@ -80,7 +76,6 @@ function SeqRow({ name, color, steps, current, onToggle }: {
   );
 }
 
-// ============ KEYBOARD (plays real notes) ============
 const KEYMAP: Record<string, number> = { a: 69, w: 70, s: 71, e: 72, d: 73, f: 74, t: 75, g: 76, h: 77, u: 78, j: 81 };
 function Keyboard() {
   const [active, setActive] = useState<Set<number>>(new Set());
@@ -111,15 +106,23 @@ function Keyboard() {
   );
 }
 
-// ============ MAIN APP ============
+// THE RACK - real devices from devices/ code, each with a TEST button
+const RACK_DEVICES = [
+  { id: 'thor-bass', name: 'THOR', role: 'BASS ENGINE', color: '#ff2bd6', desc: 'devices/thor - rolling bass preset' },
+  { id: 'thor-lead', name: 'THOR', role: 'LEAD ENGINE', color: '#ff2bd6', desc: 'devices/thor - acid 303 preset' },
+  { id: 'kong', name: 'KONG', role: 'DRUM DESIGNER', color: '#ff8800', desc: 'devices/kong - kick/hat/open' },
+  { id: 'europa', name: 'EUROPA', role: 'PAD ENGINE', color: '#00ffcc', desc: 'devices/europa - wavetable pad' },
+  { id: 'malstrom', name: 'MALSTROM', role: 'TEXTURE', color: '#ffaa00', desc: 'devices/malstrom - graintable' },
+];
+
 export default function App() {
   const [playing, setPlaying] = useState(false);
   const [bpm, setBpm] = useState(145);
   const [step, setStep] = useState(-1);
   const [cutoff, setCutoff] = useState(6000);
-  const [reso, setReso] = useState(0.3);
-  const [delayMix, setDelayMix] = useState(0.3);
-  const [reverbMix, setReverbMix] = useState(0.25);
+  const [reso, setReso] = useState(4);
+  const [delayMix, setDelayMix] = useState(0.35);
+  const [reverbMix, setReverbMix] = useState(0.3);
   const [bassLvl, setBassLvl] = useState(85);
   const [, force] = useState(0);
 
@@ -135,13 +138,9 @@ export default function App() {
 
   const toggle = (track: string, i: number) => {
     const p = engine.pattern as any;
-    if (track === 'lead') {
-      p.lead[i] = p.lead[i] === null ? 69 : null;
-    } else if (track === 'pad') {
-      p.pad[i] = p.pad[i] === null ? [57, 60, 64] : null;
-    } else {
-      p[track][i] = !p[track][i];
-    }
+    if (track === 'lead') p.lead[i] = p.lead[i] === null ? 69 : null;
+    else if (track === 'pad') p.pad[i] = p.pad[i] === null ? [57, 60, 64] : null;
+    else p[track][i] = !p[track][i];
     force((x) => x + 1);
   };
 
@@ -152,10 +151,10 @@ export default function App() {
       <header className="hd2">
         <div>
           <h1 className="logo2">PSYREASON</h1>
-          <div className="sub2">REAL-TIME PSYTRANCE ENGINE — Web Audio</div>
+          <div className="sub2">REAL DEVICE ENGINES WIRED: Thor + Kong + Europa + Malstrom + FX chain</div>
         </div>
         <div className="hd2-right">
-          <span className="badge2">145 BPM DEFAULT</span>
+          <span className="badge2">145 BPM</span>
           <span className="badge2">A-MINOR / PHRYGIAN</span>
         </div>
       </header>
@@ -180,16 +179,35 @@ export default function App() {
         <Meter />
       </div>
 
+      <div className="rackstrip2">
+        {RACK_DEVICES.map((d) => (
+          <div key={d.id} className="rackcard2" style={{ borderColor: d.color + '55' }}>
+            <div className="rackcard2-head" style={{ color: d.color }}>
+              <b>{d.name}</b><span>{d.role}</span>
+            </div>
+            <div className="rackcard2-desc">{d.desc}</div>
+            <button className="test2" style={{ borderColor: d.color, color: d.color }}
+              onClick={() => engine.testDevice(d.id)}>TEST</button>
+          </div>
+        ))}
+        <div className="rackcard2" style={{ borderColor: '#aa66ff55' }}>
+          <div className="rackcard2-head" style={{ color: '#aa66ff' }}><b>FX CHAIN</b><span>LIVE</span></div>
+          <div className="rackcard2-desc">devices/effects - Phaser + Delay + Reverb per-sample</div>
+          <button className="test2" style={{ borderColor: '#aa66ff', color: '#aa66ff' }}
+            onClick={() => engine.testDevice('thor-lead')}>TEST</button>
+        </div>
+      </div>
+
       <div className="main2">
         <section className="panel2">
-          <h3>SEQUENCER — click cells to edit, hear it live</h3>
+          <h3>SEQUENCER — drives the real engines above</h3>
           <SeqRow name="KICK" color="#ff4444" steps={p.kick} current={step} onToggle={(i) => toggle('kick', i)} />
           <SeqRow name="BASS" color="#00ff88" steps={p.bass} current={step} onToggle={(i) => toggle('bass', i)} />
           <SeqRow name="HAT" color="#ffcc00" steps={p.hat} current={step} onToggle={(i) => toggle('hat', i)} />
           <SeqRow name="OPEN" color="#ff8800" steps={p.openhat} current={step} onToggle={(i) => toggle('openhat', i)} />
           <SeqRow name="LEAD" color="#00aaff" steps={p.lead} current={step} onToggle={(i) => toggle('lead', i)} />
           <SeqRow name="PAD" color="#aa66ff" steps={p.pad} current={step} onToggle={(i) => toggle('pad', i)} />
-          <div className="hint2">Rolling bass between kicks • four-on-floor • offbeat hats • phrygian lead</div>
+          <div className="hint2">KICK/HAT = Kong • BASS/LEAD = Thor • PAD = Europa • FX = Phaser/Delay/Reverb</div>
         </section>
 
         <section className="panel2">
@@ -206,13 +224,13 @@ export default function App() {
             <Knob label="BASS" value={bassLvl} min={0} max={100} color="#ffcc00"
               onChange={(v) => { setBassLvl(v); engine.setBassLevel(v / 100); }} />
           </div>
-          <h3 style={{ marginTop: 18 }}>PLAY LEAD — keys A S D F G H J or click</h3>
+          <h3 style={{ marginTop: 18 }}>PLAY LEAD — Thor engine, keys A S D F G H J or click</h3>
           <Keyboard />
         </section>
       </div>
 
       <footer className="ft2">
-        <span>PsyReason v1.0 — real Web Audio synthesis: PolyBLEP-class saws, sub bass, FM kick, convolver reverb, feedback delay</span>
+        <span>PsyReason v2.0 — architecture now equals product: devices/ code produces the sound</span>
         <span>{playing ? 'RUNNING' : 'IDLE'} • {bpm} BPM</span>
       </footer>
     </div>
