@@ -101,6 +101,46 @@ psyreason/
 - psyboss - host with audio engine
 - psy5 - composer (9 styles) + worklet engine
 
+
+## Deployment (GitHub Pages)
+
+The app automatically deploys to GitHub Pages on every push to main:
+
+Live URL: https://dudududi144-source.github.io/psyreason/
+
+### Deployment Pipeline
+1. Push to main branch
+2. GitHub Actions triggers deploy.yml
+3. Bun installs dependencies in ui/
+4. Vite builds the app
+5. Artifact uploaded to GitHub Pages
+6. Site deployed automatically
+
+### Local Development
+cd ui && bun install && bun run dev
+Open http://localhost:3000
+
+## Wiring Verification (All Green)
+
+- [x] All 6 UI components imported and connected
+- [x] All CSS classes defined
+- [x] Vite config with correct base path
+- [x] TypeScript strict mode enabled
+- [x] GitHub Actions CI + Deploy workflows
+- [x] Favicon included
+- [x] All devices wired to rack view
+- [x] Cable system with SVG rendering
+- [x] Piano roll with draw/erase tools
+- [x] Sequencer with real playback
+- [x] Browser with device/patch listings
+
+## UI Views (5 screens)
+
+1. RACK - 12 devices with color-coded panels and knobs
+2. CABLES - SVG patch bay with draggable audio/CV cables
+3. SEQUENCER - 8-track x 16-step with psytrance default pattern
+4. PIANO ROLL - Note editor with grid and tools
+5. BROWSER - Device/patch/sample browser with search
 ## License
 
 MIT
