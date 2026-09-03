@@ -229,6 +229,7 @@ export default function App() {
   useEffect(() => {
     engine.onTick = (bar, step) => setPos({ bar, step });
     engine.generateStyle('fullon', 1);
+    engine.init();
     setBpm(engine.bpm);
     force((x) => x + 1);
     return () => { engine.onTick = null; };
