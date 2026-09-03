@@ -369,3 +369,188 @@ body {
 .status-dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 .status-dot.idle { background: var(--text-dim); }
 .status-dot.error { background: var(--danger); }
+
+/* Status Strip */
+.status-strip {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 6px 20px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+}
+.status-info {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+/* Level Meters */
+.level-meters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.meter-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  width: 12px;
+}
+.meter-track {
+  width: 120px;
+  height: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  transition: width 0.05s linear;
+}
+
+/* Transport additions */
+.time-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.time-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+.time-value {
+  font-size: 16px;
+  color: var(--accent);
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+.beat-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.beat-indicators {
+  display: flex;
+  gap: 4px;
+}
+.beat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+}
+.beat-dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.metronome-btn {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+}
+.metronome-btn.active {
+  background: var(--accent2);
+  color: #000;
+  border-color: var(--accent2);
+}
+.key-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.key-value {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* Keyboard */
+.keyboard-panel {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+}
+.keyboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.keyboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.keyboard-title {
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+.keyboard-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.keyboard-keys {
+  display: flex;
+  position: relative;
+  height: 80px;
+  background: var(--panel2);
+  border-radius: 4px;
+  padding: 4px;
+  overflow-x: auto;
+}
+.piano-key {
+  flex: 1;
+  min-width: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  transition: background 0.1s;
+  user-select: none;
+}
+.piano-key.white {
+  background: #e8e8e8;
+  color: #333;
+}
+.piano-key.black {
+  background: #1a1a1a;
+  color: #888;
+}
+.piano-key:hover {
+  filter: brightness(1.2);
+}
+.piano-key.active {
+  background: var(--accent) !important;
+  color: #000 !important;
+}
+.key-label {
+  font-size: 8px;
+  pointer-events: none;
+}
+.keyboard-toggle {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.keyboard-toggle.active {
+  background: var(--accent);
+  color: #000;
+}
