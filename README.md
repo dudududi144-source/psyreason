@@ -1,32 +1,36 @@
 # PsyReason
 
-Complete Reason clone in the browser. Professional psytrance production environment.
+Complete Reason clone in the browser. Professional psytrance production environment with virtual devices, patch cables, sequencer, and commercial-grade DSP.
 
 ## Architecture
 
 psyreason/
-  foundation/ - Core infrastructure (DSP, music, analysis, protocol)
-    core/ - transport.mjs, dsp.mjs, grammar.mjs, director.mjs, render.mjs, midi.mjs
-    dsp/ - oscillators, filters, envelopes, effects, metering
-    music/ - composition-engine, harmony, rhythm, voice-leading
-    analysis/ - pitch, tempo, onset, features
-    protocol/ - events, channels, state
-  devices/ - Virtual devices
-    subtractor/ - Subtractive synth (from psysynth)
-    nn-xt/ - Advanced sampler (from psy-sampler)
-    redrum/ - Drum machine (from psydrum)
-    effects/ - Reverb, Delay, Chorus, Distortion, Filter, Compressor, EQ
-    mixer/ - Mixer 14:2 (14-channel stereo mixer)
-    combinator/ - Device combiner with patching
-  host/ - The Host
-    audio-engine/ - audio-engine.ts (40KB), dsp.ts (29KB), mastering.ts (17KB)
-    event-bus/ - psybus event system
-    composition/ - harmony, melody, motif, structure, solver, quality
-    sequencer/ - melody-gen, progression-gen, groove, euclidean
-    brain/ - composer.js (9 styles: PSYTRANCE, GOA, TECHNO, TRANCE)
-  ui/ - React app (Vite)
-    src/ - App.tsx, components (RackView, SequencerView, Knob)
-  presets/ - soundBank.js (150+ presets)
+  foundation/        # Core infrastructure
+    core/            # transport.mjs (PLL), dsp.mjs (PolyBLEP/ZDF/FM), grammar.mjs, director.mjs, render.mjs, midi.mjs
+    dsp/             # oscillators, filters, envelopes, effects, metering, voicePool
+    music/           # composition-engine (66KB), harmony, rhythm, voice-leading, coherence
+    analysis/        # pitch, tempo, onset, features
+    protocol/        # events, channels, state
+  devices/           # Virtual devices
+    subtractor/      # Subtractive synth (PolyBLEP + ZDF SVF + LFO + mod matrix)
+    nn-xt/           # Advanced sampler (time-stretch, slicer, zones)
+    redrum/          # Drum machine (kick/snare/hat/cymbal engines)
+    thor/            # Modular synth (3 osc slots, 2 filters, mod matrix, 4 psytrance presets)
+    effects/         # 7 effects: Reverb, Delay, Chorus, Distortion, Filter, Compressor, EQ
+    mixer/           # Mixer 14:2 (14-channel stereo mixer with per-channel EQ and sends)
+    combinator/      # Device combiner with patching and macros
+    tools/           # RPG-8 Arpeggiator + Matrix Pattern Sequencer
+  host/              # The Host
+    rack/            # patch-graph.ts - Reason cable patching system (audio + CV cables)
+    audio-engine/    # audio-engine.ts (40KB), dsp.ts (29KB), mastering.ts (17KB)
+    event-bus/       # psybus event system
+    composition/     # harmony, melody, motif, structure, solver, quality
+    sequencer/       # piano-roll.ts + melody-gen, progression-gen, groove, euclidean
+    brain/           # composer.js (9 styles: PSYTRANCE, GOA, TECHNO, TRANCE)
+  ui/                # React app (Vite)
+    src/             # App.tsx, RackView, CableView (SVG), SequencerView, PianoRollUI, Knob
+  tests/             # Unit tests (piano-roll, patch-graph, effects, thor, mixer)
+  presets/           # soundBank.js (150+ presets)
 
 ## Devices
 
@@ -35,40 +39,72 @@ psyreason/
 | Subtractor | Subtractive Synth | Active |
 | NN-XT | Advanced Sampler | Active |
 | Redrum | Drum Machine | Active |
+| Thor | Modular Synth (4 psytrance presets) | Active |
 | Mixer 14:2 | 14-Channel Mixer | Active |
-| Effects | 7 modules | Active |
 | Combinator | Device Combiner | Active |
+| RPG-8 | Arpeggiator | Active |
+| Matrix | Pattern Sequencer | Active |
+| Effects | 7 modules | Active |
 
 ## Effects
 
-- Reverb (RV-7 style) - 8 comb + 4 allpass, early reflections
-- Delay (DDL-1 style) - Tempo sync, ping-pong, feedback filter
-- Chorus (CF-100 style) - Chorus/Flanger/Vibrato modes
-- Distortion (Scream 4 style) - Tube/Digital/Fuzz/Bitcrush
-- Filter (ECF-42 style) - SVF multimode, envelope follower
-- Compressor (MClass style) - Lookahead, soft knee, sidechain
-- EQ (MClass style) - 4-band parametric
+| Effect | Style | Features |
+|--------|-------|----------|
+| Reverb | RV-7 | 8 comb + 4 allpass, early reflections, stereo width |
+| Delay | DDL-1 | Tempo sync, ping-pong, feedback filter |
+| Chorus | CF-100 | Chorus/Flanger/Vibrato modes, stereo LFO |
+| Distortion | Scream 4 | Tube/Digital/Fuzz/Bitcrush modes, tone shaping |
+| Filter | ECF-42 | SVF multimode, envelope follower, LFO modulation |
+| Compressor | MClass | Lookahead, soft knee, sidechain, brickwall limiter |
+| EQ | MClass | 4-band parametric, bell/shelf/HP/LP/notch |
 
-## Foundation
+## Patching System (Reason's magic)
 
-- transport.mjs - MusicalTransport PLL (164 tests)
+- Audio cables: connect device outputs to inputs
+- CV cables: Gate, Pitch CV, Mod CV for modular control
+- Spider utilities: audio/CV mergers and splitters
+- Signal chain tracking with loop detection
+- SVG Cable View UI with draggable cables
+
+## Foundation (from psy - 164 tests)
+
+- transport.mjs - MusicalTransport PLL (octave-fold, gap recovery)
 - dsp.mjs - PolyBLEP + ZDF SVF + 4-op FM + wavetables
-- grammar.mjs - BassGrammar, MelodicGrammar, RhythmGrammar
+- grammar.mjs - BassGrammar (12x12), MelodicGrammar (25-bucket), RhythmGrammar (Beta)
 - director.mjs - MusicalDirector with DO-NOTHING abstention
 - render.mjs - Offline render + stem export + WAV encoder
 - midi.mjs - Web MIDI + 24ppq clock + SMF0 export
 
+## UI Views
+
+- RACK - front panel view of all devices with knobs
+- CABLES - back of rack view with patch cables (SVG)
+- SEQUENCER - 16-step pattern sequencer with 8 tracks
+- PIANO ROLL - note editor with draw/erase/select tools
+
+## Tests
+
+- tests/unit/piano-roll.test.ts - 15 tests
+- tests/unit/patch-graph.test.ts - 12 tests
+- tests/unit/effects.test.ts - 18 tests
+- tests/unit/thor.test.ts - 10 tests
+- tests/unit/mixer.test.ts - 8 tests
+
 ## Built On
 
-- psy-foundation - 768 tests
-- psy - 164 tests, winning device
-- psysynth - 124 tests
-- psy-sampler - 653 tests
-- psydrum - drum engines
+- psy-foundation - 768 tests of core infrastructure
+- psy - 164 tests, winning device (PLL, DSP, grammar)
+- psysynth - 124 tests, subtractive synth
+- psy-sampler - 653 tests, advanced sampler
+- psydrum - drum machine with drum engines
 - psy-anthem - composition engine
-- psyboss - host engine
-- psy5 - composer (9 styles)
+- psyboss - host with audio engine
+- psy5 - composer (9 styles) + worklet engine
 
 ## License
 
 MIT
+
+## Author
+
+dudududi144-source
