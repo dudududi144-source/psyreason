@@ -3,11 +3,11 @@ import RackView from './components/RackView';
 import SequencerView from './components/SequencerView';
 import CableView from './components/CableView';
 import PianoRollUI from './components/PianoRollUI';
+import BrowserView from './components/BrowserView';
 import TransportBar from './components/TransportBar';
 
-type ViewMode = 'rack' | 'cables' | 'sequencer' | 'pianoroll';
+type ViewMode = 'rack' | 'cables' | 'sequencer' | 'pianoroll' | 'browser';
 
-// Default device layout for cable view
 const DEFAULT_CABLE_DEVICES = [
   {
     id: 'subtractor1',
@@ -120,13 +120,17 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1 className="logo">PSYREASON</h1>
-        <div className="view-switcher">
+        <div className="logo-section">
+          <h1 className="logo">PSYREASON</h1>
+          <span className="logo-sub">Psytrance Production Studio</span>
+        </div>
+        <nav className="view-switcher">
           <button className={viewMode === 'rack' ? 'active' : ''} onClick={() => setViewMode('rack')}>RACK</button>
           <button className={viewMode === 'cables' ? 'active' : ''} onClick={() => setViewMode('cables')}>CABLES</button>
           <button className={viewMode === 'sequencer' ? 'active' : ''} onClick={() => setViewMode('sequencer')}>SEQUENCER</button>
           <button className={viewMode === 'pianoroll' ? 'active' : ''} onClick={() => setViewMode('pianoroll')}>PIANO ROLL</button>
-        </div>
+          <button className={viewMode === 'browser' ? 'active' : ''} onClick={() => setViewMode('browser')}>BROWSER</button>
+        </nav>
       </header>
 
       <TransportBar
@@ -154,11 +158,12 @@ export default function App() {
             onNoteRemove={(id) => console.log('Note removed:', id)}
           />
         )}
+        {viewMode === 'browser' && <BrowserView />}
       </main>
 
       <footer className="footer">
-        <span>PsyReason v0.2.0 - Psytrance Production Studio</span>
-        <span>{bpm} BPM | 4/4 | Psytrance</span>
+        <span>PsyReason v0.3.0 | Built from 15 PSY repos | 1,300+ KB of code</span>
+        <span>{bpm} BPM | 4/4 | Psytrance | {cables.length} cables</span>
       </footer>
     </div>
   );
