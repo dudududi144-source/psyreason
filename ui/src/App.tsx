@@ -36,7 +36,7 @@ function Knob({ label, value, min, max, onChange, color }: any) {
 }
 
 // ---------- ARRANGE ----------
-function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing: boolean }) {
+function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing: boolean }) { void playing;
   const [, force] = useState(0);
   const s = engine.song;
   const rows: { id: TrackId; cells: (boolean | number | null)[] }[] = [
@@ -94,42 +94,48 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
         })}
       </div>
       <div className="hint">ARRANGEMENT plays INTRO → BUILD → DROP → BREAK → DROP 2 on loop. Click cells to edit; ▶ previews a track through the mixer.</div>
+      <div className="mixer compact">
+        {[...TRACKS.map((t) => t.id), 'master'].map((id) => <Strip key={id} id={id as any} playing={playing} />)}
+      </div>
     </div>
   );
 }
 
 // ---------- MIXER ----------
-function Mixer({ playing }: { playing: boolean }) {
+// Strip is a real component (hooks at top level - no crash)
+function Strip({ id, playing }: { id: TrackId | 'master'; playing: boolean }) {
   const [, force] = useState(0);
+  const meta = id === 'master' ? { name: 'MASTER', color: '#ffffff' } : TRACKS.find((t) => t.id === id)!;
+  const ch = id === 'master' ? null : engine.channels[id];
+  const ref = useMeter(id, playing);
+  return (
+    <div className="strip" style={{ borderColor: (meta as any).color + '44' }}>
+      <div className="strip-name" style={{ color: (meta as any).color }}>{(meta as any).name}</div>
+      <div className="strip-meter"><div className="strip-fill" ref={ref} /></div>
+      {ch && (
+        <>
+          <input className="fader" type="range" min={0} max={1} step={0.01} defaultValue={0.9}
+            onChange={(e) => engine.setFader(id as TrackId, Number(e.target.value))} />
+          <div className="strip-btns">
+            <button className={'m-btn' + (ch.mute ? ' on-m' : '')} onClick={() => { engine.setMute(id as TrackId, !ch.mute); force((x) => x + 1); }}>M</button>
+            <button className={'m-btn' + (ch.solo ? ' on-s' : '')} onClick={() => { engine.setSolo(id as TrackId, !ch.solo); force((x) => x + 1); }}>S</button>
+          </div>
+          <div className="strip-sends">
+            <label>DLY<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'lead' ? 0.35 : 0} onChange={(e) => engine.setSend(id as TrackId, 'd', Number(e.target.value))} /></label>
+            <label>RVB<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'pad' ? 0.5 : id === 'lead' ? 0.2 : 0} onChange={(e) => engine.setSend(id as TrackId, 'r', Number(e.target.value))} /></label>
+          </div>
+        </>
+      )}
+      {!ch && <div className="strip-note">EQ → COMP → LIMIT</div>}
+    </div>
+  );
+}
+
+function Mixer({ playing }: { playing: boolean }) {
   const strips: (TrackId | 'master')[] = [...TRACKS.map((t) => t.id), 'master'];
   return (
     <div className="view mixer">
-      {strips.map((id) => {
-        const meta = id === 'master' ? { name: 'MASTER', color: '#ffffff' } : TRACKS.find((t) => t.id === id)!;
-        const ch = id === 'master' ? null : engine.channels[id];
-        const ref = useMeter(id, playing);
-        return (
-          <div key={id} className="strip" style={{ borderColor: (meta as any).color + '44' }}>
-            <div className="strip-name" style={{ color: (meta as any).color }}>{(meta as any).name}</div>
-            <div className="strip-meter"><div className="strip-fill" ref={ref} /></div>
-            {ch && (
-              <>
-                <input className="fader" type="range" min={0} max={1} step={0.01} defaultValue={0.9}
-                  onChange={(e) => engine.setFader(id as TrackId, Number(e.target.value))} />
-                <div className="strip-btns">
-                  <button className={'m-btn' + (ch.mute ? ' on-m' : '')} onClick={() => { engine.setMute(id as TrackId, !ch.mute); force((x) => x + 1); }}>M</button>
-                  <button className={'m-btn' + (ch.solo ? ' on-s' : '')} onClick={() => { engine.setSolo(id as TrackId, !ch.solo); force((x) => x + 1); }}>S</button>
-                </div>
-                <div className="strip-sends">
-                  <label>DLY<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'lead' ? 0.35 : 0} onChange={(e) => engine.setSend(id as TrackId, 'd', Number(e.target.value))} /></label>
-                  <label>RVB<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'pad' ? 0.5 : id === 'lead' ? 0.2 : 0} onChange={(e) => engine.setSend(id as TrackId, 'r', Number(e.target.value))} /></label>
-                </div>
-              </>
-            )}
-            {!ch && <div className="strip-note">EQ → COMP → LIMIT</div>}
-          </div>
-        );
-      })}
+      {strips.map((id) => <Strip key={id} id={id} playing={playing} />)}
     </div>
   );
 }
@@ -220,7 +226,13 @@ export default function App() {
   const [, force] = useState(0);
   const [styleId, setStyleId] = useState('fullon');
   const mRef = useMeter('master', playing);
-  useEffect(() => { engine.onTick = (bar, step) => setPos({ bar, step }); return () => { engine.onTick = null; }; }, []);
+  useEffect(() => {
+    engine.onTick = (bar, step) => setPos({ bar, step });
+    engine.generateStyle('fullon', 1);
+    setBpm(engine.bpm);
+    force((x) => x + 1);
+    return () => { engine.onTick = null; };
+  }, []);
   const toggle = async () => { if (playing) { engine.stop(); setPlaying(false); } else { await engine.start(); setPlaying(true); } };
   const secName = pos.bar >= 0 ? sectionAtBar(pos.bar).section.name : '—';
   return (
