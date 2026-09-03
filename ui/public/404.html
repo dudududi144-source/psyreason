@@ -1,23 +1,21 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>PsyReason</title>
-    <script>
-      // Single Page App redirect for GitHub Pages
-      // Converts path to query string so index.html can restore the route
-      var pathSegmentsToKeep = 1; // Keep 'psyreason' segment
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
-    </script>
-  </head>
-  <body>
-    <h1>Redirecting to PsyReason...</h1>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <title>PsyReason</title>
+  <script>
+    // Redirect to the assets directory where the app is served
+    var base = "/psyreason/";
+    var path = window.location.pathname;
+    if (path === base || path === base.slice(0, -1)) {
+      window.location.replace(base + "assets/");
+    } else {
+      window.location.replace(base + "assets/");
+    }
+  </script>
+</head>
+<body>
+  <h1>Redirecting to PsyReason...</h1>
+  <p>If not redirected, <a href="/psyreason/assets/">click here</a>.</p>
+</body>
 </html>
