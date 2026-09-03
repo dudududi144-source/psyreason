@@ -120,3 +120,39 @@ body { background: var(--bg); color: var(--txt); font-family: 'Segoe UI', 'Helve
   font-size: 10px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all .12s;
 }
 .test2:hover { background: #ffffff12; }
+
+/* v3 full architecture views */
+.nav3 { display: flex; gap: 6px; }
+.nav3-btn { background: #1a1a28; border: 1px solid var(--line); color: var(--txt); padding: 9px 16px; border-radius: 4px; cursor: pointer; font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+.nav3-btn:hover { border-color: var(--green); color: var(--green); }
+.nav3-btn.on { background: var(--green); color: #000; border-color: var(--green); }
+.main3 { flex: 1; overflow: auto; padding: 16px 24px; }
+.view3 { display: flex; flex-direction: column; gap: 10px; }
+
+.rackgrid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.dev3 { background: var(--panel); border: 1px solid; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.dev3-head { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.dev3-body { display: flex; gap: 14px; flex-wrap: wrap; }
+.dev3-note { font-size: 9px; color: var(--dim); }
+
+.cables3-hint { font-size: 11px; color: var(--dim); letter-spacing: 1px; margin-bottom: 6px; }
+.cables3 { display: grid; grid-template-columns: 220px 1fr 220px; gap: 16px; align-items: start; }
+.cables3-col { display: flex; flex-direction: column; gap: 10px; }
+.port3 { border: 2px solid; border-radius: 6px; padding: 12px; text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 2px; cursor: pointer; background: var(--panel); transition: all .12s; }
+.port3:hover { transform: scale(1.03); }
+.port3.sel { background: #ffffff18; box-shadow: 0 0 12px currentColor; }
+.cables3-mid { display: flex; flex-direction: column; gap: 6px; }
+.cable3 { display: flex; align-items: center; gap: 8px; border: 1px solid; border-radius: 4px; padding: 8px 12px; font-size: 11px; letter-spacing: 1px; background: var(--panel); }
+.cable3 button { margin-left: auto; background: none; border: none; color: var(--dim); cursor: pointer; font-size: 12px; }
+.cable3 button:hover { color: #ff4444; }
+
+.pr-row { display: flex; align-items: center; gap: 10px; }
+.pr-name { width: 40px; font-size: 10px; color: var(--dim); text-align: right; }
+
+.br3-section { margin-bottom: 18px; }
+.br3-section h4 { font-size: 11px; letter-spacing: 2px; color: var(--dim); margin-bottom: 8px; }
+.br3-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.br3-item { background: var(--panel); border: 1px solid var(--line); color: var(--txt); padding: 10px 16px; border-radius: 4px; cursor: pointer; font-size: 11px; letter-spacing: 1px; }
+.br3-item:hover { border-color: var(--green); color: var(--green); }
+
+.kb-strip { padding: 10px 24px; background: var(--panel); border-top: 1px solid var(--line); }
