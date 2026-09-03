@@ -5,16 +5,18 @@ interface KnobProps {
   value: number;
   min?: number;
   max?: number;
+  color?: string;
   onChange?: (value: number) => void;
 }
 
-export default function Knob({ label, value, min = 0, max = 1, onChange }: KnobProps) {
+export default function Knob({ label, value, min = 0, max = 1, color = '#00ff88', onChange }: KnobProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const knobRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const startValue = useRef(0);
+  const knobRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     startY.current = e.clientY;
     startValue.current = value;
@@ -44,11 +46,12 @@ export default function Knob({ label, value, min = 0, max = 1, onChange }: KnobP
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        style={{ borderColor: isDragging ? color : undefined }}
       >
-        <div className="indicator" style={{ transform: `translateX(-50%) rotate(${rotation}deg)` }} />
+        <div className="indicator" style={{ transform: 'translateX(-50%) rotate(' + rotation + 'deg)', background: color }} />
       </div>
       <span className="knob-label">{label}</span>
-      <span className="knob-value">{value.toFixed(2)}</span>
+      <span className="knob-value" style={{ color: color }}>{value.toFixed(2)}</span>
     </div>
   );
 }
