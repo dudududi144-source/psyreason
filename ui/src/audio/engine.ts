@@ -1,13 +1,11 @@
-// PsyReason Real Audio Engine - Web Audio API
-// This engine actually produces sound: synths, drums, effects, sequencer
+// PsyReason Audio Engine v2 - NOW POWERED BY THE REAL DEVICE CODE
+// drums = Kong, bass/lead = Thor, pad = Europa, fx = Phaser/Delay/Reverb from devices/effects
+
+import { renderThor, renderEuropa, renderMalstrom, renderKong, makeFxChain, mtof, FxChain } from './rack';
 
 export interface PatternData {
-  kick: boolean[];
-  bass: boolean[];
-  hat: boolean[];
-  openhat: boolean[];
-  lead: (number | null)[];
-  pad: (number[] | null)[];
+  kick: boolean[]; bass: boolean[]; hat: boolean[]; openhat: boolean[];
+  lead: (number | null)[]; pad: (number[] | null)[];
 }
 
 export function createDefaultPattern(): PatternData {
@@ -32,13 +30,9 @@ export class PsyAudioEngine {
   comp: DynamicsCompressorNode | null = null;
   analyser: AnalyserNode | null = null;
   busFilter: BiquadFilterNode | null = null;
-  delaySend: GainNode | null = null;
-  delayNode: DelayNode | null = null;
-  delayFb: GainNode | null = null;
-  delayFilter: BiquadFilterNode | null = null;
-  reverbSend: GainNode | null = null;
-  reverbNode: ConvolverNode | null = null;
-  noiseBuf: AudioBuffer | null = null;
+  sendFx: GainNode | null = null;
+  fxProc: ScriptProcessorNode | null = null;
+  fx: FxChain | null = null;
 
   running = false;
   bpm = 145;
@@ -47,11 +41,12 @@ export class PsyAudioEngine {
   timer: number | null = null;
   pattern: PatternData = createDefaultPattern();
   cutoff = 6000;
-  resonance = 0.3;
-  delayMix = 0.3;
-  reverbMix = 0.25;
+  resonance = 4;
+  delayMix = 0.35;
+  reverbMix = 0.3;
   bassLevel = 0.85;
-  onStep: ((step: number) => void) | null = null;
+  onStep: ((s: number) => void) | null = null;
+  private cache = new Map<string, AudioBuffer>();
 
   async init() {
     if (this.ctx) { await this.ctx.resume(); return; }
@@ -59,205 +54,91 @@ export class PsyAudioEngine {
     this.ctx = new AC();
     const ctx = this.ctx;
 
-    this.master = ctx.createGain();
-    this.master.gain.value = 0.85;
+    this.master = ctx.createGain(); this.master.gain.value = 0.85;
     this.comp = ctx.createDynamicsCompressor();
-    this.comp.threshold.value = -14;
-    this.comp.ratio.value = 5;
-    this.comp.attack.value = 0.003;
-    this.comp.release.value = 0.25;
-    this.analyser = ctx.createAnalyser();
-    this.analyser.fftSize = 512;
-    this.master.connect(this.comp);
-    this.comp.connect(this.analyser);
-    this.analyser.connect(ctx.destination);
+    this.comp.threshold.value = -14; this.comp.ratio.value = 5;
+    this.comp.attack.value = 0.003; this.comp.release.value = 0.25;
+    this.analyser = ctx.createAnalyser(); this.analyser.fftSize = 512;
+    this.master.connect(this.comp); this.comp.connect(this.analyser); this.analyser.connect(ctx.destination);
 
+    // CUTOFF/RESO knob controls this - bass+lead bus
     this.busFilter = ctx.createBiquadFilter();
     this.busFilter.type = 'lowpass';
     this.busFilter.frequency.value = this.cutoff;
     this.busFilter.Q.value = this.resonance;
     this.busFilter.connect(this.master);
 
-    this.delaySend = ctx.createGain();
-    this.delaySend.gain.value = this.delayMix;
-    this.delayNode = ctx.createDelay(2);
-    this.delayNode.delayTime.value = (60 / this.bpm) * 0.75;
-    this.delayFb = ctx.createGain();
-    this.delayFb.gain.value = 0.38;
-    this.delayFilter = ctx.createBiquadFilter();
-    this.delayFilter.type = 'lowpass';
-    this.delayFilter.frequency.value = 3200;
-    this.delaySend.connect(this.delayNode);
-    this.delayNode.connect(this.delayFilter);
-    this.delayFilter.connect(this.delayFb);
-    this.delayFb.connect(this.delayNode);
-    this.delayFilter.connect(this.master);
-
-    this.reverbSend = ctx.createGain();
-    this.reverbSend.gain.value = this.reverbMix;
-    this.reverbNode = ctx.createConvolver();
-    this.reverbNode.buffer = this.makeImpulse(2.0, 2.5);
-    this.reverbSend.connect(this.reverbNode);
-    this.reverbNode.connect(this.master);
-
-    this.noiseBuf = this.makeNoise();
+    // REAL effects from devices/effects, run live per-sample
+    this.fx = makeFxChain(ctx.sampleRate);
+    this.sendFx = ctx.createGain(); this.sendFx.gain.value = 1;
+    this.fxProc = ctx.createScriptProcessor(1024, 2, 2);
+    const fx = this.fx;
+    const self = this;
+    this.fxProc.onaudioprocess = (e) => {
+      const iL = e.inputBuffer.getChannelData(0);
+      const iR = e.inputBuffer.getChannelData(1);
+      const oL = e.outputBuffer.getChannelData(0);
+      const oR = e.outputBuffer.getChannelData(1);
+      for (let i = 0; i < oL.length; i++) {
+        const p = fx.phaser.process(iL[i], iR[i]);
+        const d = fx.delay.process(iL[i], iR[i]);
+        const r = fx.reverb.process(iL[i], iR[i]);
+        oL[i] = p[0] * 0.35 + d[0] * self.delayMix + r[0] * self.reverbMix;
+        oR[i] = p[1] * 0.35 + d[1] * self.delayMix + r[1] * self.reverbMix;
+      }
+    };
+    this.sendFx.connect(this.fxProc);
+    this.fxProc.connect(this.master);
   }
 
-  makeNoise(): AudioBuffer {
-    const ctx = this.ctx!;
-    const len = ctx.sampleRate * 1;
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    let seed = 12345;
-    for (let i = 0; i < len; i++) {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      data[i] = (seed / 4294967296) * 2 - 1;
-    }
+  private toBuffer(key: string, render: () => Float32Array): AudioBuffer {
+    const hit = this.cache.get(key);
+    if (hit) return hit;
+    const data = render();
+    const buf = this.ctx!.createBuffer(1, data.length, this.ctx!.sampleRate);
+    buf.getChannelData(0).set(data);
+    this.cache.set(key, buf);
     return buf;
   }
 
-  makeImpulse(seconds: number, decay: number): AudioBuffer {
-    const ctx = this.ctx!;
-    const rate = ctx.sampleRate;
-    const len = Math.floor(rate * seconds);
-    const buf = ctx.createBuffer(2, len, rate);
-    let seed = 777;
-    for (let ch = 0; ch < 2; ch++) {
-      const data = buf.getChannelData(ch);
-      for (let i = 0; i < len; i++) {
-        seed = (seed * 1664525 + 1013904223) >>> 0;
-        const n = (seed / 4294967296) * 2 - 1;
-        data[i] = n * Math.pow(1 - i / len, decay);
-      }
-    }
-    return buf;
-  }
-
-  mtof(m: number): number { return 440 * Math.pow(2, (m - 69) / 12); }
-
-  // KICK: sine with pitch drop - the psytrance thump
-  kick(t: number) {
-    const ctx = this.ctx!;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(160, t);
-    osc.frequency.exponentialRampToValueAtTime(42, t + 0.09);
-    g.gain.setValueAtTime(1.0, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-    osc.connect(g); g.connect(this.master!);
-    osc.start(t); osc.stop(t + 0.3);
-    // click transient
-    const src = ctx.createBufferSource();
-    src.buffer = this.noiseBuf!;
-    const hg = ctx.createGain();
-    hg.gain.setValueAtTime(0.25, t);
-    hg.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 1500;
-    src.connect(hp); hp.connect(hg); hg.connect(this.master!);
-    src.start(t); src.stop(t + 0.03);
-  }
-
-  // BASS: rolling offbeat saw + sub through the bus filter
-  bass(t: number, freq: number, dur: number) {
-    const ctx = this.ctx!;
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = freq;
-    const sub = ctx.createOscillator();
-    sub.type = 'square';
-    sub.frequency.value = freq / 2;
-    const g = ctx.createGain();
-    const sg = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(this.bassLevel * 0.5, t + 0.004);
-    g.gain.setValueAtTime(this.bassLevel * 0.5, t + dur * 0.6);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    sg.gain.setValueAtTime(0.0001, t);
-    sg.gain.linearRampToValueAtTime(this.bassLevel * 0.4, t + 0.004);
-    sg.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.connect(g); sub.connect(sg);
-    g.connect(this.busFilter!); sg.connect(this.busFilter!);
-    osc.start(t); osc.stop(t + dur + 0.05);
-    sub.start(t); sub.stop(t + dur + 0.05);
-  }
-
-  // HAT: noise through highpass
-  hat(t: number, open: boolean) {
+  private play(buf: AudioBuffer, t: number, gain: number, dest: AudioNode, alsoFx: boolean) {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
-    src.buffer = this.noiseBuf!;
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 7500;
-    const g = ctx.createGain();
-    const dur = open ? 0.3 : 0.05;
-    g.gain.setValueAtTime(open ? 0.3 : 0.25, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(hp); hp.connect(g); g.connect(this.master!);
-    src.start(t); src.stop(t + dur + 0.05);
+    src.buffer = buf;
+    const g = ctx.createGain(); g.gain.value = gain;
+    src.connect(g); g.connect(dest);
+    if (alsoFx) { g.connect(this.sendFx!); }
+    src.start(t);
   }
 
-  // LEAD: saw through filter + delay send
-  lead(t: number, freq: number, dur: number) {
-    const ctx = this.ctx!;
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = freq;
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'sawtooth';
-    osc2.frequency.value = freq;
-    osc2.detune.value = 9;
-    const f = ctx.createBiquadFilter();
-    f.type = 'lowpass';
-    f.frequency.setValueAtTime(4500, t);
-    f.frequency.exponentialRampToValueAtTime(900, t + dur);
-    f.Q.value = 4;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.28, t + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.connect(f); osc2.connect(f); f.connect(g);
-    g.connect(this.master!);
-    g.connect(this.delaySend!);
-    g.connect(this.reverbSend!);
-    osc.start(t); osc.stop(t + dur + 0.05);
-    osc2.start(t); osc2.stop(t + dur + 0.05);
+  // device buffers (cached)
+  private kickBuf() { return this.toBuffer('kong-kick', () => renderKong(this.ctx!.sampleRate, 0)); }
+  private hatBuf() { return this.toBuffer('kong-hat', () => renderKong(this.ctx!.sampleRate, 4)); }
+  private openBuf() { return this.toBuffer('kong-open', () => renderKong(this.ctx!.sampleRate, 5)); }
+  private bassBuf() { return this.toBuffer('thor-bass', () => renderThor(this.ctx!.sampleRate, 33, 0.24, 0.2, 1)); }
+  private leadBuf(midi: number) { return this.toBuffer('thor-lead-' + midi, () => renderThor(this.ctx!.sampleRate, midi, 0.5, 0.32, 2)); }
+  private padBuf(chord: number[]) {
+    return this.toBuffer('europa-pad-' + chord.join('.'), () => {
+      const sr = this.ctx!.sampleRate;
+      const parts = chord.map((m) => renderEuropa(sr, m, 1.6, 1.2));
+      const n = Math.floor(sr * 1.6);
+      const sum = new Float32Array(n);
+      for (const p of parts) for (let i = 0; i < n; i++) sum[i] += p[i] * 0.5;
+      return sum;
+    });
   }
-
-  // PAD: detuned saws, slow attack
-  pad(t: number, freqs: number[], dur: number) {
-    const ctx = this.ctx!;
-    for (const fr of freqs) {
-      for (const det of [-6, 6]) {
-        const osc = ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.value = this.mtof(fr);
-        osc.detune.value = det;
-        const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 1200; f.Q.value = 0.5;
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.05, t + 0.4);
-        g.gain.setValueAtTime(0.05, t + dur - 0.5);
-        g.gain.linearRampToValueAtTime(0.0001, t + dur);
-        osc.connect(f); f.connect(g);
-        g.connect(this.master!);
-        g.connect(this.reverbSend!);
-        osc.start(t); osc.stop(t + dur + 0.1);
-      }
-    }
-  }
+  private malstromBuf(midi: number) { return this.toBuffer('malstrom-' + midi, () => renderMalstrom(this.ctx!.sampleRate, midi, 0.8, 0.5)); }
 
   scheduleStep(s: number, t: number) {
     const p = this.pattern;
-    const stepDur = 60 / this.bpm / 4;
-    if (p.kick[s]) this.kick(t);
-    if (p.bass[s]) this.bass(t, this.mtof(33), stepDur * 0.9);
-    if (p.hat[s]) this.hat(t, false);
-    if (p.openhat[s]) this.hat(t, true);
-    if (p.lead[s] !== null) this.lead(t, this.mtof(p.lead[s] as number), stepDur * 2.5);
-    if (p.pad[s] !== null) this.pad(t, p.pad[s] as number[], stepDur * 16);
+    const m = this.master!;
+    const bf = this.busFilter!;
+    if (p.kick[s]) this.play(this.kickBuf(), t, 1.0, m, false);
+    if (p.bass[s]) this.play(this.bassBuf(), t, this.bassLevel, bf, false);
+    if (p.hat[s]) this.play(this.hatBuf(), t, 0.5, m, false);
+    if (p.openhat[s]) this.play(this.openBuf(), t, 0.45, m, true);
+    if (p.lead[s] !== null) this.play(this.leadBuf(p.lead[s] as number), t, 0.8, bf, true);
+    if (p.pad[s] !== null) this.play(this.padBuf(p.pad[s] as number[]), t, 0.5, m, true);
   }
 
   scheduler = () => {
@@ -265,9 +146,9 @@ export class PsyAudioEngine {
     const stepDur = 60 / this.bpm / 4;
     while (this.nextTime < ctx.currentTime + 0.15) {
       this.scheduleStep(this.step, this.nextTime);
-      const stepForUi = this.step;
-      const delayMs = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
-      window.setTimeout(() => { if (this.onStep) this.onStep(stepForUi); }, delayMs);
+      const s = this.step;
+      const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
+      window.setTimeout(() => { if (this.onStep) this.onStep(s); }, ms);
       this.step = (this.step + 1) % 16;
       this.nextTime += stepDur;
     }
@@ -288,32 +169,23 @@ export class PsyAudioEngine {
     if (this.onStep) this.onStep(-1);
   }
 
-  playNote(midi: number) {
-    if (!this.ctx) return;
-    this.lead(this.ctx.currentTime, this.mtof(midi), 0.35);
+  // TEST buttons in the rack - each device plays through ITS OWN engine
+  async testDevice(id: string) {
+    await this.init();
+    const t = this.ctx!.currentTime + 0.05;
+    const m = this.master!;
+    if (id === 'thor-bass') { this.play(this.bassBuf(), t, 1, this.busFilter!, false); this.play(this.bassBuf(), t + 0.21, 1, this.busFilter!, false); this.play(this.bassBuf(), t + 0.42, 1, this.busFilter!, false); }
+    if (id === 'thor-lead') { [69, 70, 72, 69].forEach((n2, i) => this.play(this.leadBuf(n2), t + i * 0.16, 0.9, this.busFilter!, true)); }
+    if (id === 'europa') this.play(this.padBuf([57, 60, 64]), t, 0.8, m, true);
+    if (id === 'malstrom') this.play(this.malstromBuf(69), t, 0.9, m, true);
+    if (id === 'kong') { this.play(this.kickBuf(), t, 1, m, false); this.play(this.hatBuf(), t + 0.21, 0.6, m, false); this.play(this.openBuf(), t + 0.42, 0.5, m, true); }
   }
 
-  setBpm(v: number) {
-    this.bpm = Math.max(60, Math.min(200, v));
-    if (this.delayNode && this.ctx) this.delayNode.delayTime.value = (60 / this.bpm) * 0.75;
+  // keyboard plays Thor lead
+  async playNote(midi: number) {
+    await this.init();
+    this.play(this.leadBuf(midi), this.ctx!.currentTime + 0.02, 0.9, this.busFilter!, true);
   }
-  setCutoff(v: number) {
-    this.cutoff = v;
-    if (this.busFilter) this.busFilter.frequency.value = v;
-  }
-  setResonance(v: number) {
-    this.resonance = v;
-    if (this.busFilter) this.busFilter.Q.value = v;
-  }
-  setDelayMix(v: number) {
-    this.delayMix = v;
-    if (this.delaySend) this.delaySend.gain.value = v;
-  }
-  setReverbMix(v: number) {
-    this.reverbMix = v;
-    if (this.reverbSend) this.reverbSend.gain.value = v;
-  }
-  setBassLevel(v: number) { this.bassLevel = v; }
 
   getLevels(): { l: number; r: number } {
     if (!this.analyser) return { l: 0, r: 0 };
@@ -326,6 +198,13 @@ export class PsyAudioEngine {
     }
     return { l: peak, r: peak * 0.95 };
   }
+
+  setBpm(v: number) { this.bpm = Math.max(60, Math.min(200, v)); }
+  setCutoff(v: number) { this.cutoff = v; if (this.busFilter) this.busFilter.frequency.value = v; }
+  setResonance(v: number) { this.resonance = v; if (this.busFilter) this.busFilter.Q.value = v; }
+  setDelayMix(v: number) { this.delayMix = v; }
+  setReverbMix(v: number) { this.reverbMix = v; }
+  setBassLevel(v: number) { this.bassLevel = v; }
 }
 
 export const engine = new PsyAudioEngine();
