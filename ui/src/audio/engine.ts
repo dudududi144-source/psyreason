@@ -23,14 +23,17 @@ export const ARRANGEMENT: Section[] = [
 ];
 export const TOTAL_BARS = ARRANGEMENT.reduce((a, s) => a + s.bars, 0);
 
-export function sectionAtBar(bar: number): { section: Section; index: number; startBar: number } {
+export function sectionAtBarIn(arr: Section[], bar: number): { section: Section; index: number; startBar: number } {
   let b = 0;
-  for (let i = 0; i < ARRANGEMENT.length; i++) {
-    if (bar < b + ARRANGEMENT[i].bars) return { section: ARRANGEMENT[i], index: i, startBar: b };
-    b += ARRANGEMENT[i].bars;
+  for (let i = 0; i < arr.length; i++) {
+    if (bar < b + arr[i].bars) return { section: arr[i], index: i, startBar: b };
+    b += arr[i].bars;
   }
-  const last = ARRANGEMENT.length - 1;
-  return { section: ARRANGEMENT[last], index: last, startBar: b };
+  const last = arr.length - 1;
+  return { section: arr[last], index: last, startBar: b };
+}
+export function sectionAtBar(bar: number): { section: Section; index: number; startBar: number } {
+  return sectionAtBarIn(engine.arrangement, bar);
 }
 
 export interface SongData {
@@ -54,6 +57,8 @@ export function defaultSong(): SongData {
 }
 
 export const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
+
+import { generateSong, generateTrack, generateArrangement } from './generator';
 
 interface Channel {
   bus: GainNode; duck: GainNode; fader: GainNode; pan: StereoPannerNode; an: AnalyserNode;
@@ -83,6 +88,20 @@ export class Engine {
     lead: { cutoff: 4200, res: 5, decay: 0.3, dSend: 0.35, rSend: 0.2 },
     pad: { cutoff: 1200, rSend: 0.5, dSend: 0 },
   };
+
+  arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
+  seed = 1337;
+
+  generate(seed?: number) {
+    this.seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
+    this.song = generateSong(this.seed);
+    this.arrangement = generateArrangement(this.seed);
+  }
+  regenTrack(id: TrackId) {
+    this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+    this.song = generateTrack(id, this.seed + (id.length * 7919), this.song);
+  }
+  totalBars(): number { return this.arrangement.reduce((a, s) => a + s.bars, 0); }
 
   async init() {
     if (this.ctx) { await this.ctx.resume(); return; }
@@ -225,12 +244,12 @@ export class Engine {
     while (this.nextTime < ctx.currentTime + 0.12) {
       this.schedule(this.step16, this.nextTime);
       const g = this.step16; const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
-      window.setTimeout(() => { if (this.onTick) this.onTick(Math.floor(g / 16) % TOTAL_BARS, g % 16, sectionAtBar(Math.floor(g / 16) % TOTAL_BARS).index); }, ms);
+      window.setTimeout(() => { if (this.onTick) this.onTick(Math.floor(g / 16) % this.totalBars(), g % 16, sectionAtBarIn(this.arrangement, Math.floor(g / 16) % this.totalBars()).index); }, ms);
       this.step16++; this.nextTime += stepDur;
     }
   };
   private schedule(g: number, t: number) {
-    const bar = Math.floor(g / 16) % TOTAL_BARS; const step = g % 16;
+    const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section } = sectionAtBar(bar);
     const on = (id: TrackId) => section.active.includes(id);
     const s = this.song; const stepDur = 60 / this.bpm / 4;
