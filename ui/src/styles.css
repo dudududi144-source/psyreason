@@ -105,3 +105,9 @@ body { background: var(--bg); color: var(--tx); font-family: 'Segoe UI', 'Helvet
 .chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .chain i { color: var(--dim); font-style: normal; font-size: 10px; }
 .chain-node { border: 1px solid; border-radius: 4px; padding: 5px 9px; font-size: 9px; font-weight: 800; letter-spacing: 1px; background: var(--p1); }
+
+/* compact mixer row inside arrange */
+.mixer.compact { margin-top: 12px; }
+.mixer.compact .strip { min-width: 78px; padding: 8px 6px; }
+.mixer.compact .strip-meter { height: 90px; }
+.mixer.compact .fader { height: 80px; }
