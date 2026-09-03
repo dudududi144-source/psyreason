@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/psyreason/',
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: false,
   },
   server: {
     port: 3000,
