@@ -1,25 +1,25 @@
 {
   "name": "psyreason",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "PsyReason - Complete Reason clone in the browser",
+  "description": "PsyReason - Complete Reason clone in the browser for psytrance production",
   "workspaces": [
-    "foundation/*",
-    "devices/*",
-    "host/*",
+    "foundation",
+    "devices",
+    "host",
     "ui"
   ],
   "scripts": {
     "dev": "bun run --cwd ui dev",
-    "build": "bun run build:ui",
-    "build:ui": "bun run --cwd ui build",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
+    "build": "bun run --cwd ui build",
+    "preview": "bun run --cwd ui preview",
+    "test": "bun test tests/",
+    "test:coverage": "bun test tests/ --coverage",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf node_modules dist .next"
+    "typecheck": "bun run --cwd ui exec tsc --noEmit",
+    "clean": "rm -rf node_modules ui/node_modules ui/dist"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
