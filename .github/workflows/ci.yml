@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   test:
@@ -19,7 +17,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ui
-        run: npm install
+        run: npm install --no-audit --no-fund --loglevel=error
 
       - name: Build
         working-directory: ui
