@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from './audio/engine';
+import { STYLES } from './audio/generator';
 
 type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack';
 
@@ -208,6 +209,7 @@ export default function App() {
   const [bpm, setBpm] = useState(145);
   const [pos, setPos] = useState({ bar: -1, step: -1 });
   const [, force] = useState(0);
+  const [styleId, setStyleId] = useState('fullon');
   const mRef = useMeter('master', playing);
   useEffect(() => { engine.onTick = (bar, step) => setPos({ bar, step }); return () => { engine.onTick = null; }; }, []);
   const toggle = async () => { if (playing) { engine.stop(); setPlaying(false); } else { await engine.start(); setPlaying(true); } };
@@ -224,11 +226,26 @@ export default function App() {
       </header>
       <div className="transport">
         <button className={'play' + (playing ? ' on' : '')} onClick={toggle}>{playing ? '■ STOP' : '▶ PLAY'}</button>
-        <button className="gen" onClick={() => { engine.generate(); force((x) => x + 1); }} title="generate a new track">⚄ GENERATE</button>
+        <button className="gen" onClick={() => { engine.generateStyle(styleId, Math.floor(Math.random() * 999)); setBpm(engine.bpm); force((x) => x + 1); }} title="generate a new track in this style">⚄ GENERATE</button>
         <div className="t-block"><span>BPM</span><input type="number" value={bpm} min={90} max={200} onChange={(e) => { const v = Number(e.target.value); setBpm(v); engine.setBpm(v); }} /></div>
         <div className="t-block"><span>POS</span><b>{pos.bar >= 0 ? 'BAR ' + (pos.bar + 1) + ' . ' + (pos.step + 1) : '—'}</b></div>
         <div className="t-block"><span>SECTION</span><b className="sec">{secName}</b></div>
         <div className="t-meter"><span>MST</span><div className="t-meter-track"><div className="t-meter-fill" ref={mRef} /></div></div>
+      </div>
+      <div className="stylebar">
+        <span className="sb-label">STYLE SESSIONS</span>
+        {STYLES.map((st) => (
+          <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')}
+            style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined}
+            onClick={() => { setStyleId(st.id); engine.generateStyle(st.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
+            {st.name}
+          </button>
+        ))}
+        <span className="style-desc">{(STYLES.find((s) => s.id === styleId) || STYLES[0]).desc}</span>
+        <span className="sb-label">SESSION</span>
+        {[1, 2, 3].map((v) => (
+          <button key={v} className="var-btn" onClick={() => { engine.generateStyle(styleId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
+        ))}
       </div>
       <main className="content">
         {view === 'arrange' && <Arrange pos={pos} playing={playing} />}
