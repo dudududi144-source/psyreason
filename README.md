@@ -141,6 +141,48 @@ Open http://localhost:3000
 3. SEQUENCER - 8-track x 16-step with psytrance default pattern
 4. PIANO ROLL - Note editor with grid and tools
 5. BROWSER - Device/patch/sample browser with search
+
+## v0.4.0 - Final Build (Latest)
+
+### New Devices Added
+- **Kong** - Drum Designer with 16 pads (8 drum types: kick, snare, hat, cymbal, tom, clap, perc, fx)
+- **Grain** - Granular sampler with 4 algorithms (spectral, grain, long-grain, texture)
+- **Synchronous** - Step FX with 16-step parameter modulation + 3 psytrance presets
+- **Pulsar Vocoder** - 16/32 band vocoder with envelope followers + 3 presets
+
+### New UI Features
+- **Keyboard** - Piano keyboard with computer keyboard mapping (A-W-S-E-D-F-T-G-Y-H-U-J-K-O-L-P)
+- **Level Meters** - Animated L/R audio level visualization
+- **Metronome** - Toggle metronome in transport
+- **Time Display** - Elapsed time + beat indicators (1-2-3-4)
+- **Status Strip** - Real-time status info
+
+### Device Count: 23
+- 4 Synthesizers (Subtractor, Thor, Malstrom, Europa)
+- 2 Samplers (NN-XT, Grain)
+- 2 Drum Machines (Redrum, Kong)
+- 8 Effects (Synchronous, Vocoder, Reverb, Delay, Chorus, Filter, Distortion, Phaser)
+- 3 Mastering (Compressor, EQ, Imager)
+- 2 Mixing (Mixer 14:2, Combinator)
+- 2 Tools (RPG-8 Arp, Matrix)
+
+### UI Views: 5
+1. RACK - 20 devices in 6 organized sections
+2. CABLES - SVG patch bay with 9 devices
+3. SEQUENCER - 8-track x 16-step with playback
+4. PIANO ROLL - Note editor with tools
+5. BROWSER - 23 devices + 15 patches
+
+### Deployment Status
+- All imports verified OK
+- CSS classes all defined
+- Vite config with correct base path
+- 404.html for SPA routing
+- GitHub Pages workflow ready
+
+### Live URL
+https://dudududi144-source.github.io/psyreason/
+
 ## License
 
 MIT
