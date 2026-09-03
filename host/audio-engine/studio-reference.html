@@ -1,0 +1,3207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PSY STUDIO — Generative Psytrance Production</title>
+<style>
+:root{
+  --bg:#050208; --panel:rgba(15,8,30,.6); --border:rgba(150,90,255,.25);
+  --cyan:#00f0c8; --purple:#b967ff; --magenta:#ff2e88; --gold:#ffd166;
+  --text:#efe9fb; --dim:#9d8fc0; --ok:#3dffa8; --warn:#ffb347;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:
+    radial-gradient(ellipse at 50% 30%, rgba(120,40,200,.18), transparent 60%),
+    radial-gradient(ellipse at 15% 85%, rgba(0,240,200,.08), transparent 60%),
+    radial-gradient(ellipse at 85% 15%, rgba(255,46,136,.08), transparent 60%);}
+#app{height:100vh;display:flex;flex-direction:column}
+
+/* start overlay */
+#start{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:20px;cursor:pointer;
+  transition:opacity .4s}
+#start.hidden{opacity:0;pointer-events:none}
+#start h1{font-size:54px;font-weight:900;letter-spacing:.1em;
+  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--magenta));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 28px rgba(185,103,255,.5))}
+#start .sub{color:var(--dim);letter-spacing:.22em;text-transform:uppercase;font-size:11px}
+#start .play-hint{margin-top:14px;padding:16px 40px;border:2px solid var(--cyan);border-radius:999px;
+  color:var(--cyan);font-weight:800;letter-spacing:.12em;font-size:15px;
+  animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,240,200,.4)}50%{box-shadow:0 0 0 22px rgba(0,240,200,0)}}
+#start .features{margin-top:20px;color:var(--dim);font-size:11px;text-align:center;line-height:1.7;
+  max-width:480px;font-family:ui-monospace,monospace}
+
+/* header */
+.header{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;
+  border-bottom:1px solid var(--border)}
+.brand{font-size:18px;font-weight:900;letter-spacing:.12em;color:var(--cyan)}
+.brand .sub{color:var(--dim);font-weight:400;letter-spacing:.08em;margin-left:8px;font-size:11px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.dir-indicator{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;
+  background:rgba(15,8,30,.8);border:1px solid var(--border);font-family:ui-monospace,monospace;font-size:11px}
+.dir-led{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:all .2s}
+.dir-led.play{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.dir-led.abstain{background:var(--magenta);box-shadow:0 0 10px var(--magenta)}
+.dir-txt{color:var(--dim)} .dir-txt.play{color:var(--ok)} .dir-txt.abstain{color:var(--magenta)}
+
+/* main area */
+.main{flex:1;display:grid;grid-template-columns:1fr 320px;gap:14px;padding:14px;overflow:hidden}
+.viz-area{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0}
+.np{text-align:center}
+.np-label{color:var(--dim);font-size:10px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:4px}
+.np-section{font-size:32px;font-weight:900;letter-spacing:.06em;font-family:ui-monospace,monospace;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.np-meta{color:var(--dim);font-size:12px;margin-top:6px;font-family:ui-monospace,monospace;letter-spacing:.08em}
+.np-meta span{color:var(--cyan)}
+#viz{display:block;width:min(60vh,480px);height:min(60vh,480px);max-width:90%}
+
+/* control panel */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;
+  display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.panel h3{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);
+  margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.ctrl-group{display:flex;flex-direction:column;gap:6px}
+.ctrl-label{color:var(--dim);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  display:flex;justify-content:space-between}
+.ctrl-val{color:var(--cyan);font-family:ui-monospace,monospace}
+input[type="range"]{width:100%;height:4px;-webkit-appearance:none;background:#1a0f2e;border-radius:2px;outline:none}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--cyan);cursor:pointer;box-shadow:0 0 8px var(--cyan)}
+input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:none;
+  background:var(--cyan);cursor:pointer;box-shadow:0 0 8px var(--cyan)}
+.moods{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.mood{padding:8px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.08em;
+  background:#0d0620;color:var(--dim);border:1px solid var(--border);text-align:center;
+  font-family:ui-monospace,monospace;transition:all .15s}
+.mood:hover{color:var(--cyan);border-color:var(--cyan)}
+.mood.active{background:var(--purple);color:#0a0518;border-color:var(--purple)}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.preset{padding:10px 0;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800;
+  background:#0d0620;color:var(--dim);border:1px solid var(--border);text-align:center;
+  font-family:ui-monospace,monospace;transition:all .15s}
+.preset:hover{color:var(--cyan);border-color:var(--cyan)}
+.preset.saved{color:var(--gold);border-color:rgba(255,209,102,.4)}
+.preset.active{background:var(--gold);color:#0a0518}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{padding:9px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.08em;
+  background:#0d0620;color:var(--cyan);border:1px solid var(--border);text-align:center;
+  font-family:ui-monospace,monospace;transition:all .15s}
+.btn:hover{color:var(--bg);background:var(--cyan)}
+.btn.full{grid-column:1/-1}
+.btn.export{color:var(--gold);border-color:rgba(255,209,102,.3)}
+.btn.export:hover{color:var(--bg);background:var(--gold)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.muted{background:var(--magenta)!important;color:var(--bg)!important;border-color:var(--magenta)!important}
+
+/* export menu */
+.export-menu{position:fixed;bottom:60px;right:22px;background:rgba(15,8,30,.95);border:1px solid var(--border);
+  border-radius:10px;padding:8px;display:none;flex-direction:column;gap:4px;z-index:100;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:200px}
+.export-menu.open{display:flex}
+.export-item{padding:10px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;
+  color:var(--text);font-family:ui-monospace,monospace;transition:all .12s}
+.export-item:hover{background:var(--purple);color:#0a0518}
+.export-item .desc{color:var(--dim);font-size:9px;display:block;margin-top:2px;font-weight:400}
+.export-item:hover .desc{color:rgba(10,5,24,.7)}
+
+/* footer / status */
+.footer{padding:8px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;
+  align-items:center;font-size:10px;color:var(--dim);font-family:ui-monospace,monospace;letter-spacing:.08em}
+.footer .ok{color:var(--ok)} .footer .err{color:var(--magenta)} .footer .warn{color:var(--warn)}
+
+@media(max-width:760px){
+  .main{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .panel{max-height:40vh}
+  #start h1{font-size:36px}
+  .np-section{font-size:22px}
+  #viz{width:min(50vh,320px);height:min(50vh,320px)}
+  .header{padding:10px 14px}
+  .brand{font-size:14px}
+  .brand .sub{display:none}
+  .footer{padding:6px 14px;font-size:9px}
+  .dir-indicator{padding:4px 8px;font-size:10px}
+  #btn-export{padding:6px 10px;font-size:9px}
+}
+/* S8: PWA install badge */
+#psy-pwa-badge{position:fixed;bottom:48px;right:14px;background:rgba(15,8,30,.95);
+  border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:8px 14px;
+  font-size:11px;font-family:ui-monospace,monospace;z-index:90;cursor:pointer;display:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.4)}
+#psy-pwa-badge:hover{background:var(--cyan);color:var(--bg)}
+/* S9: license notice in footer */
+.license-notice{color:var(--dim);font-size:9px;font-family:ui-monospace,monospace}
+.license-notice a{color:var(--purple);text-decoration:none}
+.license-notice .cc{color:var(--gold)}
+</style>
+</head>
+<body>
+
+<!-- start overlay -->
+<div id="start">
+  <h1>PSY STUDIO</h1>
+  <div class="sub">Generative Psytrance Production · AudioWorklet · PolyBLEP · ZDF · FM</div>
+  <div class="play-hint">▶ CLICK TO START</div>
+  <div class="features">
+    Infinite generative psytrance · sample-accurate AudioWorklet synthesis<br>
+    Export full tracks · stems · MIDI · project files · shareable URLs<br>
+    No more main-thread blocking · no latency · release-quality master chain
+  </div>
+</div>
+
+<div id="app">
+  <!-- header -->
+  <div class="header">
+    <div class="brand">PSY STUDIO<span class="sub">· generative psytrance production</span></div>
+    <div class="header-actions">
+      <div class="dir-indicator">
+        <div class="dir-led" id="dir-led"></div>
+        <div class="dir-txt" id="dir-txt">init…</div>
+      </div>
+      <button class="btn export" id="btn-export" style="padding:8px 14px">▼ EXPORT</button>
+    </div>
+  </div>
+
+  <!-- main -->
+  <div class="main">
+    <div class="viz-area">
+      <div class="np">
+        <div class="np-label">now playing</div>
+        <div class="np-section" id="np-section">— · —</div>
+        <div class="np-meta">
+          <span id="np-bpm">—</span> BPM · key <span id="np-key">—</span> · bar <span id="np-bar">0</span> · seed <span id="np-seed">—</span>
+        </div>
+        <div style="margin-top:8px;width:100%;max-width:300px">
+          <div class="ctrl-label"><span>tension</span><span class="ctrl-val" id="val-tension">0.0</span></div>
+          <div style="height:6px;background:#1a0f2e;border-radius:3px;overflow:hidden">
+            <div id="tension-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--magenta));transition:width .3s"></div>
+          </div>
+        </div>
+      </div>
+      <canvas id="viz" width="480" height="480"></canvas>
+    </div>
+
+    <!-- control panel -->
+    <div class="panel">
+      <div>
+        <h3>Transport</h3>
+        <div class="btn-row" style="grid-template-columns:1fr 1fr">
+          <div class="btn" id="btn-play" style="background:var(--cyan);color:var(--bg);font-size:13px">▶ PLAY</div>
+          <div class="btn" id="btn-reseed">↻ RESEED</div>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
+          <div class="btn section-jump" data-section="INTRO" style="font-size:9px;padding:5px 8px">INTRO</div>
+          <div class="btn section-jump" data-section="BUILD" style="font-size:9px;padding:5px 8px">BUILD</div>
+          <div class="btn section-jump" data-section="DROP" style="font-size:9px;padding:5px 8px">DROP</div>
+          <div class="btn section-jump" data-section="BREAK" style="font-size:9px;padding:5px 8px">BREAK</div>
+          <div class="btn section-jump" data-section="RISER" style="font-size:9px;padding:5px 8px">RISER</div>
+          <div class="btn section-jump" data-section="DROP2" style="font-size:9px;padding:5px 8px">DROP2</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Synthesis</h3>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>energy</span><span class="ctrl-val" id="val-energy">0.50</span></div>
+          <input type="range" id="sl-energy" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="ctrl-group" style="margin-top:8px">
+          <div class="ctrl-label"><span>bpm</span><span class="ctrl-val" id="val-bpm">144</span></div>
+          <input type="range" id="sl-bpm" min="120" max="160" step="1" value="144">
+        </div>
+        <div class="ctrl-group" style="margin-top:8px">
+          <div class="ctrl-label"><span>mood</span></div>
+          <div class="moods" id="moods">
+            <div class="mood active" data-mood="fullon">FULL-ON</div>
+            <div class="mood" data-mood="dark">DARK</div>
+            <div class="mood" data-mood="prog">PROG</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Macros <span style="color:var(--dim);font-weight:400;font-size:9px">— real-time control</span></h3>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>tension</span><span class="ctrl-val" id="val-macro-tension">0.5</span></div>
+          <input type="range" id="macro-tension" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="ctrl-group" style="margin-top:6px">
+          <div class="ctrl-label"><span>brightness</span><span class="ctrl-val" id="val-macro-brightness">0.5</span></div>
+          <input type="range" id="macro-brightness" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="ctrl-group" style="margin-top:6px">
+          <div class="ctrl-label"><span>space</span><span class="ctrl-val" id="val-macro-space">0.3</span></div>
+          <input type="range" id="macro-space" min="0" max="1" step="0.01" value="0.3">
+        </div>
+      </div>
+
+      <div>
+        <h3>Mixer <span style="color:var(--dim);font-weight:400;font-size:9px">— 6 channels</span></h3>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;text-align:center">
+          <div><div style="font-size:8px;color:var(--dim);margin-bottom:2px">KICK</div><input type="range" id="mix-kick-vol" min="0" max="1" step="0.01" value="0.9" style="writing-mode:bt-lr;-webkit-appearance:slider-vertical;width:16px;height:50px"></div>
+          <div><div style="font-size:8px;color:var(--dim);margin-bottom:2px">BASS</div><input type="range" id="mix-bass-vol" min="0" max="1" step="0.01" value="0.7" style="writing-mode:bt-lr;-webkit-appearance:slider-vertical;width:16px;height:50px"></div>
+          <div><div style="font-size:8px;color:var(--dim);margin-bottom:2px">SUB</div><input type="range" id="mix-sub-vol" min="0" max="1" step="0.01" value="0.5" style="writing-mode:bt-lr;-webkit-appearance:slider-vertical;width:16px;height:50px"></div>
+          <div><div style="font-size:8px;color:var(--dim);margin-bottom:2px">LEAD</div><input type="range" id="mix-lead-vol" min="0" max="1" step="0.01" value="0.5" style="writing-mode:bt-lr;-webkit-appearance:slider-vertical;width:16px;height:50px"></div>
+          <div><div style="font-size:8px;color:var(--dim);margin-bottom:2px">PAD</div><input type="range" id="mix-pad-vol" min="0" max="1" step="0.01" value="0.4" style="writing-mode:bt-lr;-webkit-appearance:slider-vertical;width:16px;height:50px"></div>
+          <div><div style="font-size:8px;color:var(--dim);margin-bottom:2px">DRUM</div><input type="range" id="mix-drums-vol" min="0" max="1" step="0.01" value="0.6" style="writing-mode:bt-lr;-webkit-appearance:slider-vertical;width:16px;height:50px"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:4px;text-align:center">
+          <div class="btn" id="mix-kick-mute" style="font-size:8px;padding:3px 0">M</div>
+          <div class="btn" id="mix-bass-mute" style="font-size:8px;padding:3px 0">M</div>
+          <div class="btn" id="mix-sub-mute" style="font-size:8px;padding:3px 0">M</div>
+          <div class="btn" id="mix-lead-mute" style="font-size:8px;padding:3px 0">M</div>
+          <div class="btn" id="mix-pad-mute" style="font-size:8px;padding:3px 0">M</div>
+          <div class="btn" id="mix-drums-mute" style="font-size:8px;padding:3px 0">M</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Presets</h3>
+        <div class="presets" id="presets">
+          <div class="preset" data-slot="0">A</div>
+          <div class="preset" data-slot="1">B</div>
+          <div class="preset" data-slot="2">C</div>
+          <div class="preset" data-slot="3">D</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Actions</h3>
+        <div class="btn-row">
+          <div class="btn" id="btn-share">⎘ SHARE URL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- export menu (popup) -->
+  <div class="export-menu" id="export-menu">
+    <div class="export-item" data-export="wav1">Export 1 min WAV<span class="desc">~10 MB · 16-bit stereo</span></div>
+    <div class="export-item" data-export="wav5">Export 5 min WAV<span class="desc">~50 MB · full track</span></div>
+    <div class="export-item" data-export="wav10">Export 10 min WAV<span class="desc">~100 MB · long form</span></div>
+    <div class="export-item" data-export="stems">Export Stems<span class="desc">5 WAVs · kick/bass/lead/pad/master</span></div>
+    <div class="export-item" data-export="midi">Export MIDI<span class="desc">.mid · SMF0 · 480 ticks/beat</span></div>
+    <div class="export-item" data-export="project">Save Project<span class="desc">.psy.json · reloadable state</span></div>
+  </div>
+
+  <!-- footer -->
+  <div class="footer">
+    <div id="status">loading foundation…</div>
+    <div class="license-notice">
+      <span class="cc">CC-BY 4.0</span> · generated tracks free to use with attribution ·
+      <a href="https://github.com/dudududi144-source/psy" target="_blank">source</a> ·
+      PSY STUDIO v1.0
+    </div>
+  </div>
+</div>
+
+<!-- S8: PWA install badge (shown when browser offers install) -->
+<div id="psy-pwa-badge" title="Install PSY STUDIO as an app">⬇ Install app</div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   PSY STUDIO — Generative Psytrance Production
+   Commercial product: AudioWorklet synthesis + export capabilities.
+
+   Architecture:
+   - AudioWorklet (PsyStudioProcessor) — all DSP + scheduler + director + grammar
+     + master chain, running on the audio thread (NO main-thread blocking).
+   - Main thread: UI + parameter messages + export (OfflineAudioContext + foundation modules).
+
+   Why AudioWorklet (not ScriptProcessorNode):
+   - ScriptProcessorNode.onaudioprocess runs on MAIN THREAD → competes with UI → glitches + latency
+   - AudioWorkletProcessor.process() runs on AUDIO THREAD → never blocked by UI
+   - This is the fix for the "עמוס" (overloaded) + "לייטנסי" (latency) the user reported.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* S8: inline PWA manifest via Blob URL (preserves single-file constraint) */
+(function registerPwaManifest(){
+  try {
+    var manifest = {
+      "name": "PSY STUDIO — Generative Psytrance Production",
+      "short_name": "PSY STUDIO",
+      "description": "Generative psytrance production studio with AudioWorklet synthesis",
+      "start_url": ".",
+      "display": "standalone",
+      "background_color": "#050208",
+      "theme_color": "#050208",
+      "icons": [{
+        "src": "data:image/svg+xml;utf8," + encodeURIComponent(
+          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
+          "<rect width='64' height='64' rx='12' fill='#050208'/>" +
+          "<text x='32' y='42' font-family='monospace' font-size='20' font-weight='900' " +
+          "text-anchor='middle' fill='#00f0c8'>PSY</text></svg>"
+        ),
+        "sizes": "64x64", "type": "image/svg+xml"
+      }]
+    };
+    var blob = new Blob([JSON.stringify(manifest)], {type: "application/json"});
+    var link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  } catch(e) { /* non-fatal */ }
+})();
+
+/* S8: inline service worker (cache-first for offline use) */
+if("serviceWorker" in navigator){
+  try {
+    var swCode = [
+      "const CACHE='psy-studio-v1';",
+      "self.addEventListener('install',function(e){",
+      "  e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(['./']);}).then(function(){return self.skipWaiting();}));",
+      "});",
+      "self.addEventListener('activate',function(e){",
+      "  e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));}).then(function(){return self.clients.claim();}));",
+      "});",
+      "self.addEventListener('fetch',function(e){",
+      "  if(e.request.method!=='GET')return;",
+      "  e.respondWith(caches.match(e.request).then(function(hit){return hit||fetch(e.request).then(function(r){if(r&&r.status===200&&r.type==='basic'){var c=r.clone();caches.open(CACHE).then(function(cache){cache.put(e.request,c);});}return r;}).catch(function(){return caches.match('./');});}));",
+      "});"
+    ].join("\n");
+    var swBlob = new Blob([swCode], {type: "application/javascript"});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(err){
+      console.warn("[PSY STUDIO] SW registration failed (non-fatal):", err.message);
+    });
+  } catch(e) { /* non-fatal */ }
+}
+
+/* S8: PWA install prompt handler */
+var _deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault(); _deferredPrompt = e;
+  var badge = document.getElementById("psy-pwa-badge");
+  if(badge) badge.style.display = "block";
+});
+window.addEventListener("load", function(){
+  var badge = document.getElementById("psy-pwa-badge");
+  if(badge) badge.addEventListener("click", function(){
+    if(_deferredPrompt){
+      _deferredPrompt.prompt();
+      _deferredPrompt.userChoice.finally(function(){
+        _deferredPrompt = null;
+        badge.style.display = "none";
+      });
+    }
+  });
+});
+
+
+
+var AUDIO = null;
+var MASTER = null;
+var WORKLET = null;
+var F = null;  // foundation modules (for export only)
+var STATE = {
+  playing: false,
+  bpm: 144, energy: 0.5, mood: "fullon",
+  seed: Math.floor(Math.random() * 1000000),
+  barIndex: 0, section: "INTRO",
+  audioTime: 0,
+  lastMetrics: null,
+};
+
+/* ═══════ AudioWorklet code (all DSP inline — self-contained, no imports) ═══════ */
+var WORKLET_CODE = `
+"use strict";
+// ═══ PSY STUDIO PRO SOUND ENGINE — commercial-grade synthesis ═══
+// All DSP inline. Runs on audio thread. Zero per-sample allocation.
+
+function mulberry32(s){ var a=s>>>0; return function(){ a|=0; a=(a+0x6D2B79F5)|0;
+  var t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t;
+  return ((t^(t>>>14))>>>0)/4294967296; }; }
+function subSeed(p,l){ var h=(p>>>0)^0x9E3779B9; for(var i=0;i<l.length;i++){
+  h=Math.imul(h^l.charCodeAt(i),0x85EBCA6B); h=(h^(h>>>13))>>>0; }
+  return (Math.imul(h^(h>>>16),0x27D4EB2F)>>>15)>>>0; }
+
+function polyblepSaw(phase, dt){
+  var p = phase - Math.floor(phase);
+  var saw = 2 * p - 1;
+  var delta = 0;
+  if(p < dt) delta = -(p/dt) + 1;
+  else if(p > 1 - dt) delta = (p/dt) - 1;
+  return saw + delta * 2;
+}
+function polyblepSquare(phase, dt){
+  var p = phase - Math.floor(phase);
+  var naive = p < 0.5 ? 1 : -1;
+  var b1 = 0, b2 = 0;
+  if(p < dt) b1 = -(p/dt) + 1;
+  else if(p > 1 - dt) b1 = (p/dt) - 1;
+  var p2 = (p + 0.5) % 1;
+  if(p2 < dt) b2 = -(p2/dt) + 1;
+  else if(p2 > 1 - dt) b2 = (p2/dt) - 1;
+  return naive + b1 * 2 - b2 * 2;
+}
+
+class ZdfSvf {
+  constructor(){ this.ic1=0; this.ic2=0; }
+  process(input, cutoff, res, sr){
+    var r = res < 0 ? 0 : (res > 1 ? 1 : res);
+    var k = 1.41421356 * (1 - r);
+    var g = Math.tan(Math.PI * Math.max(20, Math.min(cutoff, sr/2 - 1)) / sr);
+    var a1 = 1 / (1 + g * (g + k));
+    var a2 = g * a1; var a3 = g * a2;
+    var v3 = input - this.ic2;
+    var v1 = a1 * this.ic1 + a2 * v3;
+    var v2 = this.ic2 + a2 * this.ic1 + a3 * v3;
+    this.ic1 = 2 * v1 - this.ic1;
+    this.ic2 = 2 * v2 - this.ic2;
+    return { low: v2, band: v1, high: v3 };
+  }
+}
+
+var _noiseState = 12345;
+function noiseNext(){
+  _noiseState = (_noiseState * 16807) % 2147483647;
+  return (_noiseState / 2147483647) * 2 - 1;
+}
+
+class Comp {
+  constructor(){ this.env=0; this.gr=1; }
+  process(x, thr, ratio, atkMs, relMs, sr){
+    var peak = Math.abs(x);
+    var a = Math.exp(-1 / Math.max(0.001, atkMs * 0.001 * sr));
+    var r = Math.exp(-1 / Math.max(0.001, relMs * 0.001 * sr));
+    if(peak > this.env) this.env = this.env * a + peak * (1-a);
+    else this.env = this.env * r + peak * (1-r);
+    if(this.env > thr){
+      var over = this.env - thr;
+      this.gr = 1 - over * (1 - 1/ratio) / Math.max(0.001, this.env);
+    } else { this.gr = 1; }
+    return x * this.gr;
+  }
+}
+
+class Reverb {
+  constructor(sr){
+    var rs = sr / 2;
+    this.ap = [];
+    var delays = [0.0117, 0.0234, 0.0351, 0.0468];
+    for(var i = 0; i < 4; i++) this.ap.push({ buf: new Float32Array(Math.floor(rs * delays[i])), idx: 0 });
+    this.d = [];
+    var dd = [0.0897, 0.1134, 0.1412, 0.1557];
+    for(var j = 0; j < 4; j++) this.d.push({ buf: new Float32Array(Math.floor(rs * dd[j])), idx: 0 });
+    this.lastWet = 0; this.count = 0;
+  }
+  _ap(node, input, decay){
+    var out = node.buf[node.idx];
+    node.buf[node.idx] = input + out * decay;
+    node.idx = (node.idx + 1) % node.buf.length;
+    return out - input * decay;
+  }
+  _delay(node, input){
+    var out = node.buf[node.idx];
+    node.buf[node.idx] = input;
+    node.idx = (node.idx + 1) % node.buf.length;
+    return out;
+  }
+  process(input, decay){
+    this.count = (this.count + 1) % 2;
+    if(this.count === 0){
+      var x = this._ap(this.ap[0], input, 0.7);
+      x = this._ap(this.ap[1], x, 0.7);
+      x = this._ap(this.ap[2], x, 0.7);
+      x = this._ap(this.ap[3], x, 0.7);
+      var d1 = this._delay(this.d[0], x) * decay;
+      var d2 = this._delay(this.d[1], x) * decay;
+      var d3 = this._delay(this.d[2], x) * decay;
+      var d4 = this._delay(this.d[3], x) * decay;
+      this.lastWet = (d1 - d2 + d3 - d4) * 0.5;
+    }
+    return this.lastWet;
+  }
+}
+
+class Chorus {
+  constructor(sr){ this.buf = new Float32Array(Math.floor(sr * 0.05)); this.idx = 0; this.lfo = 0; }
+  process(input, rate, depth, sr){
+    this.lfo += rate / sr * 2 * Math.PI;
+    var delay = (0.015 + 0.01 * Math.sin(this.lfo)) * sr;
+    var readIdx = this.idx - delay + this.buf.length;
+    readIdx = ((readIdx % this.buf.length) + this.buf.length) % this.buf.length;
+    var i0 = Math.floor(readIdx);
+    var i1 = (i0 + 1) % this.buf.length;
+    var frac = readIdx - i0;
+    var out = this.buf[i0] * (1 - frac) + this.buf[i1] * frac;
+    this.buf[this.idx] = input;
+    this.idx = (this.idx + 1) % this.buf.length;
+    return out * depth + input * (1 - depth);
+  }
+}
+
+// ── LFO (low-frequency oscillator, multiple waveforms) ──
+class LFO {
+  constructor(){ this.phase = 0; this.rate = 1; this.shape = "sine"; }
+  process(dt){
+    this.phase += this.rate * dt;
+    this.phase -= Math.floor(this.phase);
+    var p = this.phase;
+    if(this.shape === "sine") return Math.sin(2 * Math.PI * p);
+    if(this.shape === "tri") return 2 * Math.abs(2 * (p - Math.floor(p + 0.5))) - 1;
+    if(this.shape === "saw") return 2 * p - 1;
+    if(this.shape === "square") return p < 0.5 ? 1 : -1;
+    if(this.shape === "s&h") return Math.floor(p * 8) / 8 * 2 - 1; // sample & hold, 8 steps
+    return Math.sin(2 * Math.PI * p);
+  }
+}
+
+// ── Moog ladder filter (cascade of 4 one-pole LPs with feedback) ──
+class MoogLadder {
+  constructor(){ this.s = [0,0,0,0]; this.s0=0; this.s1=0; this.s2=0; this.s3=0; this.fc=200; this.q=0.5; }
+  process(input, fc, q, sr){
+    this.fc = Math.max(20, Math.min(fc, sr/2 - 1));
+    this.q = Math.max(0, Math.min(q, 1));
+    // oversample 2x for stability
+    var out = 0;
+    for(var os = 0; os < 2; os++){
+      var g = 1 - Math.exp(-2 * Math.PI * this.fc / (sr * 2));
+      var fb = this.q * 4 * 0.99;
+      var inPlus = input - this.s3 * fb;
+      this.s0 = this.s0 + g * (inPlus - this.s0);
+      this.s1 = this.s1 + g * (this.s0 - this.s1);
+      this.s2 = this.s2 + g * (this.s1 - this.s2);
+      this.s3 = this.s3 + g * (this.s2 - this.s3);
+      out = this.s3;
+    }
+    return out;
+  }
+}
+
+// ── Wavetables (extended set) ──
+var _wt = null;
+function buildWavetables(){
+  if(_wt) return _wt;
+  var size = 512;
+  _wt = { saw: new Float32Array(size), square: new Float32Array(size), triangle: new Float32Array(size),
+          sine: new Float32Array(size), psy: new Float32Array(size), reese: new Float32Array(size),
+          pluck: new Float32Array(size), bell: new Float32Array(size) };
+  var dt = 1/size;
+  for(var i = 0; i < size; i++){
+    var ph = i / size;
+    _wt.saw[i] = polyblepSaw(ph, dt);
+    _wt.square[i] = polyblepSquare(ph, dt);
+    _wt.triangle[i] = 2 * Math.abs(2 * (ph - Math.floor(ph + 0.5))) - 1;
+    _wt.sine[i] = Math.sin(2 * Math.PI * ph);
+    // psy: saw + 2nd harmonic + 7th harmonic (rich, cutting)
+    _wt.psy[i] = 0.5 * polyblepSaw(ph, dt) + 0.3 * Math.sin(2*Math.PI*ph*2) + 0.2 * Math.sin(2*Math.PI*ph*7);
+    // reese: super-saw-like, 3 detuned saws in one cycle (for bass)
+    var d1 = polyblepSaw((ph + 0.01) % 1, dt);
+    var d2 = polyblepSaw((ph + 0.03) % 1, dt);
+    _wt.reese[i] = (polyblepSaw(ph, dt) * 0.4 + d1 * 0.3 + d2 * 0.3);
+    // pluck: short attack emphasis, Karplus-Strong-like (decaying harmonics)
+    _wt.pluck[i] = Math.sin(2*Math.PI*ph) * Math.exp(-ph*3) + Math.sin(2*Math.PI*ph*2) * Math.exp(-ph*5) * 0.5;
+    // bell: FM-like, sum of inharmonic partials
+    _wt.bell[i] = Math.sin(2*Math.PI*ph*2.76) * 0.5 + Math.sin(2*Math.PI*ph*5.4) * 0.3 + Math.sin(2*Math.PI*ph*8.93) * 0.2;
+  }
+  return _wt;
+}
+function wavetableOsc(table, phase){
+  var p = phase - Math.floor(phase);
+  var idx = p * table.length;
+  var i0 = Math.floor(idx) % table.length;
+  var i1 = (i0 + 1) % table.length;
+  var frac = idx - Math.floor(idx);
+  return table[i0] * (1 - frac) + table[i1] * frac;
+}
+
+// ── Formant filter (vowel sounds via parallel bandpass) ──
+class Formant {
+  constructor(){
+    this.f1 = new ZdfSvf(); this.f2 = new ZdfSvf(); this.f3 = new ZdfSvf();
+    this.vowel = 0; // 0=a, 1=e, 2=i, 3=o, 4=u
+  }
+  process(input, sr){
+    // formant frequencies for vowels (Hz)
+    var vowels = [
+      [800, 1150, 2900],   // a
+      [400, 1700, 2600],   // e
+      [350, 2200, 2900],   // i
+      [450, 800, 2900],    // o
+      [325, 700, 2600],    // u
+    ];
+    var f = vowels[Math.floor(this.vowel) % 5];
+    var o1 = this.f1.process(input, f[0], 0.7, sr).band;
+    var o2 = this.f2.process(input, f[1], 0.7, sr).band;
+    var o3 = this.f3.process(input, f[2], 0.7, sr).band;
+    return o1 * 0.4 + o2 * 0.4 + o3 * 0.2;
+  }
+}
+
+// ── Ring modulator (multiplies carrier × modulator = sum/difference frequencies) ──
+class RingMod {
+  constructor(){ this.modPhase = 0; this.modFreq = 200; this.depth = 0; }
+  process(input, sr){
+    this.modPhase += this.modFreq / sr;
+    this.modPhase -= Math.floor(this.modPhase);
+    var mod = Math.sin(2 * Math.PI * this.modPhase);
+    return input * (1 - this.depth) + input * mod * this.depth;
+  }
+}
+
+// ── Motif transformation (invert/retrograde/augment) ──
+function transformMotif(notes, op){
+  if(op === "invert") return notes.map(function(n){ return -n; });
+  if(op === "retrograde") return notes.slice().reverse();
+  if(op === "augment") return notes.map(function(n){ return n * 2; }); // double intervals
+  if(op === "diminish") return notes.map(function(n){ return Math.floor(n / 2); });
+  return notes;
+}
+
+// ── Glide/portamento: smooth pitch transition between notes ──
+class Glide {
+  constructor(){ this.current = 0; this.target = 0; this.rate = 0; } // rate: 0=instant, 1=very slow
+  setTarget(freq, rate){ this.target = freq; this.rate = rate || 0; }
+  process(dt){
+    if(this.rate <= 0){ this.current = this.target; return this.current; }
+    // exponential glide toward target
+    var a = Math.exp(-dt / Math.max(0.001, this.rate));
+    this.current = this.current * a + this.target * (1 - a);
+    return this.current;
+  }
+}
+
+// ── Stereo widener (mid/side processing) ──
+class StereoWidener {
+  constructor(){ this.width = 0.5; } // 0=mono, 0.5=normal, 1=wide
+  process(left, right){
+    var mid = (left + right) * 0.5;
+    var side = (left - right) * 0.5 * this.width;
+    return { left: mid + side, right: mid - side };
+  }
+}
+
+// ── Multiband compressor (3-band: low/mid/high) ──
+class MultibandComp {
+  constructor(){
+    this.lowF = new ZdfSvf(); this.highF = new ZdfSvf();
+    this.lowC = new Comp(); this.midC = new Comp(); this.highC = new Comp();
+  }
+  process(input, sr){
+    // 3-band split: low (<200Hz), mid (200-2000Hz), high (>2000Hz)
+    var low = this.lowF.process(input, 200, 0.5, sr).low;
+    var high = this.highF.process(input, 2000, 0.5, sr).high;
+    var mid = input - low - high;
+    // compress each band independently
+    low = this.lowC.process(low, 0.1, 3, 5, 80, sr);
+    mid = this.midC.process(mid, 0.15, 3, 5, 50, sr);
+    high = this.highC.process(high, 0.08, 2, 2, 30, sr);
+    return low * 1.1 + mid * 1.0 + high * 1.2;
+  }
+}
+
+// ── Polyphonic lead voice (chord mode) ──
+class PolyVoice {
+  constructor(){ this.notes = []; this.maxVoices = 4; }
+  trigger(midi, vel){
+    this.notes.push({ midi: midi, phase: 0, phase2: 0.5, ampEnv: 1, vel: vel || 1, filter: new ZdfSvf(), fmPhase: 0 });
+    if(this.notes.length > this.maxVoices) this.notes.shift();
+  }
+  render(sr, dt, cutoff, res, fmRatio, fmIndex, wavetable){
+    var out = 0;
+    for(var i = this.notes.length - 1; i >= 0; i--){
+      var v = this.notes[i];
+      v.ampEnv *= 0.999;
+      if(v.ampEnv < 0.001){ this.notes.splice(i, 1); continue; }
+      var freq = 440 * Math.pow(2, (v.midi - 69) / 12);
+      v.phase += freq / sr; v.phase -= Math.floor(v.phase);
+      v.phase2 += freq * 1.005 / sr; v.phase2 -= Math.floor(v.phase2);
+      v.fmPhase += (freq * fmRatio) / sr; v.fmPhase -= Math.floor(v.fmPhase);
+      var s1 = polyblepSaw(v.phase, freq/sr);
+      var s2 = polyblepSaw(v.phase2, freq/sr);
+      var fm = Math.sin(2*Math.PI*v.fmPhase) * fmIndex / sr * 2 * Math.PI;
+      var mixed = s1 * 0.4 + s2 * 0.4 + Math.sin(2*Math.PI*v.phase + fm) * 0.2;
+      var f = v.filter.process(mixed, cutoff, res, sr);
+      out += f.band * v.ampEnv * 0.15 * v.vel;
+    }
+    return out / Math.max(1, this.notes.length);
+  }
+}
+
+// ── Granular synthesis (grain cloud) ──
+// Captures input into a buffer, then replays random grains with pitch + position jitter
+class Granular {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 2); // 2 second buffer
+    this.buf = new Float32Array(this.bufSize);
+    this.writeIdx = 0;
+    this.grains = [];
+    this.maxGrains = 8;
+    this.grainRate = 30; // grains per second
+    this.lastGrain = 0;
+    this.sr = sr;
+  }
+  capture(input){
+    this.buf[this.writeIdx] = input;
+    this.writeIdx = (this.writeIdx + 1) % this.bufSize;
+  }
+  spawnGrain(t){
+    if(this.grains.length >= this.maxGrains) return;
+    var pos = Math.floor(Math.random() * this.bufSize);
+    var len = Math.floor(this.sr * (0.05 + Math.random() * 0.15)); // 50-200ms
+    var pitch = 0.5 + Math.random() * 1.5; // 0.5x to 2x pitch
+    this.grains.push({ pos: pos, len: len, readPos: 0, pitch: pitch, amp: 0.3 + Math.random() * 0.4 });
+  }
+  process(input, dt, density){
+    this.capture(input);
+    var t = performance.now() / 1000;
+    if(t - this.lastGrain > 1 / (this.grainRate * density)){
+      this.spawnGrain(t);
+      this.lastGrain = t;
+    }
+    var out = 0;
+    for(var i = this.grains.length - 1; i >= 0; i--){
+      var g = this.grains[i];
+      var readIdx = (g.pos + Math.floor(g.readPos)) % this.bufSize;
+      // Hann window for smooth grain edges
+      var progress = g.readPos / g.len;
+      var window = 0.5 * (1 - Math.cos(2 * Math.PI * progress));
+      out += this.buf[readIdx] * window * g.amp;
+      g.readPos += g.pitch;
+      if(g.readPos >= g.len) this.grains.splice(i, 1);
+    }
+    return out / Math.max(1, this.grains.length) * 0.5;
+  }
+}
+
+// ── Phase distortion synthesis (Casio CZ-style) ──
+// Distorts the phase of a sine wave to create new waveforms
+class PhaseDistortion {
+  constructor(){ this.phase = 0; this.distortion = 0; } // 0=sine, 1=saw-ish
+  process(freq, sr){
+    this.phase += freq / sr;
+    this.phase -= Math.floor(this.phase);
+    var p = this.phase;
+    var d = this.distortion;
+    // bend the phase at the distortion point
+    if(p < d) p = p / d * 0.5;
+    else p = 0.5 + (p - d) / (1 - d) * 0.5;
+    return Math.sin(2 * Math.PI * p);
+  }
+}
+
+// ── Karplus-Strong physical modeling (plucked string) ──
+class KarplusStrong {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 0.1); // max 100ms delay
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.len = 0;
+    this.active = false;
+    this.damping = 0.5;
+    this.sr = sr;
+  }
+  trigger(freq, vel){
+    this.len = Math.floor(this.sr / Math.max(20, freq));
+    if(this.len >= this.bufSize) this.len = this.bufSize - 1;
+    // fill buffer with noise burst (excitation)
+    for(var i = 0; i < this.len; i++) this.buf[i] = (Math.random() * 2 - 1) * (vel || 1);
+    this.idx = 0;
+    this.active = true;
+  }
+  process(sr){
+    if(!this.active) return 0;
+    var out = this.buf[this.idx];
+    var next = (this.idx + 1) % this.len;
+    // delay line + lowpass feedback (the "string" decays)
+    this.buf[this.idx] = (out + this.buf[next]) * 0.5 * (1 - this.damping * 0.01);
+    this.idx = next;
+    if(Math.abs(out) < 0.001) this.active = false;
+    return out * 0.5;
+  }
+}
+
+// ── Additive synthesis (sine bank) ──
+// Sum of harmonically-related sines with individual amplitude control
+class AdditiveVoice {
+  constructor(){ this.phase = 0; this.ampEnv = 0; this.active = false; this.harmonics = 8; }
+  trigger(freq, vel){
+    this.phase = 0; this.ampEnv = 1; this.active = true; this.freq = freq; this.vel = vel || 1;
+  }
+  process(sr){
+    if(!this.active) return 0;
+    this.ampEnv *= 0.9995;
+    if(this.ampEnv < 0.001){ this.active = false; return 0; }
+    this.phase += this.freq / sr;
+    this.phase -= Math.floor(this.phase);
+    // sum harmonics with decreasing amplitude (bell-like)
+    var out = 0;
+    for(var h = 1; h <= this.harmonics; h++){
+      var amp = 1 / (h * h); // 1/n² decay (bell-like)
+      var detune = 1 + h * 0.0001; // slight inharmonicity for bell character
+      out += Math.sin(2 * Math.PI * this.phase * h * detune) * amp;
+    }
+    return out * this.ampEnv * 0.1 * this.vel;
+  }
+}
+
+// ── FM6: 6-operator FM synthesis (DX7-style algorithm) ──
+// Algorithm: op6→op5→op4→op3→op2→op1 (carrier), with feedback on op6
+class FM6 {
+  constructor(){
+    this.ops = [];
+    for(var i = 0; i < 6; i++){
+      this.ops.push({ phase: 0, ratio: 1, level: 0, feedback: 0, lastOut: 0 });
+    }
+    // DX7-style algorithm 1: chain modulators → carrier
+    this.ops[0].ratio = 1;   this.ops[0].level = 0;   // carrier (op1)
+    this.ops[1].ratio = 1;   this.ops[1].level = 0.5;  // modulator
+    this.ops[2].ratio = 2;   this.ops[2].level = 0.3;
+    this.ops[3].ratio = 3;   this.ops[3].level = 0.2;
+    this.ops[4].ratio = 4;   this.ops[4].level = 0.15;
+    this.ops[5].ratio = 5;   this.ops[5].level = 0.1;  this.ops[5].feedback = 0.3;
+    this.ampEnv = 0; this.active = false; this.freq = 220; this.vel = 1;
+  }
+  trigger(freq, vel){
+    this.freq = freq; this.vel = vel || 1; this.ampEnv = 1; this.active = true;
+    for(var i = 0; i < 6; i++) this.ops[i].phase = 0;
+  }
+  process(sr){
+    if(!this.active) return 0;
+    this.ampEnv *= 0.9995;
+    if(this.ampEnv < 0.001){ this.active = false; return 0; }
+    var modSignal = 0;
+    // chain: op6 (with feedback) → op5 → op4 → op3 → op2 → op1 (carrier)
+    for(var i = 5; i >= 1; i--){
+      var op = this.ops[i];
+      var opFreq = this.freq * op.ratio;
+      op.phase += opFreq / sr;
+      op.phase -= Math.floor(op.phase);
+      var feedback = (i === 5) ? op.lastOut * op.feedback : 0;
+      var output = Math.sin(2 * Math.PI * op.phase + modSignal * op.level * 5 + feedback);
+      op.lastOut = output;
+      modSignal = output;
+    }
+    // carrier (op1)
+    var carrier = this.ops[0];
+    carrier.phase += this.freq / sr;
+    carrier.phase -= Math.floor(carrier.phase);
+    var out = Math.sin(2 * Math.PI * carrier.phase + modSignal * carrier.level * 5);
+    return out * this.ampEnv * 0.15 * this.vel;
+  }
+}
+
+// ── Wave sequencer — modulates wavetable position over time ──
+class WaveSequencer {
+  constructor(){ this.position = 0; this.rate = 0.5; this.steps = 8; this.step = 0; this.lastStep = 0; }
+  process(dt){
+    this.position += this.rate * dt;
+    if(this.position >= 1){
+      this.position = 0;
+      this.step = (this.step + 1) % this.steps;
+    }
+    return this.position;
+  }
+}
+function wavetableMorph(tableA, tableB, phase, mix){
+  // crossfade between two wavetables
+  var a = wavetableOsc(tableA, phase);
+  var b = wavetableOsc(tableB, phase);
+  return a * (1 - mix) + b * mix;
+}
+
+// ── Comb filter (flanger/physical modeling) ──
+class CombFilter {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 0.05); // 50ms max
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.feedback = 0.5;
+    this.delaySamples = Math.floor(sr * 0.005); // 5ms default
+  }
+  process(input, delayMs, feedback, sr){
+    this.delaySamples = Math.floor(sr * Math.max(0.001, Math.min(delayMs, 50)) / 1000);
+    if(this.delaySamples >= this.bufSize) this.delaySamples = this.bufSize - 1;
+    this.feedback = feedback;
+    var readIdx = (this.idx - this.delaySamples + this.bufSize) % this.bufSize;
+    var delayed = this.buf[readIdx];
+    var output = input + delayed * this.feedback;
+    this.buf[this.idx] = output;
+    this.idx = (this.idx + 1) % this.bufSize;
+    return input * 0.5 + delayed * 0.5; // wet/dry mix
+  }
+}
+
+// ── Bitcrusher (lo-fi effect) ──
+class Bitcrusher {
+  constructor(){ this.bits = 16; this.sampleRate = 1; this.lastSample = 0; this.phase = 0; }
+  process(input, bits, rateReduction, sr){
+    this.bits = Math.max(1, Math.min(bits, 16));
+    this.sampleRate = Math.max(0.1, Math.min(rateReduction, 1));
+    // sample rate reduction
+    this.phase += this.sampleRate;
+    if(this.phase >= 1){
+      this.phase -= Math.floor(this.phase);
+      // bit depth reduction
+      var levels = Math.pow(2, this.bits);
+      this.lastSample = Math.round(input * levels / 2) / (levels / 2);
+    }
+    return this.lastSample;
+  }
+}
+
+// ── Transient designer (attack/sustain shaping) ──
+class TransientDesigner {
+  constructor(){
+    this.fastEnv = 0; this.slowEnv = 0;
+    this.fastCoeff = 0.001; this.slowCoeff = 0.0001; // attack coefficients
+    this.attackGain = 1;
+  }
+  process(input, sr){
+    var abs = Math.abs(input);
+    var fastAttack = Math.exp(-1 / (0.005 * sr));
+    var slowAttack = Math.exp(-1 / (0.050 * sr));
+    this.fastEnv = this.fastEnv * fastAttack + abs * (1 - fastAttack);
+    this.slowEnv = this.slowEnv * slowAttack + abs * (1 - slowAttack);
+    var transient = this.fastEnv - this.slowEnv;
+    var gain = 1 + transient * 2;
+    return input * gain;
+  }
+}
+
+// ── Sub-harmonic synth — generates sub-octave from input signal ──
+class SubHarmonic {
+  constructor(){ this.phase = 0; this.lastSign = 0; this.amount = 0.3; }
+  process(input, sr){
+    // zero-crossing detector → generate sub-octave sine
+    var sign = input >= 0 ? 1 : -1;
+    if(sign !== this.lastSign){
+      // zero crossing detected → advance phase by half
+      this.phase += 0.5;
+      this.phase -= Math.floor(this.phase);
+    }
+    this.lastSign = sign;
+    var sub = Math.sin(2 * Math.PI * this.phase);
+    return input + sub * this.amount * Math.abs(input);
+  }
+}
+
+// ── Saturator (tape + tube models) ──
+class Saturator {
+  constructor(){ this.mode = "tape"; this.drive = 0.3; this.dcBlock = 0; }
+  process(input){
+    var x = input * (1 + this.drive * 3);
+    var out;
+    if(this.mode === "tape"){
+      // tape: soft compression curve (asymmetric)
+      out = x < 0 ? Math.tanh(x * 1.2) * 0.9 : Math.tanh(x) * 1.1;
+    } else if(this.mode === "tube"){
+      // tube: even harmonic generation
+      out = x - x * x * x * 0.3;
+    } else if(this.mode === "fold"){
+      // wavefolding
+      out = Math.abs(x) > 1 ? Math.sign(x) * (2 - Math.abs(x)) : x;
+    } else {
+      out = Math.tanh(x);
+    }
+    // DC blocker
+    this.dcBlock = this.dcBlock * 0.995 + out * 0.005;
+    return out - this.dcBlock;
+  }
+}
+
+// ── Vocoder (carrier + modulator via filterbank) ──
+class Vocoder {
+  constructor(){
+    this.numBands = 8;
+    this.bands = [];
+    for(var i = 0; i < this.numBands; i++){
+      this.bands.push({ filter: new ZdfSvf(), env: 0, freq: 200 * Math.pow(2, i * 0.7) });
+    }
+    this.wet = 0;
+  }
+  process(modulator, carrier, sr){
+    if(this.wet <= 0) return carrier;
+    var out = 0;
+    for(var i = 0; i < this.numBands; i++){
+      var band = this.bands[i];
+      var mod = band.filter.process(modulator, band.freq, 0.7, sr);
+      // envelope follower
+      var absMod = Math.abs(mod.band);
+      band.env = band.env * 0.95 + absMod * 0.05;
+      // amplitude-modulate carrier at same band
+      var car = Math.sin(2 * Math.PI * band.freq / sr);
+      out += car * band.env * 0.5;
+    }
+    return carrier * (1 - this.wet) + out * this.wet * 0.3;
+  }
+}
+
+// ── Convolution reverb (simplified — uses pre-generated impulse) ──
+class ConvolutionReverb {
+  constructor(sr){
+    var irLen = Math.floor(sr * 1.5);
+    this.ir = new Float32Array(irLen);
+    for(var i = 0; i < irLen; i++){
+      var decay = Math.pow(1 - i / irLen, 2);
+      this.ir[i] = (Math.random() * 2 - 1) * decay;
+    }
+    this.bufSize = irLen;
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.enabled = false;
+    this.wet = 0.2;
+  }
+  process(input, sr){
+    if(!this.enabled) return 0;
+    this.buf[this.idx] = input;
+    var out = 0;
+    var step = 4;
+    var irLen = Math.floor(this.ir.length / step);
+    for(var i = 0; i < irLen; i++){
+      var readIdx = (this.idx - i * step + this.bufSize) % this.bufSize;
+      out += this.buf[readIdx] * this.ir[i * step];
+    }
+    this.idx = (this.idx + 1) % this.bufSize;
+    return out * this.wet;
+  }
+}
+
+// ── Phaser (multi-stage allpass with LFO-modulated sweep) ──
+class Phaser {
+  constructor(sr){
+    this.stages = 6;
+    this.allpass = [];
+    for(var i = 0; i < this.stages; i++) this.allpass.push({ a1: 0, z1: 0 });
+    this.lfo = 0;
+    this.rate = 0.5; // Hz
+    this.depth = 0.5;
+    this.feedback = 0.3;
+    this.lastWet = 0;
+    this.sr = sr;
+  }
+  process(input, sr){
+    this.lfo += this.rate / sr * 2 * Math.PI;
+    this.lfo -= Math.floor(this.lfo);
+    var sweep = 0.5 + 0.5 * Math.sin(this.lfo); // 0..1
+    var minFreq = 200, maxFreq = 2000;
+    var freq = minFreq + sweep * (maxFreq - minFreq);
+    var phase = 2 * Math.PI * freq / sr;
+    var a1 = (1 - phase) / (1 + phase);
+    var x = input + this.lastWet * this.feedback;
+    for(var i = 0; i < this.stages; i++){
+      var ap = this.allpass[i];
+      var y = x * -a1 + ap.z1;
+      ap.z1 = y * a1 + x;
+      x = y;
+    }
+    this.lastWet = x;
+    return input * (1 - this.depth) + x * this.depth;
+  }
+}
+
+// ── Harmonic exciter (psychoacoustic high-frequency enhancement) ──
+class HarmonicExciter {
+  constructor(){
+    this.hpf = new ZdfSvf();
+    this.hpf2 = new ZdfSvf();
+    this.amount = 0.3;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    // high-pass at 4kHz to isolate highs
+    var hp1 = this.hpf.process(input, 4000, 0.5, sr).high;
+    var hp2 = this.hpf2.process(hp1, 6000, 0.5, sr).high;
+    // generate harmonics via saturation
+    var harmonics = Math.tanh(hp2 * 3) * 0.3;
+    return input + harmonics * this.amount;
+  }
+}
+
+// ── Tape echo (multi-head delay) ──
+class TapeEcho {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 1.0); // 1s buffer
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.sr = sr;
+    // 3 heads at different positions (quarter, half, full)
+    this.heads = [
+      { delay: 0.125, gain: 0.5 },
+      { delay: 0.25, gain: 0.35 },
+      { delay: 0.5, gain: 0.2 }
+    ];
+    this.feedback = 0.4;
+    this.wet = 0.2;
+  }
+  process(input, sr){
+    this.buf[this.idx] = input;
+    var wet = 0;
+    for(var i = 0; i < this.heads.length; i++){
+      var head = this.heads[i];
+      var readIdx = (this.idx - Math.floor(head.delay * sr) + this.bufSize) % this.bufSize;
+      wet += this.buf[readIdx] * head.gain;
+    }
+    // feedback
+    this.buf[this.idx] = input + wet * this.feedback;
+    this.idx = (this.idx + 1) % this.bufSize;
+    return input * (1 - this.wet) + wet * this.wet;
+  }
+}
+
+// ── Resonator (modal synthesis — multiple resonant filters) ──
+class Resonator {
+  constructor(){
+    this.modes = 5;
+    this.filters = [];
+    for(var i = 0; i < this.modes; i++) this.filters.push(new ZdfSvf());
+    this.decay = 0.95;
+    this.amount = 0.3;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    var out = 0;
+    var baseFreq = 220;
+    for(var i = 0; i < this.modes; i++){
+      var freq = baseFreq * [1, 1.5, 2, 2.7, 4][i];
+      var mode = this.filters[i].process(input, freq, 0.95, sr);
+      out += mode.band * this.decay;
+    }
+    return input * (1 - this.amount) + out * this.amount;
+  }
+}
+
+// ── Wavefolder (analog-style complex distortion) ──
+class Wavefolder {
+  constructor(){ this.fold = 0.5; this.dcBlock = 0; }
+  process(input){
+    var x = input * (1 + this.fold * 4);
+    // fold: mirror at ±1
+    while(Math.abs(x) > 1){
+      if(x > 1) x = 2 - x;
+      else if(x < -1) x = -2 - x;
+    }
+    // DC blocker
+    this.dcBlock = this.dcBlock * 0.995 + x * 0.005;
+    return x - this.dcBlock;
+  }
+}
+
+// ── Ensemble effect (super-chorus — 3 detuned voices for strings) ──
+class Ensemble {
+  constructor(sr){
+    this.voices = [];
+    for(var i = 0; i < 3; i++){
+      this.voices.push({
+        buf: new Float32Array(Math.floor(sr * 0.05)),
+        idx: 0,
+        lfo: i * 2.1, // phase offset
+        rate: 0.3 + i * 0.1,
+        depth: 0.02 + i * 0.005
+      });
+    }
+    this.amount = 0.3;
+    this.sr = sr;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    var wet = 0;
+    for(var v = 0; v < 3; v++){
+      var voice = this.voices[v];
+      voice.lfo += voice.rate / sr * 2 * Math.PI;
+      voice.lfo -= Math.floor(voice.lfo);
+      var delay = (0.015 + voice.depth * Math.sin(voice.lfo)) * sr;
+      var readIdx = voice.idx - delay + voice.buf.length;
+      readIdx = ((readIdx % voice.buf.length) + voice.buf.length) % voice.buf.length;
+      var i0 = Math.floor(readIdx), i1 = (i0 + 1) % voice.buf.length;
+      var frac = readIdx - i0;
+      var delayed = voice.buf[i0] * (1 - frac) + voice.buf[i1] * frac;
+      voice.buf[voice.idx] = input;
+      voice.idx = (voice.idx + 1) % voice.buf.length;
+      wet += delayed;
+    }
+    wet /= 3;
+    return input * (1 - this.amount) + wet * this.amount;
+  }
+}
+
+// ── Spring reverb (physical modeling — waveguide simulation) ──
+class SpringReverb {
+  constructor(sr){
+    // waveguide: delay line + dispersion + feedback
+    var delayLen = Math.floor(sr * 0.04); // 40ms base delay
+    this.buf = new Float32Array(delayLen);
+    this.idx = 0;
+    this.delayLen = delayLen;
+    // dispersion filter (low-pass to simulate spring stiffness)
+    this.dispState = 0;
+    this.feedback = 0.5;
+    this.wet = 0.3;
+  }
+  process(input, sr){
+    var readIdx = this.idx;
+    var delayed = this.buf[readIdx];
+    // dispersion: lowpass the delayed signal
+    this.dispState = this.dispState * 0.7 + delayed * 0.3;
+    var dispersed = this.dispState;
+    // feedback loop
+    var fbInput = input + dispersed * this.feedback;
+    this.buf[this.idx] = fbInput;
+    this.idx = (this.idx + 1) % this.delayLen;
+    return input * (1 - this.wet) + dispersed * this.wet;
+  }
+}
+
+// ── Frequency shifter (single-sideband modulation) ──
+class FrequencyShifter {
+  constructor(){
+    this.phaseI = 0; this.phaseQ = 0; this.shift = 0;
+  }
+  process(input, sr){
+    if(Math.abs(this.shift) < 1) return input;
+    this.phaseI += this.shift / sr * 2 * Math.PI;
+    this.phaseQ += this.shift / sr * 2 * Math.PI + Math.PI / 2;
+    this.phaseI -= Math.floor(this.phaseI);
+    this.phaseQ -= Math.floor(this.phaseQ);
+    var cosI = Math.cos(2 * Math.PI * this.phaseI);
+    var sinQ = Math.sin(2 * Math.PI * this.phaseQ);
+    return input * cosI * 0.5 + input * sinQ * 0.5;
+  }
+}
+
+// ── Mid/side EQ (independent processing of mid and side channels) ──
+class MidSideEQ {
+  constructor(){
+    this.midGain = 1.0;   // boost/cut mid
+    this.sideGain = 1.2;  // boost/cut side (width control)
+    this.midFilter = new ZdfSvf();
+    this.sideFilter = new ZdfSvf();
+  }
+  process(left, right, sr){
+    var mid = (left + right) * 0.5;
+    var side = (left - right) * 0.5;
+    // EQ mid: gentle high-shelf boost
+    mid = this.midFilter.process(mid, 3000, 0.3, sr).low * 0.7 + this.midFilter.process(mid, 3000, 0.3, sr).high * 1.3;
+    mid *= this.midGain;
+    // EQ side: enhance highs for width
+    var sf = this.sideFilter.process(side, 5000, 0.5, sr);
+    side = (sf.low * 0.8 + sf.high * 1.4) * this.sideGain;
+    return { left: mid + side, right: mid - side };
+  }
+}
+
+// ── Dynamic EQ (frequency-dependent compression) ──
+class DynamicEQ {
+  constructor(){
+    this.band = new ZdfSvf();
+    this.env = 0;
+    this.threshold = 0.1;
+    this.ratio = 3;
+    this.freq = 2000; // target frequency for dynamic control
+    this.range = 0.3; // how much to cut when above threshold
+  }
+  process(input, sr){
+    // detect energy at target frequency
+    var filtered = this.band.process(input, this.freq, 0.7, sr).band;
+    var absF = Math.abs(filtered);
+    this.env = this.env * 0.95 + absF * 0.05;
+    // if energy above threshold, cut that frequency range
+    var reduction = 0;
+    if(this.env > this.threshold){
+      reduction = (this.env - this.threshold) * this.range;
+      reduction = Math.min(reduction, 0.8); // max 80% cut
+    }
+    // apply cut to the band
+    return input - filtered * reduction;
+  }
+}
+
+// ── Tape stop effect (pitch bend down — triggered at section ends) ──
+class TapeStop {
+  constructor(){ this.active = false; this.pitch = 1.0; this.decay = 0; this.buf = new Float32Array(4096); this.bufIdx = 0; this.readPos = 0; }
+  trigger(){ this.active = true; this.pitch = 1.0; this.decay = 0; }
+  process(input, sr){
+    if(!this.active) return input;
+    // ramp pitch from 1.0 to 0 over ~0.5s
+    this.pitch -= 1 / (sr * 0.5);
+    if(this.pitch <= 0){ this.active = false; this.pitch = 1.0; return 0; }
+    // resample: read from buffer at variable rate
+    this.buf[this.bufIdx] = input;
+    this.bufIdx = (this.bufIdx + 1) % this.buf.length;
+    this.readPos += this.pitch;
+    if(this.readPos >= this.buf.length) this.readPos -= this.buf.length;
+    var i0 = Math.floor(this.readPos);
+    var i1 = (i0 + 1) % this.buf.length;
+    var frac = this.readPos - i0;
+    return this.buf[i0] * (1 - frac) + this.buf[i1] * frac;
+  }
+}
+
+// ── Reverse reverb (gated reverb with pre-delay) ──
+class ReverseReverb {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 0.5); // 500ms buffer
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.wet = 0;
+    this.predelay = Math.floor(sr * 0.1); // 100ms pre-delay
+  }
+  process(input, sr){
+    if(this.wet <= 0) return input;
+    // store input
+    this.buf[this.idx] = input;
+    // read from past (reverse)
+    var readIdx = (this.idx - this.predelay + this.bufSize) % this.bufSize;
+    var reverseIdx = (readIdx - 1 + this.bufSize) % this.bufSize;
+    var wet = this.buf[reverseIdx];
+    this.idx = (this.idx + 1) % this.bufSize;
+    return input * (1 - this.wet) + wet * this.wet * 0.3;
+  }
+}
+
+// ── Stereo delay (ping-pong — L feeds R, R feeds L) ──
+class PingPongDelay {
+  constructor(sr){
+    this.bufL = new Float32Array(Math.floor(sr * 0.75)); // 750ms max
+    this.bufR = new Float32Array(Math.floor(sr * 0.75));
+    this.idxL = 0; this.idxR = 0;
+    this.delayL = Math.floor(sr * 0.375); // 375ms (dotted 1/8 at 144bpm)
+    this.delayR = Math.floor(sr * 0.375);
+    this.feedback = 0.4;
+    this.wet = 0.15;
+  }
+  process(left, right, sr){
+    // L output = delayed R, R output = delayed L
+    var outL = this.bufL[this.idxL];
+    var outR = this.bufR[this.idxR];
+    // store: L buffer gets (right + feedback from L)
+    this.bufL[this.idxL] = right + outL * this.feedback;
+    this.bufR[this.idxR] = left + outR * this.feedback;
+    this.idxL = (this.idxL + 1) % this.bufL.length;
+    this.idxR = (this.idxR + 1) % this.bufR.length;
+    return { left: left + outR * this.wet, right: right + outL * this.wet };
+  }
+}
+
+// ── Auto-pan (LFO-modulated stereo panning) ──
+class AutoPan {
+  constructor(){ this.lfo = 0; this.rate = 2; this.depth = 0.5; }
+  process(left, right, sr){
+    this.lfo += this.rate / sr * 2 * Math.PI;
+    this.lfo -= Math.floor(this.lfo);
+    var pan = Math.sin(this.lfo) * this.depth;
+    var lg = 1 - Math.max(0, pan);
+    var rg = 1 + Math.min(0, pan);
+    return { left: left * lg, right: right * rg };
+  }
+}
+
+// ── Multi-band distortion (per-band saturation) ──
+class MultiBandDistortion {
+  constructor(){
+    this.lowF = new ZdfSvf(); this.midF = new ZdfSvf(); this.highF = new ZdfSvf();
+    this.lowDrive = 0.3; this.midDrive = 0.5; this.highDrive = 0.7;
+    this.amount = 0.2;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    // 3-band split
+    var low = this.lowF.process(input, 250, 0.5, sr).low;
+    var mid = this.midF.process(input, 1500, 0.5, sr).band;
+    var high = this.highF.process(input, 4000, 0.5, sr).high;
+    // distort each band independently
+    low = Math.tanh(low * (1 + this.lowDrive * 3)) * 0.9;
+    mid = Math.tanh(mid * (1 + this.midDrive * 3)) * 0.8;
+    high = Math.tanh(high * (1 + this.highDrive * 3)) * 0.7;
+    var distorted = low + mid + high;
+    return input * (1 - this.amount) + distorted * this.amount;
+  }
+}
+
+// ── Harmonic generator (sub-bass from fundamental) ──
+class HarmonicGenerator {
+  constructor(){
+    this.lastZero = 0; this.period = 0; this.zeroCount = 0;
+    this.subPhase = 0; this.subFreq = 0;
+    this.amount = 0.2;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    // detect fundamental via zero-crossings
+    var sign = input >= 0 ? 1 : -1;
+    if(sign !== this.lastZero){
+      // zero crossing → measure period
+      var measuredPeriod = this.zeroCount;
+      if(measuredPeriod > 10 && measuredPeriod < 2000){
+        this.subFreq = sr / (measuredPeriod * 2);
+        if(this.subFreq > 30 && this.subFreq < 500){
+          // generate sub-octave
+          this.subPhase += this.subFreq / sr * 2 * Math.PI;
+          this.subPhase -= Math.floor(this.subPhase);
+        }
+      }
+      this.zeroCount = 0;
+      this.lastZero = sign;
+    }
+    this.zeroCount++;
+    var sub = Math.sin(this.subPhase) * this.amount;
+    return input + sub * Math.abs(input); // gate sub by input amplitude
+  }
+}
+
+// ── Dimension chorus (3D widening — Roland Dimension D style) ──
+class DimensionChorus {
+  constructor(sr){
+    // 2 voices with slightly different delays + phase inversion
+    this.buf1 = new Float32Array(Math.floor(sr * 0.04));
+    this.buf2 = new Float32Array(Math.floor(sr * 0.05));
+    this.idx1 = 0; this.idx2 = 0;
+    this.lfo1 = 0; this.lfo2 = Math.PI; // 180° offset
+    this.rate = 0.5;
+    this.amount = 0.3;
+  }
+  process(left, right, sr){
+    if(this.amount <= 0) return { left: left, right: right };
+    this.lfo1 += this.rate / sr * 2 * Math.PI;
+    this.lfo2 += this.rate / sr * 2 * Math.PI;
+    this.lfo1 -= Math.floor(this.lfo1); this.lfo2 -= Math.floor(this.lfo2);
+    // mono input for chorus
+    var mono = (left + right) * 0.5;
+    // voice 1: delayed + LFO
+    var d1 = (0.015 + 0.005 * Math.sin(this.lfo1)) * sr;
+    var r1 = (this.idx1 - d1 + this.buf1.length) % this.buf1.length;
+    var i0 = Math.floor(r1), i1 = (i0 + 1) % this.buf1.length;
+    var f = r1 - i0;
+    var v1 = this.buf1[i0] * (1 - f) + this.buf1[i1] * f;
+    this.buf1[this.idx1] = mono;
+    this.idx1 = (this.idx1 + 1) % this.buf1.length;
+    // voice 2: different delay + inverted phase
+    var d2 = (0.02 + 0.005 * Math.sin(this.lfo2)) * sr;
+    var r2 = (this.idx2 - d2 + this.buf2.length) % this.buf2.length;
+    var j0 = Math.floor(r2), j1 = (j0 + 1) % this.buf2.length;
+    var f2 = r2 - j0;
+    var v2 = this.buf2[j0] * (1 - f2) + this.buf2[j1] * f2;
+    this.buf2[this.idx2] = mono;
+    this.idx2 = (this.idx2 + 1) % this.buf2.length;
+    // Dimension D trick: L gets +v1 -v2, R gets -v1 +v2 (wide stereo)
+    var wet = this.amount;
+    return {
+      left: left + (v1 - v2) * wet * 0.5,
+      right: right + (-v1 + v2) * wet * 0.5
+    };
+  }
+}
+
+// ── Maximizer (ISP-aware limiter with lookahead) ──
+class Maximizer {
+  constructor(){
+    this.ceiling = 0.95;
+    this.lookahead = 32; // samples
+    this.buf = new Float32Array(this.lookahead);
+    this.idx = 0;
+    this.gain = 1.0;
+    this.releaseRate = 0.001; // gain recovery per sample
+  }
+  process(input, sr){
+    // store in lookahead buffer
+    var delayed = this.buf[this.idx];
+    this.buf[this.idx] = input;
+    this.idx = (this.idx + 1) % this.lookahead;
+    // find peak in lookahead window
+    var peak = 0;
+    for(var i = 0; i < this.lookahead; i++){
+      if(Math.abs(this.buf[i]) > peak) peak = Math.abs(this.buf[i]);
+    }
+    // compute target gain
+    var targetGain = 1.0;
+    if(peak * this.gain > this.ceiling){
+      targetGain = this.ceiling / Math.max(0.001, peak);
+    }
+    // smooth gain reduction (instant attack, slow release)
+    if(targetGain < this.gain){
+      this.gain = targetGain; // instant attack
+    } else {
+      this.gain = Math.min(1.0, this.gain + this.releaseRate); // slow release
+    }
+    return delayed * this.gain;
+  }
+}
+
+// ── LUFS metering (ITM-R BS.1770-4 simplified) ──
+class LUFSMeter {
+  constructor(){
+    this.meanSquared = 0; this.peakLevel = 0; this.blockSize = 400; this.samples = 0; this.lufs = -70;
+  }
+  process(input){
+    var sq = input * input;
+    this.meanSquared = this.meanSquared * 0.999 + sq * 0.001;
+    if(Math.abs(input) > this.peakLevel) this.peakLevel = Math.abs(input);
+    this.samples++;
+    if(this.samples >= this.blockSize){
+      if(this.meanSquared > 1e-10) this.lufs = -0.691 + 10 * Math.log10(this.meanSquared);
+      this.samples = 0;
+    }
+    return input;
+  }
+  getLoudness(){ return this.lufs; }
+  getPeak(){ return this.peakLevel; }
+}
+
+// ── Spectrum analyzer (Goertzel algorithm — 16 frequency bins) ──
+class SpectrumAnalyzer {
+  constructor(){
+    this.numBins = 16;
+    this.bins = new Float32Array(this.numBins);
+    // log-spaced frequencies: 60, 100, 170, 280, 470, 780, 1300, 2200, 3700, 6200, 10000, 14000
+    this.freqs = [60, 100, 170, 280, 470, 780, 1300, 2200, 3700, 6200, 10000, 14000];
+    this.phases = new Float32Array(this.freqs.length);
+    this.q = new Float32Array(this.freqs.length);
+    this.decay = 0.95;
+  }
+  process(input, sr){
+    // Goertzel: single-bin DFT (efficient for sparse spectrum)
+    for(var i = 0; i < this.freqs.length; i++){
+      var coeff = 2 * Math.cos(2 * Math.PI * this.freqs[i] / sr);
+      var q0 = coeff * this.q[i] - this.q[i] + input; // simplified
+      // actually Goertzel: q0 = coeff * q1 - q2 + input
+      var q2 = this.q[i];
+      this.q[i] = coeff * this.q[i] - q2 + input;
+      var power = this.q[i] * this.q[i] + q2 * q2 - coeff * this.q[i] * q2;
+      this.bins[i] = this.bins[i] * this.decay + Math.sqrt(Math.abs(power)) * (1 - this.decay);
+    }
+    return input; // passthrough
+  }
+  getBins(){ return this.bins; }
+}
+
+// ── Noise gate (per-channel — silences background when signal low) ──
+class NoiseGate {
+  constructor(){
+    this.env = 0;
+    this.threshold = 0.02;
+    this.attack = 0.01; // 10ms
+    this.release = 0.1; // 100ms
+    this.gain = 1.0;
+  }
+  process(input, sr){
+    var abs = Math.abs(input);
+    this.env = this.env * 0.99 + abs * 0.01; // smooth envelope
+    if(this.env > this.threshold){
+      // open: fast attack
+      this.gain = this.gain * 0.9 + 1.0 * 0.1;
+    } else {
+      // close: slow release
+      this.gain = this.gain * 0.999 + 0.0 * 0.001;
+    }
+    return input * this.gain;
+  }
+}
+
+// ── De-esser (frequency-specific compressor for sibilance 5-10kHz) ──
+class DeEsser {
+  constructor(){
+    this.filter = new ZdfSvf();
+    this.env = 0;
+    this.threshold = 0.08;
+    this.ratio = 4;
+    this.freq = 7000; // sibilance frequency
+    this.reduction = 0;
+  }
+  process(input, sr){
+    // detect energy at sibilance frequency
+    var sibilant = this.filter.process(input, this.freq, 0.8, sr).band;
+    var absS = Math.abs(sibilant);
+    this.env = this.env * 0.95 + absS * 0.05;
+    // compute reduction
+    if(this.env > this.threshold){
+      var over = this.env - this.threshold;
+      this.reduction = Math.min(0.8, over * this.ratio * 0.1);
+    } else {
+      this.reduction = this.reduction * 0.9; // smooth recovery
+    }
+    return input - sibilant * this.reduction;
+  }
+}
+
+// ── Transient shaper (attack/sustain independent control) ──
+class TransientShaper {
+  constructor(){
+    this.fastEnv = 0; this.slowEnv = 0;
+    this.attackGain = 1.5; // boost transients
+    this.sustainGain = 0.8; // reduce sustain
+  }
+  process(input, sr){
+    var abs = Math.abs(input);
+    var fastA = Math.exp(-1 / (0.003 * sr)); // 3ms
+    var slowA = Math.exp(-1 / (0.030 * sr)); // 30ms
+    this.fastEnv = this.fastEnv * fastA + abs * (1 - fastA);
+    this.slowEnv = this.slowEnv * slowA + abs * (1 - slowA);
+    // transient = fast - slow (attack portion)
+    var transient = Math.max(0, this.fastEnv - this.slowEnv);
+    // sustain = slow (body portion)
+    var sustain = this.slowEnv;
+    // apply gains
+    var transientOut = input * this.attackGain * transient / Math.max(0.001, this.fastEnv);
+    var sustainOut = input * this.sustainGain * sustain / Math.max(0.001, this.slowEnv);
+    return transientOut + sustainOut;
+  }
+}
+
+// ── Stereo imager (width control with mono compatibility) ──
+class StereoImager {
+  constructor(){
+    this.width = 1.0; // 0=mono, 1=normal, 2=wide
+    this.midFilter = new ZdfSvf();
+  }
+  process(left, right, sr){
+    var mid = (left + right) * 0.5;
+    var side = (left - right) * 0.5 * this.width;
+    // mono compatibility: limit side to not exceed mid (phase-safe)
+    var midAbs = Math.abs(mid);
+    var sideAbs = Math.abs(side);
+    if(sideAbs > midAbs * 1.5) side = side * (midAbs * 1.5 / Math.max(0.001, sideAbs));
+    return { left: mid + side, right: mid - side };
+  }
+}
+
+// ── Bass enhancer (psychoacoustic — generates harmonics of bass freqs) ──
+class BassEnhancer {
+  constructor(){
+    this.lpf = new ZdfSvf();
+    this.amount = 0.3;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    var bass = this.lpf.process(input, 150, 0.5, sr).low;
+    var harmonics = Math.tanh(bass * 3) * 0.3 + Math.tanh(bass * 5) * 0.15;
+    return input + harmonics * this.amount;
+  }
+}
+
+// ── OTT (upward + downward multiband expander — Xfer Records style) ──
+class OTT {
+  constructor(){
+    this.lowF = new ZdfSvf(); this.midF = new ZdfSvf(); this.highF = new ZdfSvf();
+    this.lowEnv = 0; this.midEnv = 0; this.highEnv = 0;
+    this.amount = 0.3; // depth
+    this.depth = 0.5; // 0=bypass, 1=full OTT
+  }
+  process(input, sr){
+    if(this.depth <= 0) return input;
+    var low = this.lowF.process(input, 250, 0.5, sr).low;
+    var mid = this.midF.process(input, 1500, 0.5, sr).band;
+    var high = this.highF.process(input, 4000, 0.5, sr).high;
+    // envelope followers per band
+    this.lowEnv = this.lowEnv * 0.99 + Math.abs(low) * 0.01;
+    this.midEnv = this.midEnv * 0.99 + Math.abs(mid) * 0.01;
+    this.highEnv = this.highEnv * 0.99 + Math.abs(high) * 0.01;
+    // OTT: compress downward (reduce loud) + expand upward (boost quiet)
+    // simplified: boost quiet parts, reduce loud parts
+    var lowGain = 1 + (0.1 - this.lowEnv) * this.depth * 3; // boost when quiet
+    if(this.lowEnv > 0.1) lowGain = 1 - (this.lowEnv - 0.1) * this.depth * 2; // reduce when loud
+    var midGain = 1 + (0.1 - this.midEnv) * this.depth * 3;
+    if(this.midEnv > 0.1) midGain = 1 - (this.midEnv - 0.1) * this.depth * 2;
+    var highGain = 1 + (0.1 - this.highEnv) * this.depth * 3;
+    if(this.highEnv > 0.1) highGain = 1 - (this.highEnv - 0.1) * this.depth * 2;
+    // clamp gains
+    lowGain = Math.max(0.3, Math.min(3, lowGain));
+    midGain = Math.max(0.3, Math.min(3, midGain));
+    highGain = Math.max(0.3, Math.min(3, highGain));
+    return low * lowGain + mid * midGain + high * highGain;
+  }
+}
+
+// ── Gated reverb (Phil Collins — big reverb that cuts off abruptly) ──
+class GatedReverb {
+  constructor(sr){
+    this.reverb = new Reverb(sr);
+    this.env = 0;
+    this.threshold = 0.05;
+    this.gateOpen = true;
+    this.wet = 0;
+    this.closeRate = 0.999; // fast close
+    this.openRate = 0.9; // fast open
+  }
+  process(input, sr){
+    if(this.wet <= 0) return input;
+    // gate the reverb: only let it ring when signal is loud
+    var absInput = Math.abs(input);
+    this.env = this.env * 0.99 + absInput * 0.01;
+    if(this.env > this.threshold){
+      this.gateOpen = true;
+    } else {
+      this.gateOpen = this.gateOpen * this.closeRate; // close fast
+      if(this.gateOpen < 0.01) this.gateOpen = 0;
+    }
+    var wet = this.reverb.process(input * 0.3, 0.8) * this.wet;
+    return input + wet * this.gateOpen;
+  }
+}
+
+// ── Resonant filter sweep (acid 303 — LFO-modulated cutoff with high Q) ──
+class AcidSweep {
+  constructor(){
+    this.filter = new MoogLadder();
+    this.lfo = 0;
+    this.rate = 0.5; // Hz
+    this.baseFreq = 200;
+    this.sweepDepth = 2000;
+    this.resonance = 0.9;
+    this.wet = 0;
+  }
+  process(input, sr){
+    if(this.wet <= 0) return input;
+    this.lfo += this.rate / sr * 2 * Math.PI;
+    this.lfo -= Math.floor(this.lfo);
+    var cutoff = this.baseFreq + (0.5 + 0.5 * Math.sin(this.lfo)) * this.sweepDepth;
+    var filtered = this.filter.process(input, cutoff, this.resonance, sr);
+    return input * (1 - this.wet) + filtered * this.wet;
+  }
+}
+
+// ── True peak limiter (oversampled ISP detection) ──
+class TruePeakLimiter {
+  constructor(){
+    this.ceiling = 0.95; this.prevSample = 0; this.gain = 1.0; this.releaseRate = 0.0005;
+  }
+  process(input, sr){
+    var midpoint = (this.prevSample + input) * 0.5;
+    var peak = Math.abs(midpoint);
+    if(Math.abs(input) > peak) peak = Math.abs(input);
+    var targetGain = 1.0;
+    if(peak * this.gain > this.ceiling) targetGain = this.ceiling / Math.max(0.001, peak);
+    if(targetGain < this.gain) this.gain = targetGain;
+    else this.gain = Math.min(1.0, this.gain + this.releaseRate);
+    this.prevSample = input;
+    return input * this.gain;
+  }
+}
+
+// ── Multi-tap delay (rhythmic delay patterns — 8 taps at musical divisions) ──
+class MultiTapDelay {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 2.0); // 2s max
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    // 8 taps at rhythmic divisions (relative to 1/4 note at ~144bpm = 0.417s)
+    var beat = 60 / 144;
+    this.taps = [
+      { delay: beat * 0.25, gain: 0.6 },   // 1/16
+      { delay: beat * 0.375, gain: 0.5 },  // 1/16 dotted
+      { delay: beat * 0.5, gain: 0.55 },   // 1/8
+      { delay: beat * 0.75, gain: 0.4 },    // 1/8 dotted
+      { delay: beat * 1.0, gain: 0.45 },    // 1/4
+      { delay: beat * 1.5, gain: 0.3 },     // 1/4 dotted
+      { delay: beat * 2.0, gain: 0.25 },     // 1/2
+      { delay: beat * 3.0, gain: 0.15 },     // 1/2 dotted
+    ];
+    this.feedback = 0.3;
+    this.wet = 0.1;
+  }
+  process(input, sr){
+    this.buf[this.idx] = input;
+    var wet = 0;
+    for(var i = 0; i < this.taps.length; i++){
+      var tap = this.taps[i];
+      var readIdx = (this.idx - Math.floor(tap.delay * sr) + this.bufSize) % this.bufSize;
+      wet += this.buf[readIdx] * tap.gain;
+    }
+    // feedback into buffer
+    this.buf[this.idx] = input + wet * this.feedback;
+    this.idx = (this.idx + 1) % this.bufSize;
+    return input * (1 - this.wet) + wet * this.wet;
+  }
+}
+
+// ── Through-zero flanger (negative feedback — jet engine effect) ──
+class ThroughZeroFlanger {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 0.02); // 20ms max delay
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.lfo = 0;
+    this.rate = 0.2; // Hz (slow sweep)
+    this.depth = 0.8;
+    this.feedback = -0.7; // NEGATIVE feedback (through-zero)
+    this.wet = 0;
+    this.lastWet = 0;
+  }
+  process(input, sr){
+    if(this.wet <= 0) return input;
+    this.lfo += this.rate / sr * 2 * Math.PI;
+    this.lfo -= Math.floor(this.lfo);
+    // delay from 0 to 10ms (through-zero when delay approaches 0)
+    var delay = (0.5 + 0.5 * Math.sin(this.lfo)) * 0.01 * sr;
+    delay = Math.max(1, Math.min(delay, this.bufSize - 1));
+    var readIdx = this.idx - delay + this.bufSize;
+    readIdx = ((readIdx % this.bufSize) + this.bufSize) % this.bufSize;
+    var i0 = Math.floor(readIdx), i1 = (i0 + 1) % this.bufSize;
+    var frac = readIdx - i0;
+    var delayed = this.buf[i0] * (1 - frac) + this.buf[i1] * frac;
+    // negative feedback
+    this.buf[this.idx] = input + delayed * this.feedback;
+    this.idx = (this.idx + 1) % this.bufSize;
+    this.lastWet = delayed;
+    // mix: dry + delayed (comb filter sweep)
+    return input * (1 - this.wet * this.depth) + delayed * this.wet * this.depth;
+  }
+}
+
+// ── Spectral freeze (smear/blur — holds spectrum briefly) ──
+class SpectralFreeze {
+  constructor(sr){
+    this.bufSize = Math.floor(sr * 0.5); // 500ms buffer
+    this.buf = new Float32Array(this.bufSize);
+    this.idx = 0;
+    this.frozen = false;
+    this.freezeLevel = 0;
+    this.readPos = 0;
+    this.freezeRate = 0.5; // playback speed (0.5 = half speed = blur)
+  }
+  triggerFreeze(){ this.frozen = true; this.freezeLevel = 1; this.readPos = 0; }
+  process(input, sr){
+    if(!this.frozen) return input;
+    // read from buffer at slow rate (creates smeared/sustained sound)
+    this.readPos += this.freezeRate;
+    if(this.readPos >= this.bufSize){ this.readPos = 0; this.frozen = false; this.freezeLevel = 0; }
+    var i0 = Math.floor(this.readPos), i1 = (i0 + 1) % this.bufSize;
+    var frac = this.readPos - i0;
+    var wet = this.buf[i0] * (1 - frac) + this.buf[i1] * frac;
+    // fade out freeze
+    this.freezeLevel *= 0.9999;
+    if(this.freezeLevel < 0.01) this.frozen = false;
+    return input * (1 - this.freezeLevel * 0.5) + wet * this.freezeLevel * 0.5;
+  }
+}
+
+// ── Cabinet simulator (guitar amp impulse response — simplified) ──
+class CabinetSim {
+  constructor(sr){
+    var irLen = Math.floor(sr * 0.05);
+    this.ir = new Float32Array(irLen);
+    for(var i = 0; i < irLen; i++){
+      var decay = Math.exp(-i / (irLen * 0.3));
+      this.ir[i] = (Math.sin(2 * Math.PI * 80 * i / sr) * 0.3 +
+                    Math.sin(2 * Math.PI * 2000 * i / sr) * 0.15 +
+                    (Math.random() * 2 - 1) * 0.1) * decay;
+    }
+    this.buf = new Float32Array(irLen);
+    this.idx = 0; this.irLen = irLen; this.wet = 0;
+  }
+  process(input, sr){
+    if(this.wet <= 0) return input;
+    this.buf[this.idx] = input;
+    var out = 0, step = 2;
+    for(var i = 0; i < this.irLen; i += step){
+      var readIdx = (this.idx - i + this.irLen) % this.irLen;
+      out += this.buf[readIdx] * this.ir[i];
+    }
+    this.idx = (this.idx + 1) % this.irLen;
+    return input * (1 - this.wet) + out * this.wet * 0.5;
+  }
+}
+
+// ── Vinyl crackle generator (lo-fi texture — pops + hiss + wow) ──
+class VinylCrackle {
+  constructor(sr){
+    this.sr = sr;
+    this.cracklePhase = 0;
+    this.crackleRate = 5; // pops per second
+    this.hissPhase = 0;
+    this.hissGain = 0.003;
+    this.wowPhase = 0;
+    this.wowRate = 0.5; // Hz (pitch wobble)
+    this.wowDepth = 0.001;
+    this.amount = 0;
+    this.prevDelay = 0;
+    this.buf = new Float32Array(64); // tiny buffer for wow
+    this.bufIdx = 0;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    // random pops (vinyl crackle)
+    this.cracklePhase += this.crackleRate / sr;
+    var crackle = 0;
+    if(this.cracklePhase >= 1){
+      this.cracklePhase -= 1;
+      crackle = (Math.random() * 2 - 1) * 0.3 * this.amount;
+    }
+    // continuous hiss (filtered noise)
+    var hiss = (Math.random() * 2 - 1) * this.hissGain * this.amount;
+    // wow/flutter (slow pitch wobble)
+    this.wowPhase += this.wowRate / sr * 2 * Math.PI;
+    this.wowPhase -= Math.floor(this.wowPhase);
+    var wow = Math.sin(this.wowPhase) * this.wowDepth * this.amount;
+    // apply wow via tiny delay modulation
+    this.buf[this.bufIdx] = input;
+    this.bufIdx = (this.bufIdx + 1) % this.buf.length;
+    var readOffset = Math.floor(wow * sr);
+    var readIdx = (this.bufIdx - 1 - readOffset + this.buf.length) % this.buf.length;
+    var wowOut = this.buf[readIdx];
+    return wowOut + crackle + hiss;
+  }
+}
+
+// ── Tape saturation model (analog emulation — hysteresis + saturation) ──
+class TapeSaturation {
+  constructor(){
+    this.drive = 0.3;
+    this.saturation = 0.5;
+    this.hysteresis = 0; // state for hysteresis
+    this.hystAmount = 0.2;
+    this.prevInput = 0;
+  }
+  process(input){
+    // hysteresis: output depends on direction of input change
+    var direction = input > this.prevInput ? 1 : -1;
+    var hysteretic = input + this.hystAmount * direction * Math.abs(input - this.prevInput) * 0.1;
+    this.prevInput = input;
+    // saturation curve (tape-like: soft knee, asymmetric)
+    var x = hysteretic * (1 + this.drive * 2);
+    var pos = x > 0 ? x : x * 0.9; // asymmetric (tape biases positive)
+    var saturated = pos / (1 + Math.abs(pos) * this.saturation * 2);
+    return saturated;
+  }
+}
+
+// ── Frequency-conscious expander (expand only specific frequency range) ──
+class FreqExpander {
+  constructor(){
+    this.filter = new ZdfSvf();
+    this.env = 0;
+    this.threshold = 0.05;
+    this.ratio = 1.5; // expansion ratio
+    this.freq = 200; // expand below 200Hz (clean up low rumble)
+  }
+  process(input, sr){
+    // detect energy at target frequency
+    var bandSignal = this.filter.process(input, this.freq, 0.7, sr).low;
+    var absBand = Math.abs(bandSignal);
+    this.env = this.env * 0.99 + absBand * 0.01;
+    // expand: if below threshold, reduce
+    var gain = 1.0;
+    if(this.env < this.threshold){
+      gain = Math.max(0.0, this.env / this.threshold);
+      gain = Math.pow(gain, this.ratio / 2);
+    }
+    return input - bandSignal * (1 - gain) * 0.5; // partially remove the band
+  }
+}
+
+// ── Multiband harmonic exciter (per-band HF generation) ──
+class MultibandExciter {
+  constructor(){
+    this.lowF = new ZdfSvf(); this.midF = new ZdfSvf(); this.highF = new ZdfSvf();
+    this.amount = 0.2;
+  }
+  process(input, sr){
+    if(this.amount <= 0) return input;
+    // 3-band: isolate each
+    var low = this.lowF.process(input, 300, 0.5, sr).high; // HF of low band
+    var mid = this.midF.process(input, 1500, 0.5, sr).high; // HF of mid
+    var high = this.highF.process(input, 5000, 0.5, sr).high; // HF of high
+    // saturate each to generate harmonics
+    var lowHarm = Math.tanh(low * 4) * 0.2;
+    var midHarm = Math.tanh(mid * 4) * 0.15;
+    var highHarm = Math.tanh(high * 4) * 0.1;
+    return input + (lowHarm + midHarm + highHarm) * this.amount;
+  }
+}
+
+var P = {
+  bpm: 144, energy: 0.5, mood: "fullon", seed: 12345, playing: false,
+  root: 33, scale: [0,1,4,5,7,8,10],
+  barIndex: 0, nextBarTime: 0, currentPlan: null, currentBarStart: 0,
+  audioTime: 0, lastMetricPost: 0,
+  rng: null, directorRng: null, rewardPrediction: 0.5,
+  section: "INTRO", tension: 0,
+  macroTension: 0.5, macroBrightness: 0.5, macroSpace: 0.3,
+  mixer: {
+    kick:{vol:0.9,mute:false,send:0}, bass:{vol:0.7,mute:false,send:0},
+    lead:{vol:0.5,mute:false,send:0.2}, pad:{vol:0.4,mute:false,send:0.5},
+    drums:{vol:0.6,mute:false,send:0.1}, sub:{vol:0.5,mute:false,send:0},
+  },
+  sidechainGain: 1.0, reverb: null, chorus: null, comp: new Comp(),
+  // per-channel dynamics (compressor for bass, kick)
+  bassComp: new Comp(), kickComp: new Comp(),
+  // swing + humanization
+  swing: 0.55, // 0.5 = straight, 0.66 = full swing
+  humanize: 0.3, // 0..1, velocity + timing jitter
+  // LFOs (one per voice that needs modulation)
+  bassLFO: null, leadLFO: null, padLFO: null, leadVibrato: null, padVibrato: null,
+  // arpeggiator
+  arp: { pattern: [], index: 0, mode: "up", // up/down/up-down/random
+         lastNote: null, counterMelody: [] },
+  // bass variations: gallop/offbeat/pumping/pedal (cycles per section)
+  bassStyle: "gallop",
+  // drum variations
+  drumPattern: 0,
+  // counter-melody voice (harmony to lead)
+  counter: {active:false, phase:0, phase2:0, freq:220, filter:new ZdfSvf(), cutoff:1000, res:0.5, ampEnv:0, gain:0.15, vel:1},
+  // formant filter on lead (vowel morphing)
+  leadFormant: null,
+  // ring modulator on lead (metallic bell tones)
+  leadRingMod: null,
+  // motif memory (last 4 bars of lead — for development)
+  motifMemory: [],
+  // bass synth variation (per section): "reese" / "303" / "wobble"
+  bassSynth: "reese",
+  // tempo automation
+  tempoBase: 144, tempoCurrent: 144, tempoAutomation: 0,
+  // glide (portamento) for bass
+  bassGlide: null,
+  // stereo widener + multiband in master
+  stereoWidener: null, multiband: null,
+  // polyphonic lead (chord mode — toggled by section)
+  polyLead: null, polyMode: false,
+  // sidechain variation: alternate ducking patterns
+  sidechainPattern: 0,
+  // advanced synthesis engines
+  granular: null,        // granular cloud for atmospheric textures
+  phaseDist: null,       // phase distortion for lead (Casio CZ-style)
+  karplus: null,         // Karplus-Strong plucked string
+  additive: null,        // additive sine bank for bells/atmospheres
+  fm6: null,             // 6-operator FM (DX7-style) for electric piano/bells
+  waveSeq: null,         // wave sequencer for lead wavetable morphing
+  // effects (master chain)
+  comb: null,            // comb filter (flanger)
+  bitcrusher: null,     // bitcrusher (lo-fi)
+  transient: null,      // transient designer
+  subHarmonic: null,    // sub-harmonic synth
+  saturator: null,      // tape/tube saturator
+  vocoder: null,         // vocoder
+  convReverb: null,      // convolution reverb
+  phaser: null,           // phaser
+  exciter: null,          // harmonic exciter
+  tapeEcho: null,        // tape echo
+  resonator: null,        // resonator (modal)
+  wavefolder: null,        // wavefolder distortion
+  ensemble: null,           // ensemble (super-chorus)
+  springReverb: null,      // spring reverb
+  freqShifter: null,       // frequency shifter
+  midSideEQ: null,          // mid/side EQ
+  dynamicEQ: null,          // dynamic EQ
+  tapeStop: null,           // tape stop effect
+  reverseReverb: null,      // reverse reverb
+  pingPong: null,           // stereo delay (ping-pong)
+  autoPan: null,            // auto-pan
+  mbDistortion: null,       // multi-band distortion
+  harmonicGen: null,        // harmonic generator (sub-bass)
+  dimensionChorus: null,    // dimension chorus (3D widening)
+  maximizer: null,           // ISP-aware maximizer
+  lufsMeter: null,           // LUFS metering
+  spectrum: null,            // spectrum analyzer
+  noiseGate: null,           // noise gate
+  deEsser: null,             // de-esser
+  transientShaper: null,    // transient shaper
+  stereoImager: null,        // stereo imager
+  bassEnhancer: null,        // bass enhancer
+  ott: null,                  // OTT (upward/downward expander)
+  gatedReverb: null,         // gated reverb (Phil Collins)
+  acidSweep: null,            // acid 303 filter sweep
+  truePeakLimiter: null,     // true peak limiter (ISP)
+  multiTap: null,             // multi-tap delay
+  tzFlanger: null,            // through-zero flanger
+  spectralFreeze: null,      // spectral freeze (smear)
+  cabinet: null,              // cabinet simulator
+  vinylCrackle: null,        // vinyl crackle
+  tapeSaturation: null,      // tape saturation model
+  freqExpander: null,        // frequency-conscious expander
+  mbExciter: null,            // multiband harmonic exciter
+  bassGrammar: null, melodicGrammar: null,
+  kick:{active:false,phase:0,freq:120,pitchEnv:1,ampEnv:0,clickEnv:0,gain:1,vel:1},
+  sub:{active:false,phase:0,freq:27.5,ampEnv:0,gain:0.5,vel:1},
+  bass:{active:false,phase:0,phase2:0,freq:55,filter:new MoogLadder(),cutoff:200,res:0.4,ampEnv:0,gain:0.5,vel:1},
+  lead:{active:false,phase:0,phase2:0,freq:220,filter:new ZdfSvf(),cutoff:1200,res:0.6,fmPhase:0,fmRatio:2,fmIndex:50,ampEnv:0,gain:0.2,wavetable:0,vel:1},
+  pad:{active:false,phases:[0,0,0,0,0,0,0],detunes:[0.995,0.998,1.0,1.002,1.005,0.997,1.003],freq:110,filter:new ZdfSvf(),cutoff:800,res:0.2,ampEnv:0,gain:0.15,vel:1},
+  hat:{active:false,ampEnv:0,gain:0.2,vel:1}, clap:{active:false,ampEnv:0,gain:0.3,bursts:0,vel:1},
+  snare:{active:false,phase:0,ampEnv:0,gain:0.3,vel:1}, crash:{active:false,ampEnv:0,gain:0.2,vel:1},
+};
+
+function initGrammar(seed){
+  P.bassGrammar = { matrix: new Array(12).fill(0).map(function(){return new Array(12).fill(0);}) };
+  P.melodicGrammar = { hist: new Array(25).fill(1) };
+  P.rng = mulberry32(seed);
+  P.directorRng = mulberry32(subSeed(seed, "director"));
+  // LFOs: bass filter sweep, lead filter tremolo, pad amp undulation
+  if(!P.bassLFO){ P.bassLFO = new LFO(); P.bassLFO.rate = 0.3; P.bassLFO.shape = "sine"; }
+  if(!P.leadLFO){ P.leadLFO = new LFO(); P.leadLFO.rate = 4.5; P.leadLFO.shape = "tri"; }
+  if(!P.padLFO){ P.padLFO = new LFO(); P.padLFO.rate = 0.15; P.padLFO.shape = "sine"; }
+  // vibrato LFOs (pitch modulation)
+  if(!P.leadVibrato){ P.leadVibrato = new LFO(); P.leadVibrato.rate = 5.5; P.leadVibrato.shape = "sine"; }
+  if(!P.padVibrato){ P.padVibrato = new LFO(); P.padVibrato.rate = 4.0; P.padVibrato.shape = "sine"; }
+  // formant filter on lead
+  if(!P.leadFormant){ P.leadFormant = new Formant(); P.leadFormant.vowel = 0; }
+  // ring modulator on lead
+  if(!P.leadRingMod){ P.leadRingMod = new RingMod(); P.leadRingMod.modFreq = 280; P.leadRingMod.depth = 0; }
+  // glide for bass
+  if(!P.bassGlide){ P.bassGlide = new Glide(); }
+  // stereo widener + multiband
+  if(!P.stereoWidener){ P.stereoWidener = new StereoWidener(); P.stereoWidener.width = 0.6; }
+  if(!P.multiband){ P.multiband = new MultibandComp(); }
+  // polyphonic lead
+  if(!P.polyLead){ P.polyLead = new PolyVoice(); }
+  // advanced synthesis engines
+  if(!P.granular){ P.granular = new Granular(sampleRate); }
+  if(!P.phaseDist){ P.phaseDist = new PhaseDistortion(); P.phaseDist.distortion = 0.3; }
+  if(!P.karplus){ P.karplus = new KarplusStrong(sampleRate); }
+  if(!P.additive){ P.additive = new AdditiveVoice(); }
+  if(!P.fm6){ P.fm6 = new FM6(); }
+  if(!P.waveSeq){ P.waveSeq = new WaveSequencer(); P.waveSeq.rate = 0.5; }
+  // effects
+  if(!P.comb){ P.comb = new CombFilter(sampleRate); }
+  if(!P.bitcrusher){ P.bitcrusher = new Bitcrusher(); }
+  if(!P.transient){ P.transient = new TransientDesigner(); }
+}
+
+// Chord progression with inversions (root position, 1st inv, 2nd inv)
+var CHORD_PROGRESSION = [
+  {root:0, inv:0},  // i (root)
+  {root:5, inv:1},  // VI (1st inversion — bass on 3rd)
+  {root:2, inv:0},  // III (root)
+  {root:7, inv:2},  // VII (2nd inversion — bass on 5th)
+];
+function getChordRoot(barIndex){ return CHORD_PROGRESSION[Math.floor(barIndex / 4) % 4].root; }
+function getChordInv(barIndex){ return CHORD_PROGRESSION[Math.floor(barIndex / 4) % 4].inv; }
+function getTension(b){
+  var p = b % 32;
+  if(p < 4) return 0.2;
+  if(p < 8) return 0.2 + (p - 4) * 0.15;
+  if(p < 16) return 0.8;
+  if(p < 20) return 0.3;
+  if(p < 24) return 0.3 + (p - 20) * 0.15;
+  return 0.9;
+}
+function getSection(b){
+  var p = b % 32;
+  if(p < 4) return "INTRO"; if(p < 8) return "BUILD"; if(p < 16) return "DROP";
+  if(p < 20) return "BREAK"; if(p < 24) return "RISER"; return "DROP2";
+}
+function directorDecide(){
+  var phase = P.barIndex % 32;
+  if(phase >= 16 && phase < 20 && P.directorRng() < 0.6) return {action:"abstain",reason:"break"};
+  if(phase === 0) return {action:"abstain",reason:"intro"};
+  return {action:"play",intensity:0.3+P.tension*0.7,reason:"play"};
+}
+function degreeToMidi(deg){
+  var oct = Math.floor(deg / P.scale.length);
+  var idx = ((deg % P.scale.length) + P.scale.length) % P.scale.length;
+  var chord = getChordRoot(P.barIndex);
+  // apply inversion: shift bass notes based on chord inversion
+  var inv = getChordInv(P.barIndex);
+  var invShift = inv === 1 ? -12 : (inv === 2 ? 12 : 0); // 1st inv: down, 2nd inv: up
+  return P.root + P.scale[idx] + 12 * oct + chord + (deg < 0 ? invShift : 0);
+}
+// Bass variation patterns (per bar, rotates based on bar index)
+function getBassStyle(barIndex){
+  var phase = barIndex % 32;
+  if(phase < 4) return "pedal";       // INTRO: sustained root
+  if(phase < 8) return "offbeat";     // BUILD: off-beat
+  if(phase < 16) return "gallop";     // DROP: gallop (full-on)
+  if(phase < 20) return "pedal";      // BREAK: back to pedal
+  if(phase < 24) return "pumping";    // RISER: pumping (offbeat + 16ths)
+  return "gallop";                    // DROP2: gallop
+}
+function bassStepFor(style, s){
+  // returns true if bass fires on this 16th step
+  if(style === "gallop") return (s%4===0 || s===6 || s===10 || s===14);
+  if(style === "offbeat") return (s%2===1);
+  if(style === "pumping") return (s%2===0); // every even 16th
+  if(style === "pedal") return (s===0); // only at bar start
+  return (s%4===0);
+}
+
+// Drum pattern variations (4 patterns, cycles based on bar index)
+function getDrumPattern(barIndex){
+  return Math.floor(barIndex / 4) % 4; // change every 4 bars
+}
+function kickStepFor(pattern, s, barRng, tension){
+  if(pattern === 0) return (s%4===0); // 4-on-floor
+  if(pattern === 1) return (s%4===0) || (s===10 && barRng()<0.5); // + ghost
+  if(pattern === 2) return (s%4===0) || (s===14 && barRng()<0.4+tension*0.3); // + syncopated
+  if(pattern === 3) return (s%4===0) || (s===6 && barRng()<0.3) || (s===10 && barRng()<0.3); // double ghost
+  return (s%4===0);
+}
+function hatStepFor(pattern, s){
+  if(pattern === 0) return (s%2===1); // offbeat
+  if(pattern === 1) return (s%2===1) || (s===3); // + extra
+  if(pattern === 2) return (s%2===0); // on-beat
+  if(pattern === 3) return (s%2===1) || (s===7) || (s===15); // busy
+  return (s%2===1);
+}
+
+// Arpeggiator pattern generation
+function generateArpPattern(barIndex){
+  // 8-note arp pattern based on chord
+  var chord = getChordRoot(barIndex);
+  var notes = [0, 2, 4, 7, 4, 2, 7, 4]; // up-down pattern
+  return notes.map(function(n){ return n + chord; });
+}
+function arpNoteFor(pattern, index, mode){
+  if(mode === "up") return pattern[index % pattern.length];
+  if(mode === "down") return pattern[(pattern.length - 1 - (index % pattern.length))];
+  if(mode === "up-down"){
+    var len = pattern.length * 2 - 2;
+    var i = index % len;
+    if(i < pattern.length) return pattern[i];
+    return pattern[len - i];
+  }
+  if(mode === "random") return pattern[Math.floor(Math.random() * pattern.length)];
+  return pattern[index % pattern.length];
+}
+
+// Counter-melody: harmony a third above lead
+function getCounterNote(leadMidi){
+  return leadMidi + (P.scale[2] - P.scale[0]); // a third up (scale degree)
+}
+
+// Bass synth variation per section
+function getBassSynth(barIndex){
+  var phase = barIndex % 32;
+  if(phase < 4) return "reese";      // INTRO: reese (thick)
+  if(phase < 8) return "303";        // BUILD: 303 (acid)
+  if(phase < 16) return "reese";     // DROP: reese
+  if(phase < 20) return "wobble";    // BREAK: wobble (LFO-modulated)
+  if(phase < 24) return "303";       // RISER: 303
+  return "reese";                    // DROP2: reese
+}
+
+// Drum fill at section transitions (last bar before section change)
+function isFillBar(barIndex){
+  var phase = barIndex % 32;
+  return phase === 7 || phase === 15 || phase === 23 || phase === 31;
+}
+function fillStep(s, barRng, tension){
+  // fill: snares on 12,13,14,15 with increasing density
+  if(s >= 12 && s < 16){
+    var prob = (s - 11) * 0.2 + tension * 0.3;
+    return barRng() < prob;
+  }
+  return false;
+}
+
+// Motif development: every 8 bars, transform the motif
+function getMotifOp(barIndex){
+  var ops = ["identity", "invert", "retrograde", "augment", "diminish"];
+  return ops[Math.floor(barIndex / 8) % 5];
+}
+
+function planBar(){
+  var dec = directorDecide();
+  if(dec.action !== "play") return {decision:dec, steps:null};
+  var steps = [];
+  var barRng = mulberry32(subSeed(P.seed, "bar:" + P.barIndex));
+  var isDrop = (P.barIndex % 32 >= 8 && P.barIndex % 32 < 16) || (P.barIndex % 32 >= 24);
+  var phase = P.barIndex % 32;
+  var bassStyle = getBassStyle(P.barIndex);
+  var drumPat = getDrumPattern(P.barIndex);
+  var bassSynth = getBassSynth(P.barIndex);
+  P.bassSynth = bassSynth;
+  var fillBar = isFillBar(P.barIndex);
+  var motifOp = getMotifOp(P.barIndex);
+  // ring mod depth: activate in BREAK and at section transitions
+  P.leadRingMod.depth = (phase >= 16 && phase < 20) ? 0.3 : 0.0;
+  // poly mode: chord lead in DROP2 (phase >= 24)
+  P.polyMode = (phase >= 24);
+  // sidechain variation: alternate ducking patterns every 4 bars
+  P.sidechainPattern = Math.floor(P.barIndex / 4) % 3;
+  // tempo automation: slight ritardando at last 2 bars of each 16-bar block
+  if(phase === 14 || phase === 15 || phase === 30 || phase === 31){
+    P.tempoAutomation = -0.02 * (phase % 16 === 14 ? 1 : 2); // -2 to -4 BPM
+  } else {
+    P.tempoAutomation = 0;
+  }
+  P.tempoCurrent = P.tempoBase + P.tempoAutomation;
+
+  var arpPattern = generateArpPattern(P.barIndex);
+  var arpMode = ["up","down","up-down","up"][Math.floor(P.barIndex / 8) % 4];
+  // store this bar's lead notes for motif development
+  var thisBarLeadNotes = [];
+
+  for(var s = 0; s < 16; s++){
+    var st = {kick:false,bassNote:null,leadNote:null,padNote:null,hat:false,clap:false,snare:false,crash:false,arpNote:null,counterNote:null,karplusNote:null,additiveNote:null,fm6Note:null,_trig:false};
+    // KICK: drum pattern + fill override
+    if(isDrop || (phase >= 4 && phase < 8)){
+      if(fillBar && fillStep(s, barRng, P.tension)){
+        st.snare = true; // fill replaces kick at end
+      } else {
+        if(kickStepFor(drumPat, s, barRng, P.tension)) st.kick = true;
+      }
+    }
+    // BASS: style variation + synth variation affects cutoff
+    if(isDrop && bassStepFor(bassStyle, s)){
+      st.bassNote = degreeToMidi(-2);
+    }
+    // LEAD: melodic grammar + motif development
+    if(isDrop && barRng() < 0.1 + P.tension * 0.4 && s % 2 === 0){
+      var total = P.melodicGrammar.hist.reduce(function(a,b){return a+b;},0);
+      var r = barRng() * total, acc = 0, interval = 0;
+      for(var i = 0; i < 25; i++){ acc += P.melodicGrammar.hist[i]; if(r < acc){ interval = i - 12; break; } }
+      // apply motif transformation
+      var motifNotes = [interval];
+      motifNotes = transformMotif(motifNotes, motifOp);
+      interval = motifNotes[0];
+      var leadNote = degreeToMidi(14 + interval);
+      st.leadNote = leadNote;
+      thisBarLeadNotes.push(interval);
+      st.counterNote = getCounterNote(leadNote);
+      P.melodicGrammar.hist[interval + 12] += 0.5;
+    }
+    // ARP: 8th-note arpeggio in DROP
+    if(isDrop && s % 2 === 0){
+      var arpDeg = arpNoteFor(arpPattern, Math.floor(s/2), arpMode);
+      st.arpNote = degreeToMidi(arpDeg);
+    }
+    // KARPLUS-STRONG: plucked string in BREAK (atmospheric, sparse)
+    if(phase >= 16 && phase < 20 && s % 4 === 0 && barRng() < 0.5){
+      st.karplusNote = degreeToMidi(14 + (s % 3));
+    }
+    // ADDITIVE: bell tones in DROP (sparingly, for accent)
+    if(isDrop && s === 8 && barRng() < 0.3){
+      st.additiveNote = degreeToMidi(21 + Math.floor(barRng() * 3));
+    }
+    // FM6: electric piano/bell in BREAK (DX7-style)
+    if(phase >= 16 && phase < 20 && s % 4 === 2 && barRng() < 0.4){
+      st.fm6Note = degreeToMidi(14 + (s % 4));
+    }
+    // PAD
+    if(s === 0 && P.barIndex % 2 === 0 && phase < 20) st.padNote = degreeToMidi(7 + (P.barIndex % 4));
+    // DRUMS
+    if(isDrop || phase >= 4){
+      if(!fillBar && hatStepFor(drumPat, s)) st.hat = true;
+      if(s === 4 || s === 12) st.clap = true;
+      // crash at section starts
+      if(s === 0 && (phase === 8 || phase === 24)) st.crash = true;
+      // fill: extra snares at end of fill bar
+      if(fillBar && s >= 12 && !st.snare && barRng() < 0.4) st.snare = true;
+    }
+    steps.push(st);
+  }
+  // store motif for next development cycle
+  if(thisBarLeadNotes.length > 0){
+    P.motifMemory.push(thisBarLeadNotes);
+    if(P.motifMemory.length > 4) P.motifMemory.shift();
+  }
+  return {decision:dec, steps:steps};
+}
+
+function triggerKick(vel){ var v=P.kick; v.active=true;v.phase=0;v.pitchEnv=1;v.ampEnv=1;v.clickEnv=1;v.freq=120;v.vel=vel||1;
+  // sidechain variation: 3 patterns
+  if(P.sidechainPattern === 0) P.sidechainGain = 0.25; // deep duck
+  else if(P.sidechainPattern === 1) P.sidechainGain = 0.4; // medium duck
+  else P.sidechainGain = 0.55; // light duck
+}
+function triggerBass(m,vel){ var v=P.bass; v.active=true;v.phase=0;v.phase2=0;v.ampEnv=1; v.vel=vel||1;
+  // glide: smooth transition to new frequency
+  var newFreq = 440*Math.pow(2,(m-69)/12);
+  if(!P.bassGlide.current) P.bassGlide.current = newFreq;
+  P.bassGlide.setTarget(newFreq, 0.05); // 50ms glide
+  // bass synth variation: affects cutoff + resonance
+  if(P.bassSynth === "reese"){ v.cutoff = 150 + P.energy * 150; v.res = 0.4; }
+  else if(P.bassSynth === "303"){ v.cutoff = 300 + P.energy * 400; v.res = 0.7; }
+  else if(P.bassSynth === "wobble"){ v.cutoff = 200; v.res = 0.5; }
+  else { v.cutoff = 120 + P.energy * 200; v.res = 0.4; }
+  var sv=P.sub; sv.active=true;sv.phase=0;sv.ampEnv=1;sv.freq=440*Math.pow(2,(m-12-69)/12); sv.vel=vel||1; }
+function triggerLead(m,vel){ var v=P.lead;
+  // poly mode: trigger chord (root, third, fifth) in DROP2
+  if(P.polyMode && P.polyLead){
+    P.polyLead.trigger(m, vel);
+    P.polyLead.trigger(m + (P.scale[2] - P.scale[0]), vel * 0.8); // third
+    P.polyLead.trigger(m + (P.scale[4] - P.scale[0]), vel * 0.7); // fifth
+  } else {
+    v.active=true;v.phase=0;v.phase2=0.5;v.ampEnv=1;v.freq=440*Math.pow(2,(m-69)/12); v.cutoff=600+P.energy*1000+P.macroBrightness*2000; v.fmIndex=20+P.energy*60+P.macroBrightness*40; v.wavetable=(v.wavetable+1)%8; v.vel=vel||1;
+  }
+}
+function triggerPad(m,vel){ var v=P.pad; v.active=true;v.phases=[0,0,0,0,0,0,0];v.ampEnv=1;v.freq=440*Math.pow(2,(m-69)/12); v.cutoff=300+P.energy*400+P.macroBrightness*600; v.vel=vel||1; }
+function triggerHat(vel){ P.hat.active=true;P.hat.ampEnv=1;P.hat.vel=vel||1; }
+function triggerClap(vel){ P.clap.active=true;P.clap.ampEnv=1;P.clap.bursts=0;P.clap.vel=vel||1; }
+function triggerSnare(vel){ P.snare.active=true;P.snare.phase=0;P.snare.ampEnv=1;P.snare.vel=vel||1; }
+function triggerCrash(vel){ P.crash.active=true;P.crash.ampEnv=1;P.crash.vel=vel||1; }
+function triggerArp(m,vel){ var v=P.lead; v.active=true;v.phase=0;v.phase2=0.5;v.ampEnv=1;v.freq=440*Math.pow(2,(m-69)/12); v.cutoff=600+P.energy*1000+P.macroBrightness*2000; v.fmIndex=20+P.energy*60+P.macroBrightness*40; v.wavetable=(v.wavetable+1)%8; v.vel=(vel||1)*0.6; }
+function triggerCounter(m,vel){ var v=P.counter; v.active=true;v.phase=0;v.phase2=0.5;v.ampEnv=1;v.freq=440*Math.pow(2,(m-69)/12); v.cutoff=800+P.energy*800; v.vel=(vel||1)*0.7; }
+function triggerKarplus(m,vel){ var freq=440*Math.pow(2,(m-69)/12); P.karplus.trigger(freq, vel||1); }
+function triggerAdditive(m,vel){ var freq=440*Math.pow(2,(m-69)/12); P.additive.trigger(freq, vel||1); }
+function triggerFM6(m,vel){ var freq=440*Math.pow(2,(m-69)/12); P.fm6.trigger(freq, vel||1); }
+
+function rKick(sr){ var v=P.kick; if(!v.active)return 0;
+  var click=v.clickEnv>0.1?noiseNext()*v.clickEnv*0.4:0; v.clickEnv*=0.9;
+  v.freq=40+80*v.pitchEnv; v.pitchEnv*=0.96; v.ampEnv*=0.987;
+  if(v.ampEnv<0.001){v.active=false;return 0;} v.phase+=v.freq/sr;v.phase-=Math.floor(v.phase);
+  var s=(Math.sin(2*Math.PI*v.phase)*v.ampEnv+click)*v.gain*v.vel;
+  s=P.kickComp.process(s,0.2,2,1,30,sr); // per-channel comp
+  return s*P.mixer.kick.vol*(P.mixer.kick.mute?0:1); }
+function rSub(sr){ var v=P.sub; if(!v.active)return 0; v.ampEnv*=0.9988;
+  if(v.ampEnv<0.001){v.active=false;return 0;} v.phase+=v.freq/sr;v.phase-=Math.floor(v.phase);
+  return Math.sin(2*Math.PI*v.phase)*v.ampEnv*v.gain*v.vel*P.mixer.sub.vol*(P.mixer.sub.mute?0:1)*P.sidechainGain; }
+function rBass(sr,dt){ var v=P.bass; if(!v.active)return 0; v.ampEnv*=0.9985;
+  if(v.ampEnv<0.001){v.active=false;return 0;}
+  // glide: use glided frequency instead of instant jump
+  var freq = P.bassGlide.process(dt);
+  v.phase+=freq/sr;v.phase-=Math.floor(v.phase); v.phase2+=freq*0.5/sr;v.phase2-=Math.floor(v.phase2);
+  var lfo=P.bassLFO.process(dt);
+  var cutoff=v.cutoff+lfo*150;
+  if(P.bassSynth === "wobble"){
+    cutoff = v.cutoff + Math.sin(currentTime * 8) * 400 + 400;
+    if(cutoff < 80) cutoff = 80;
+  }
+  if(cutoff<50)cutoff=50;
+  // synth variation: different oscillator mix per bass synth
+  var wt=buildWavetables();
+  var osc, sub;
+  if(P.bassSynth === "303"){
+    osc = polyblepSquare(v.phase, freq/sr) * 0.6;
+    sub = Math.sin(2*Math.PI*v.phase2) * 0.3;
+  } else if(P.bassSynth === "wobble"){
+    osc = Math.sin(2*Math.PI*v.phase) * 0.5 + polyblepSaw(v.phase, freq/sr) * 0.3;
+    sub = Math.sin(2*Math.PI*v.phase2) * 0.4;
+  } else {
+    osc = wavetableOsc(wt.reese, v.phase) * 0.5 + polyblepSaw(v.phase, freq/sr) * 0.3;
+    sub = Math.sin(2*Math.PI*v.phase2) * 0.4;
+  }
+  var f=v.filter.process(osc+sub,cutoff,v.res,sr);
+  var out=f*v.ampEnv*v.gain*v.vel;
+  out=P.bassComp.process(out,0.15,3,2,40,sr);
+  return out*P.mixer.bass.vol*(P.mixer.bass.mute?0:1)*P.sidechainGain; }
+function rLead(sr,dt){
+  // poly mode: render polyphonic chord voices
+  if(P.polyMode && P.polyLead && P.polyLead.notes.length > 0){
+    var cutoff = 600 + P.energy * 1000 + P.macroBrightness * 2000;
+    var poly = P.polyLead.render(sr, dt, cutoff, 0.6, 2, 20 + P.energy * 60, 0);
+    return poly * P.mixer.lead.vol * (P.mixer.lead.mute ? 0 : 1);
+  }
+  var v=P.lead; if(!v.active)return 0; v.ampEnv*=0.999;
+  if(v.ampEnv<0.001){v.active=false;return 0;}
+  // vibrato: pitch LFO modulates frequency
+  var vib = P.leadVibrato.process(dt) * 0.5; // ±0.5% pitch modulation
+  var freqMod = v.freq * (1 + vib * 0.01);
+  v.phase += freqMod/sr; v.phase -= Math.floor(v.phase);
+  v.phase2 += freqMod*1.005/sr; v.phase2 -= Math.floor(v.phase2);
+  // LFO: tremolo (amp) + filter modulation
+  var lfo=P.leadLFO.process(dt);
+  var cutoff=v.cutoff+lfo*400; if(cutoff<100)cutoff=100;
+  // wavetable cycling: 8 tables
+  var wt=buildWavetables();
+  var tables=[wt.saw,wt.square,wt.psy,wt.triangle,wt.sine,wt.reese,wt.pluck,wt.bell];
+  var table=tables[v.wavetable%8];
+  var w=wavetableOsc(table,v.phase);
+  var s1=polyblepSaw(v.phase,v.freq/sr),s2=polyblepSaw(v.phase2,v.freq/sr);
+  v.fmPhase+=(v.freq*v.fmRatio)/sr;v.fmPhase-=Math.floor(v.fmPhase);
+  var fm=Math.sin(2*Math.PI*v.fmPhase)*v.fmIndex/sr*2*Math.PI;
+  var mixed=w*0.4+s1*0.25+s2*0.25+Math.sin(2*Math.PI*v.phase+fm)*0.1;
+  var f2=v.filter.process(mixed,cutoff,v.res,sr);
+  // formant filter (vowel morphing) — slow vowel change per bar
+  P.leadFormant.vowel = (P.barIndex * 0.25) % 5;
+  var formanted = P.leadFormant.process(f2.band * 0.5, sr);
+  // ring modulator (metallic bell — active in BREAK)
+  var ringed = P.leadRingMod.process(formanted * 0.3, sr);
+  return (f2.band * 0.5 + formanted * 0.3 + ringed * 0.2) * v.ampEnv * v.gain * v.vel * (0.7 + lfo * 0.3) * P.mixer.lead.vol * (P.mixer.lead.mute ? 0 : 1);
+}
+function rCounter(sr,dt){ var v=P.counter; if(!v.active)return 0; v.ampEnv*=0.9995;
+  if(v.ampEnv<0.001){v.active=false;return 0;}
+  v.phase+=v.freq/sr;v.phase-=Math.floor(v.phase);
+  var s1=polyblepSaw(v.phase,v.freq/sr);
+  var f=v.filter.process(s1,v.cutoff,0.5,sr);
+  return f.band*v.ampEnv*v.gain*v.vel*P.mixer.lead.vol*0.5*(P.mixer.lead.mute?0:1);
+}
+// Karplus-Strong plucked string (physical modeling)
+function rKarplus(sr){
+  return P.karplus.process(sr) * P.mixer.lead.vol * 0.6 * (P.mixer.lead.mute ? 0 : 1);
+}
+// Additive synthesis (sine bank — bell-like)
+function rAdditive(sr){
+  return P.additive.process(sr) * P.mixer.lead.vol * 0.8 * (P.mixer.lead.mute ? 0 : 1);
+}
+// FM6: 6-operator FM synthesis (DX7-style electric piano/bells)
+function rFM6(sr){
+  return P.fm6.process(sr) * P.mixer.lead.vol * 0.7 * (P.mixer.lead.mute ? 0 : 1);
+}
+function rPad(sr,dt){ var v=P.pad; if(!v.active)return 0; v.ampEnv*=0.99997;
+  if(v.ampEnv<0.001){v.active=false;return 0;}
+  var lfo=P.padLFO.process(dt); // slow amp undulation
+  var cutoff=v.cutoff+lfo*200; if(cutoff<50)cutoff=50;
+  var sum=0;
+  for(var i=0;i<7;i++){v.phases[i]+=(v.freq*v.detunes[i])/sr;v.phases[i]-=Math.floor(v.phases[i]);sum+=polyblepSaw(v.phases[i],(v.freq*v.detunes[i])/sr);}
+  sum/=7; var fp=v.filter.process(sum,cutoff,v.res,sr);
+  return fp.low*v.ampEnv*v.gain*v.vel*(0.8+lfo*0.2)*P.mixer.pad.vol*(P.mixer.pad.mute?0:1); }
+function rHat(sr){ var v=P.hat; if(!v.active)return 0; v.ampEnv*=0.92;
+  if(v.ampEnv<0.001){v.active=false;return 0;} return noiseNext()*v.ampEnv*v.gain*v.vel*P.mixer.drums.vol*(P.mixer.drums.mute?0:1)*0.5; }
+function rClap(sr){ var v=P.clap; if(!v.active)return 0; v.ampEnv*=0.94; v.bursts+=1;
+  if(v.ampEnv<0.001){v.active=false;return 0;}
+  var burst=v.bursts<3?noiseNext()*(1-v.bursts/3):0; var body=noiseNext()*v.ampEnv*0.5;
+  return (burst*0.6+body)*v.gain*v.vel*P.mixer.drums.vol*(P.mixer.drums.mute?0:1); }
+function rSnare(sr){ var v=P.snare; if(!v.active)return 0; v.ampEnv*=0.97;
+  if(v.ampEnv<0.001){v.active=false;return 0;} v.phase+=200/sr;v.phase-=Math.floor(v.phase);
+  return (Math.sin(2*Math.PI*v.phase)*0.4+noiseNext()*0.6)*v.ampEnv*v.gain*v.vel*P.mixer.drums.vol*(P.mixer.drums.mute?0:1); }
+function rCrash(sr){ var v=P.crash; if(!v.active)return 0; v.ampEnv*=0.9995;
+  if(v.ampEnv<0.001){v.active=false;return 0;} return noiseNext()*v.ampEnv*v.gain*v.vel*P.mixer.drums.vol*(P.mixer.drums.mute?0:1)*0.4; }
+
+function masterProcess(x, sr){
+  try {
+    // noise gate (silences background when signal low)
+    if(P.noiseGate) x = P.noiseGate.process(x, sr);
+    // spectrum analyzer (passthrough — measures spectrum)
+    if(P.spectrum) x = P.spectrum.process(x, sr);
+    // granular synthesis: capture mix into grain cloud (atmospheric texture)
+    if(P.granular){
+      var granularWet = P.granular.process(x * 0.15, 1/sr, 0.3 + P.macroSpace * 0.5);
+      x = x + (granularWet || 0) * 0.2;
+    }
+    // transient designer
+    if(P.transient) x = P.transient.process(x, sr);
+    if(!P.reverb) P.reverb = new Reverb(sr);
+    var wet = P.reverb.process(x * 0.2, 0.6) * (P.macroSpace * 0.5);
+    x = x + (wet || 0);
+    // comb filter: subtle flanger in BREAK
+    var phase = P.barIndex % 32;
+    if(P.comb && phase >= 16 && phase < 20){
+      var combWet = P.comb.process(x, 5 + Math.sin(currentTime * 0.5) * 3, 0.3, sr);
+      x = x * 0.7 + (combWet || 0) * 0.3;
+    }
+    if(!P.chorus) P.chorus = new Chorus(sr);
+    x = P.chorus.process(x, 0.5, 0.15, sr);
+    if(!P.multiband) P.multiband = new MultibandComp();
+    x = P.multiband.process(x, sr);
+    // OTT (upward + downward expander — Xfer style)
+    if(P.ott){ P.ott.depth = 0.1 + P.energy * 0.15; x = P.ott.process(x, sr); }
+    // acid sweep (resonant filter in DROP)
+    if(P.acidSweep && phase >= 8 && phase < 16){
+      P.acidSweep.wet = 0.1 + P.tension * 0.1;
+      P.acidSweep.rate = 0.3 + P.tension * 0.5;
+      x = P.acidSweep.process(x, sr);
+    }
+    var drive = 0.3 + P.energy * 0.3 + P.macroTension * 0.2;
+    x = Math.tanh(x * (1 + drive * 3)) / Math.tanh(1 + drive * 3);
+    // saturator (tape mode — warm harmonic saturation)
+    if(P.saturator){ P.saturator.drive = 0.2 + P.macroTension * 0.3; x = P.saturator.process(x); }
+    // tape saturation (hysteresis + asymmetric saturation — analog emulation)
+    if(P.tapeSaturation){ P.tapeSaturation.drive = 0.15 + P.macroTension * 0.2; x = P.tapeSaturation.process(x); }
+    // multi-band distortion (per-band saturation for richer harmonics)
+    if(P.mbDistortion){ P.mbDistortion.amount = 0.05 + P.energy * 0.1; x = P.mbDistortion.process(x, sr); }
+    // frequency-conscious expander (cleans up low rumble below 200Hz)
+    if(P.freqExpander) x = P.freqExpander.process(x, sr);
+    // sub-harmonic synth (adds sub-octave from signal)
+    if(P.subHarmonic){ P.subHarmonic.amount = P.energy * 0.2; x = P.subHarmonic.process(x, sr); }
+    // harmonic generator (sub-bass from fundamental detection)
+    if(P.harmonicGen){ P.harmonicGen.amount = 0.1 + P.energy * 0.1; x = P.harmonicGen.process(x, sr); }
+    // bass enhancer (psychoacoustic — generates harmonics of bass for small speakers)
+    if(P.bassEnhancer){ P.bassEnhancer.amount = 0.1 + P.energy * 0.15; x = P.bassEnhancer.process(x, sr); }
+    // harmonic exciter (high-frequency enhancement)
+    if(P.exciter){ P.exciter.amount = 0.15 + P.macroBrightness * 0.2; x = P.exciter.process(x, sr); }
+    // multiband exciter (per-band HF generation — richer than single-band)
+    if(P.mbExciter){ P.mbExciter.amount = 0.05 + P.macroBrightness * 0.1; x = P.mbExciter.process(x, sr); }
+    // de-esser (tames sibilance 7kHz)
+    if(P.deEsser) x = P.deEsser.process(x, sr);
+    // transient shaper (attack boost + sustain control)
+    if(P.transientShaper) x = P.transientShaper.process(x, sr);
+    if(P.bitcrusher && phase >= 16 && phase < 20){
+      x = P.bitcrusher.process(x, 12, 0.5, sr);
+    }
+    // phaser in BREAK + RISER
+    if(P.phaser && (phase >= 16 && phase < 24)){
+      P.phaser.rate = 0.3 + P.tension * 0.5;
+      x = P.phaser.process(x, sr);
+    }
+    // tape echo (always on, subtle)
+    if(P.tapeEcho){
+      P.tapeEcho.wet = 0.08 + P.macroSpace * 0.1;
+      x = P.tapeEcho.process(x, sr);
+    }
+    // multi-tap delay (rhythmic — always on, subtle)
+    if(P.multiTap){ P.multiTap.wet = 0.05 + P.macroSpace * 0.08; x = P.multiTap.process(x, sr); }
+    // through-zero flanger (RISER section — jet engine sweep)
+    if(P.tzFlanger && phase >= 20 && phase < 24){
+      P.tzFlanger.wet = 0.15 + P.tension * 0.1;
+      P.tzFlanger.rate = 0.15 + P.tension * 0.2;
+      x = P.tzFlanger.process(x, sr);
+    }
+    // spectral freeze (BREAK — smears sound briefly)
+    if(P.spectralFreeze && phase >= 16 && phase < 20 && (P.barIndex % 4 === 0)){
+      P.spectralFreeze.triggerFreeze();
+    }
+    if(P.spectralFreeze) x = P.spectralFreeze.process(x, sr);
+    // cabinet simulator (always on, subtle — adds speaker character)
+    if(P.cabinet){ P.cabinet.wet = 0.08; x = P.cabinet.process(x, sr); }
+    // vinyl crackle (lo-fi texture — pops + hiss + wow in BREAK)
+    if(P.vinylCrackle && phase >= 16 && phase < 20){
+      P.vinylCrackle.amount = 0.3;
+      x = P.vinylCrackle.process(x, sr);
+    } else if(P.vinylCrackle) { P.vinylCrackle.amount = 0; }
+    // resonator (adds modal character in BREAK)
+    if(P.resonator){
+      P.resonator.amount = (phase >= 16 && phase < 20) ? 0.3 : 0.05;
+      x = P.resonator.process(x, sr);
+    }
+    x = P.comp.process(x, 0.126, 4, 5, 50, sr);
+    // wavefolder: complex distortion in BREAK + RISER
+    if(P.wavefolder && phase >= 16 && phase < 24){
+      P.wavefolder.fold = 0.15 + P.tension * 0.2;
+      x = P.wavefolder.process(x) * 0.5 + x * 0.5; // 50% wet
+    }
+    // ensemble: super-chorus on pad/strings (always on, subtle)
+    if(P.ensemble){
+      P.ensemble.amount = P.macroSpace * 0.2;
+      x = P.ensemble.process(x, sr);
+    }
+    // spring reverb: metallic character in BREAK
+    if(P.springReverb && phase >= 16 && phase < 20){
+      P.springReverb.wet = 0.15;
+      x = P.springReverb.process(x, sr);
+    }
+    // frequency shifter: subtle detuning in DROP2
+    if(P.freqShifter && phase >= 24){
+      P.freqShifter.shift = 5 + Math.sin(currentTime * 0.3) * 10;
+      x = P.freqShifter.process(x, sr);
+    }
+    // reverse reverb: active in BREAK (ghostly pre-delay effect)
+    if(P.reverseReverb && phase >= 16 && phase < 20){
+      P.reverseReverb.wet = 0.15;
+      x = P.reverseReverb.process(x, sr);
+    }
+    // gated reverb (Phil Collins — big reverb that cuts off) in DROP
+    if(P.gatedReverb && phase >= 8 && phase < 16){
+      P.gatedReverb.wet = 0.1;
+      x = P.gatedReverb.process(x, sr);
+    }
+    // tape stop: triggered at section transitions (last bar of 16-bar block)
+    if(P.tapeStop && (phase === 15 || phase === 31)){
+      if(!P.tapeStop.active) P.tapeStop.trigger();
+      x = P.tapeStop.process(x, sr);
+    }
+    x *= 1.2;
+    // hard limiter
+    if(x > 0.95) x = 0.95; if(x < -0.95) x = -0.95;
+    // soft limiter (tanh) for final protection
+    x = Math.tanh(x * 1.2) * 0.85;
+    // true peak limiter (ISP-aware — inter-sample peak detection)
+    if(P.truePeakLimiter){ P.truePeakLimiter.ceiling = 0.9; x = P.truePeakLimiter.process(x, sr); }
+    // maximizer (ISP-aware lookahead limiter — final loudness)
+    if(P.maximizer){ P.maximizer.ceiling = 0.88; x = P.maximizer.process(x, sr); }
+    // LUFS metering (passthrough — measures loudness)
+    if(P.lufsMeter) x = P.lufsMeter.process(x);
+  } catch(e) { /* swallow to keep worklet alive */ }
+  return x;
+}
+
+class PsyStudioProcessor extends AudioWorkletProcessor {
+  constructor(){
+    super();
+    // Defer all engine init to first process() call (sampleRate not available in constructor)
+    P._inited = false;
+    var self = this;
+    this.port.onmessage = function(e){
+      var d = e.data;
+      if(d.type === "setParams"){ for(var k in d.params) P[k] = d.params[k];
+        if(d.params.mood){ if(d.params.mood==="dark")P.scale=[0,1,3,5,7,8,10]; else if(d.params.mood==="prog")P.scale=[0,3,5,7,10]; else P.scale=[0,1,4,5,7,8,10]; }
+      } else if(d.type === "setMacro"){
+        if(d.macro==="tension")P.macroTension=d.value; else if(d.macro==="brightness")P.macroBrightness=d.value; else if(d.macro==="space")P.macroSpace=d.value;
+      } else if(d.type === "setMixer"){ if(P.mixer[d.channel]) P.mixer[d.channel][d.prop] = d.value;
+      } else if(d.type === "setSeed"){ P.seed=d.seed;initGrammar(d.seed);P.barIndex=0;
+      } else if(d.type === "start"){ P.playing=true;P.nextBarTime=0;
+      } else if(d.type === "stop"){ P.playing=false;
+      } else if(d.type === "seekBar"){ P.barIndex=Math.max(0,d.bar);P.nextBarTime=0;P.currentPlan=null;
+      } else if(d.type === "getTimeline"){ self.port.postMessage({type:"timeline",timeline:self.generateTimeline(d.bars)}); }
+    };
+  }
+  generateTimeline(bars){
+    var events=[], saveBar=P.barIndex; P.barIndex=0;
+    for(var b=0;b<bars;b++){ P.tension=getTension(b); var plan=planBar();
+      if(plan.steps){ for(var s=0;s<16;s++){ var st=plan.steps[s]; var t=b*(60/P.bpm*4)+s*(60/P.bpm/4);
+        if(st.kick)events.push({audioTime:t,voice:"kick",midi:null,bar:b,step:s});
+        if(st.bassNote!==null)events.push({audioTime:t,voice:"bass",midi:st.bassNote,bar:b,step:s});
+        if(st.leadNote!==null)events.push({audioTime:t,voice:"lead",midi:st.leadNote,bar:b,step:s});
+        if(st.padNote!==null)events.push({audioTime:t,voice:"pad",midi:st.padNote,bar:b,step:s}); } }
+      P.barIndex++; }
+    P.barIndex=saveBar;
+    return {events:events,bpm:P.bpm,bars:bars,lengthSeconds:bars*(60/P.bpm*4)};
+  }
+  process(inputs, outputs){
+    var out=outputs[0], sr=sampleRate, dt=1/sr;
+    try {
+    // lazy init on first process() — sampleRate is available here
+    if(!P._inited){
+      initGrammar(P.seed);
+      if(!P.reverb) P.reverb = new Reverb(sr);
+      if(!P.chorus) P.chorus = new Chorus(sr);
+      if(!P.granular) P.granular = new Granular(sr);
+      if(!P.karplus) P.karplus = new KarplusStrong(sr);
+      if(!P.comb) P.comb = new CombFilter(sr);
+      if(!P.subHarmonic) P.subHarmonic = new SubHarmonic();
+      if(!P.saturator) P.saturator = new Saturator();
+      if(!P.vocoder) P.vocoder = new Vocoder();
+      if(!P.phaser) P.phaser = new Phaser(sr);
+      if(!P.exciter) P.exciter = new HarmonicExciter();
+      if(!P.tapeEcho) P.tapeEcho = new TapeEcho(sr);
+      if(!P.resonator) P.resonator = new Resonator();
+      if(!P.wavefolder) P.wavefolder = new Wavefolder();
+      if(!P.ensemble) P.ensemble = new Ensemble(sr);
+      if(!P.springReverb) P.springReverb = new SpringReverb(sr);
+      if(!P.freqShifter) P.freqShifter = new FrequencyShifter();
+      if(!P.midSideEQ) P.midSideEQ = new MidSideEQ();
+      if(!P.dynamicEQ) P.dynamicEQ = new DynamicEQ();
+      if(!P.tapeStop) P.tapeStop = new TapeStop();
+      if(!P.reverseReverb) P.reverseReverb = new ReverseReverb(sr);
+      if(!P.pingPong) P.pingPong = new PingPongDelay(sr);
+      if(!P.autoPan) P.autoPan = new AutoPan();
+      if(!P.mbDistortion) P.mbDistortion = new MultiBandDistortion();
+      if(!P.harmonicGen) P.harmonicGen = new HarmonicGenerator();
+      if(!P.dimensionChorus) P.dimensionChorus = new DimensionChorus(sr);
+      if(!P.maximizer) P.maximizer = new Maximizer();
+      if(!P.lufsMeter) P.lufsMeter = new LUFSMeter();
+      if(!P.spectrum) P.spectrum = new SpectrumAnalyzer();
+      if(!P.noiseGate) P.noiseGate = new NoiseGate();
+      if(!P.deEsser) P.deEsser = new DeEsser();
+      if(!P.transientShaper) P.transientShaper = new TransientShaper();
+      if(!P.stereoImager) P.stereoImager = new StereoImager();
+      if(!P.bassEnhancer) P.bassEnhancer = new BassEnhancer();
+      if(!P.ott) P.ott = new OTT();
+      if(!P.gatedReverb) P.gatedReverb = new GatedReverb(sr);
+      if(!P.acidSweep) P.acidSweep = new AcidSweep();
+      if(!P.truePeakLimiter) P.truePeakLimiter = new TruePeakLimiter();
+      if(!P.multiTap) P.multiTap = new MultiTapDelay(sr);
+      if(!P.tzFlanger) P.tzFlanger = new ThroughZeroFlanger(sr);
+      if(!P.spectralFreeze) P.spectralFreeze = new SpectralFreeze(sr);
+      if(!P.cabinet) P.cabinet = new CabinetSim(sr);
+      if(!P.vinylCrackle) P.vinylCrackle = new VinylCrackle(sr);
+      if(!P.tapeSaturation) P.tapeSaturation = new TapeSaturation();
+      if(!P.freqExpander) P.freqExpander = new FreqExpander();
+      if(!P.mbExciter) P.mbExciter = new MultibandExciter();
+      P._inited = true;
+    }
+    var bpm = P.tempoCurrent || P.bpm; // tempo automation
+    var stepDur=60/bpm/4, barDur=60/bpm*4;
+    for(var i=0;i<out[0].length;i++){
+      var t=currentTime+i*dt;
+      if(P.playing&&P.nextBarTime===0)P.nextBarTime=t+0.05;
+      while(P.playing&&t>=P.nextBarTime){ P.barIndex++;P.tension=getTension(P.barIndex);P.section=getSection(P.barIndex);P.currentPlan=planBar();P.currentBarStart=P.nextBarTime;P.nextBarTime+=barDur; }
+      // overall gain reduction to prevent clipping with 15+ voices
+      var gainScale = 0.5;
+      if(P.playing&&P.currentPlan&&P.currentPlan.steps){
+        var stepInBar=Math.floor((t-P.currentBarStart)/stepDur);
+        if(stepInBar>=0&&stepInBar<16){ var step=P.currentPlan.steps[stepInBar];
+          // swing: delay odd 16th notes by (swing-0.5)*stepDur
+          var swingOffset = (stepInBar % 2 === 1) ? (P.swing - 0.5) * stepDur * 2 : 0;
+          var stepStart=P.currentBarStart+stepInBar*stepDur+swingOffset;
+          if(t>=stepStart&&t<stepStart+stepDur&&!step._trig){ step._trig=true;
+            // swing: delay odd 16th notes (shift timing by swing amount)
+            // humanization: velocity jitter + timing jitter
+            var vel = 0.7 + P.rng() * 0.3 * P.humanize + (1 - P.humanize) * 0.3;
+            if(step.kick)triggerKick(vel); if(step.bassNote!==null)triggerBass(step.bassNote, vel);
+            if(step.leadNote!==null)triggerLead(step.leadNote, vel); if(step.padNote!==null)triggerPad(step.padNote, vel);
+            if(step.arpNote!==null)triggerArp(step.arpNote, vel * 0.7);
+            if(step.counterNote!==null)triggerCounter(step.counterNote, vel * 0.6);
+            if(step.karplusNote!==null)triggerKarplus(step.karplusNote, vel * 0.8);
+            if(step.additiveNote!==null)triggerAdditive(step.additiveNote, vel * 0.7);
+            if(step.fm6Note!==null)triggerFM6(step.fm6Note, vel * 0.7);
+            if(step.hat)triggerHat(vel * 0.6); if(step.clap)triggerClap(vel); if(step.snare)triggerSnare(vel); if(step.crash)triggerCrash(vel * 0.8); } } }
+      var s=0; s+=rKick(sr);s+=rSub(sr);s+=rBass(sr,dt);s+=rLead(sr,dt);s+=rCounter(sr,dt);s+=rPad(sr,dt);s+=rHat(sr);s+=rClap(sr);s+=rSnare(sr);s+=rCrash(sr);s+=rKarplus(sr);s+=rAdditive(sr);s+=rFM6(sr);
+      s = s * gainScale; // prevent clipping with many voices
+      P.sidechainGain=P.sidechainGain*0.997+1.0*0.003;
+      s=masterProcess(s,sr);
+      // stereo widener: process L+R separately for mid/side
+      if(!P.stereoWidener) P.stereoWidener = new StereoWidener();
+      var stereo = P.stereoWidener.process(s, s * 0.98);
+      // dynamic EQ (tames harsh 2kHz when energy builds)
+      if(P.dynamicEQ){ P.dynamicEQ.threshold = 0.08 + P.energy * 0.05; stereo.left = P.dynamicEQ.process(stereo.left, sr); stereo.right = P.dynamicEQ.process(stereo.right, sr); }
+      // ping-pong delay (always on, subtle)
+      if(P.pingPong){ var pp = P.pingPong.process(stereo.left, stereo.right, sr); stereo.left = pp.left; stereo.right = pp.right; }
+      // auto-pan in DROP + RISER
+      var phase = P.barIndex % 32;
+      if(P.autoPan && ((phase >= 8 && phase < 16) || phase >= 24)){
+        P.autoPan.rate = 1.5 + P.tension * 1;
+        P.autoPan.depth = 0.15;
+        var ap = P.autoPan.process(stereo.left, stereo.right, sr);
+        stereo.left = ap.left; stereo.right = ap.right;
+      }
+      // mid/side EQ (enhances width)
+      if(P.midSideEQ){ var ms = P.midSideEQ.process(stereo.left, stereo.right, sr); stereo.left = ms.left; stereo.right = ms.right; }
+      // dimension chorus (3D widening — Roland Dimension D style)
+      if(P.dimensionChorus){ P.dimensionChorus.amount = P.macroSpace * 0.2; var dc = P.dimensionChorus.process(stereo.left, stereo.right, sr); stereo.left = dc.left; stereo.right = dc.right; }
+      // stereo imager (width with mono compatibility)
+      if(P.stereoImager){ P.stereoImager.width = 0.8 + P.macroSpace * 0.6; var si = P.stereoImager.process(stereo.left, stereo.right, sr); stereo.left = si.left; stereo.right = si.right; }
+      out[0][i]=stereo.left;out[1][i]=stereo.right;
+    }
+    if(currentTime-P.lastMetricPost>0.1){ P.lastMetricPost=currentTime;
+      this.port.postMessage({type:"metrics",barIndex:P.barIndex,section:P.section,bpm:P.bpm,energy:P.energy,tension:P.tension,chordRoot:getChordRoot(P.barIndex),directorAction:P.currentPlan?P.currentPlan.decision.action:"abstain",directorReason:P.currentPlan?P.currentPlan.decision.reason:"init",mixer:P.mixer,macros:{tension:P.macroTension,brightness:P.macroBrightness,space:P.macroSpace},lufs:P.lufsMeter?P.lufsMeter.getLoudness():-70,peak:P.lufsMeter?P.lufsMeter.getPeak():0}); }
+    } catch(e) { /* swallow errors to keep worklet alive */ }
+    return true;
+  }
+}
+registerProcessor("psy-studio-processor", PsyStudioProcessor);
+`;
+
+/* ═══════ foundation loader (for export only) ═══════ */
+function loadFoundation(){
+  return new Promise(function(resolve, reject){
+    var modules = ["foundation/foundation.mjs","foundation/render.mjs","foundation/midi.mjs"];
+    Promise.all(modules.map(function(p){
+      return fetch(p).then(function(r){ return r.text().then(function(s){ return {path:p,src:s}; }); });
+    })).then(function(files){
+      var urls = {};
+      files.forEach(function(f){ urls[f.path] = URL.createObjectURL(new Blob([f.src],{type:"text/javascript"})); });
+      files.forEach(function(f){
+        var r = f.src.replace(/from\s+["']\.\/([a-zA-Z0-9_-]+\.mjs)["']/g, function(m, name){
+          var tp = "foundation/" + name; return urls[tp] ? 'from "'+urls[tp]+'"' : m;
+        });
+        urls[f.path] = URL.createObjectURL(new Blob([r],{type:"text/javascript"}));
+      });
+      var loaded = {};
+      return Promise.all(files.map(function(f){ return import(urls[f.path]).then(function(m){
+        loaded[f.path.split("/")[1].replace(".mjs","")] = m;
+      }); })).then(function(){ resolve(loaded); });
+    }).catch(reject);
+  });
+}
+
+/* ═══════ start ═══════ */
+function start(){
+  MASTER = AUDIO.createGain(); MASTER.gain.value = 0.7;
+  MASTER.connect(AUDIO.destination);
+  var delay = AUDIO.createDelay(2.0); delay.delayTime.value = 60/STATE.bpm * 0.75;
+  var fb = AUDIO.createGain(); fb.gain.value = 0.3; delay.connect(fb); fb.connect(delay);
+  var wetD = AUDIO.createGain(); wetD.gain.value = 0.15; delay.connect(wetD); wetD.connect(MASTER);
+  var tap = AUDIO.createGain(); tap.gain.value = 0.2; MASTER.connect(tap); tap.connect(delay);
+
+  var blob = new Blob([WORKLET_CODE], {type:"application/javascript"});
+  var url = URL.createObjectURL(blob);
+  AUDIO.audioWorklet.addModule(url).then(function(){
+    WORKLET = new AudioWorkletNode(AUDIO, "psy-studio-processor", {
+      numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2]
+    });
+    WORKLET.connect(MASTER);
+    WORKLET.port.onmessage = onWorkletMessage;
+    WORKLET.port.postMessage({type:"setParams", params:{bpm:STATE.bpm, energy:STATE.energy, mood:STATE.mood, seed:STATE.seed}});
+    WORKLET.port.postMessage({type:"setSeed", seed:STATE.seed});
+    WORKLET.port.postMessage({type:"start"});
+    STATE.playing = true;
+    document.getElementById("start").classList.add("hidden");
+    setStatus("● live — pro sound engine", true);
+    drawViz();
+    setupMediaSession();
+  }).catch(function(err){
+    setStatus("AudioWorklet failed: " + err.message, false);
+    console.error("[PSY STUDIO]", err);
+  });
+}
+
+/* B: Media Session API */
+function setupMediaSession(){
+  if(!("mediaSession" in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: "PSY STUDIO — " + STATE.mood.toUpperCase(),
+    artist: "Generative Psytrance Engine",
+    album: "PSY STUDIO",
+    artwork: [{ src: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='#050208'/><text x='256' y='300' font-family='monospace' font-size='160' font-weight='900' text-anchor='middle' fill='#00f0c8'>PSY</text></svg>"), sizes: "512x512", type: "image/svg+xml" }]
+  });
+  navigator.mediaSession.setActionHandler("play", function(){ if(WORKLET){ WORKLET.port.postMessage({type:"start"}); STATE.playing=true; } navigator.mediaSession.playbackState="playing"; });
+  navigator.mediaSession.setActionHandler("pause", function(){ if(WORKLET){ WORKLET.port.postMessage({type:"stop"}); STATE.playing=false; } navigator.mediaSession.playbackState="paused"; });
+  navigator.mediaSession.playbackState = "playing";
+  AUDIO.addEventListener("statechange", function(){
+    if(AUDIO.state === "interrupted" || AUDIO.state === "suspended"){
+      STATE.playing = false;
+      document.getElementById("start").classList.remove("hidden");
+      var hint = document.getElementById("start").querySelector(".play-hint");
+      if(hint) hint.textContent = "▶ RESUME";
+    }
+  });
+}
+
+function onWorkletMessage(e){
+  var m = e.data;
+  if(m.type === "metrics"){
+    STATE.barIndex = m.barIndex; STATE.section = m.section; STATE.bpm = m.bpm;
+    STATE.tension = m.tension; STATE.lastMetrics = m;
+    updateNowPlaying(m); updateDirector(m); updateMixerUI(m.mixer); updateMacrosUI(m.macros);
+  }
+  if(m.type === "timeline"){ onTimelineForExport(m.timeline); }
+}
+
+function updateNowPlaying(m){
+  document.getElementById("np-section").textContent = m.section + " · " + STATE.mood.toUpperCase();
+  document.getElementById("np-bpm").textContent = m.bpm;
+  document.getElementById("np-key").textContent = STATE.mood === "dark" ? "A min" : (STATE.mood === "prog" ? "A penta" : "A phr.dom");
+  document.getElementById("np-bar").textContent = m.barIndex;
+  document.getElementById("np-seed").textContent = STATE.seed;
+  // tension bar
+  var tbar = document.getElementById("tension-bar");
+  if(tbar) tbar.style.width = (m.tension * 100) + "%";
+  var vt = document.getElementById("val-tension");
+  if(vt) vt.textContent = m.tension.toFixed(2);
+  // update macro values display
+  ["tension","brightness","space"].forEach(function(macro){
+    var el = document.getElementById("val-macro-"+macro);
+    var slider = document.getElementById("macro-"+macro);
+    if(el && slider) el.textContent = parseFloat(slider.value).toFixed(2);
+  });
+}
+function updateDirector(m){
+  var led = document.getElementById("dir-led"), txt = document.getElementById("dir-txt");
+  if(m.directorAction === "play"){ led.className="dir-led play"; txt.className="dir-txt play"; txt.textContent="PLAY"; }
+  else { led.className="dir-led abstain"; txt.className="dir-txt abstain"; txt.textContent="ABSTAIN"; }
+}
+function updateMixerUI(mixer){
+  if(!mixer) return;
+  for(var ch in mixer){
+    var vol = document.getElementById("mix-"+ch+"-vol");
+    if(vol && vol._dragging !== true) vol.value = mixer[ch].vol;
+    var mute = document.getElementById("mix-"+ch+"-mute");
+    if(mute) mute.classList.toggle("muted", mixer[ch].mute);
+  }
+}
+function updateMacrosUI(macros){
+  if(!macros) return;
+  var t = document.getElementById("macro-tension"); if(t && !t._dragging) t.value = macros.tension;
+  var b = document.getElementById("macro-brightness"); if(b && !b._dragging) b.value = macros.brightness;
+  var s = document.getElementById("macro-space"); if(s && !s._dragging) s.value = macros.space;
+}
+
+/* ═══════ visualizer ═══════ */
+function drawViz(){
+  var canvas = document.getElementById("viz");
+  if(!canvas){ return; }
+  var ctx = canvas.getContext("2d");
+  var w = canvas.width, h = canvas.height, cx = w/2, cy = h/2;
+  ctx.fillStyle = "rgba(5,2,8,0.18)"; ctx.fillRect(0,0,w,h);
+  if(!STATE.playing){ requestAnimationFrame(drawViz); return; }
+  var t = performance.now() / 1000;
+  var tension = STATE.tension || 0.5;
+  var beatPhase = (STATE.audioTime / (60/STATE.bpm)) % 1;
+  var beatPulse = Math.exp(-beatPhase * 4);
+  ctx.strokeStyle = "rgba(185,103,255," + (0.25 + tension * 0.4) + ")"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, w*0.44, 0, 2*Math.PI); ctx.stroke();
+  ctx.fillStyle = "rgba(0,240,200," + (0.05 + beatPulse * 0.2) + ")";
+  ctx.beginPath(); ctx.arc(cx, cy, w*(0.12 + beatPulse*0.08), 0, 2*Math.PI); ctx.fill();
+  for(var i = 0; i < 16; i++){
+    var angle = (i / 16) * 2 * Math.PI - Math.PI/2 + t * 0.04;
+    var r1 = w * 0.26, r2 = w * (0.32 + tension * 0.1);
+    var active = STATE.lastMetrics && (i % 4 === 0);
+    ctx.strokeStyle = active ? "rgba(255,46,136,0.7)" : "rgba(157,143,192,0.18)";
+    ctx.lineWidth = active ? 2.5 : 1;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(angle)*r1, cy + Math.sin(angle)*r1);
+    ctx.lineTo(cx + Math.cos(angle)*r2, cy + Math.sin(angle)*r2); ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(239,233,251,0.9)"; ctx.font = "900 36px ui-monospace, monospace";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(STATE.section.charAt(0), cx, cy);
+  requestAnimationFrame(drawViz);
+}
+
+function setStatus(msg, ok){
+  var el = document.getElementById("status");
+  if(el){ el.innerHTML = msg; el.className = ok === true ? "ok" : ok === false ? "err" : ""; }
+}
+
+/* ═══════ controls ═══════ */
+function setupControls(){
+  var slEnergy = document.getElementById("sl-energy");
+  var valEnergy = document.getElementById("val-energy");
+  slEnergy.addEventListener("input", function(){
+    STATE.energy = parseFloat(this.value); valEnergy.textContent = STATE.energy.toFixed(2);
+    if(WORKLET) WORKLET.port.postMessage({type:"setParams", params:{energy:STATE.energy}});
+  });
+  var slBpm = document.getElementById("sl-bpm");
+  var valBpm = document.getElementById("val-bpm");
+  slBpm.addEventListener("input", function(){
+    STATE.bpm = parseInt(this.value); valBpm.textContent = STATE.bpm;
+    if(WORKLET) WORKLET.port.postMessage({type:"setParams", params:{bpm:STATE.bpm}});
+  });
+  document.querySelectorAll(".mood").forEach(function(m){
+    m.addEventListener("click", function(){
+      document.querySelectorAll(".mood").forEach(function(x){ x.classList.remove("active"); });
+      m.classList.add("active"); STATE.mood = m.dataset.mood;
+      if(WORKLET) WORKLET.port.postMessage({type:"setParams", params:{mood:STATE.mood}});
+    });
+  });
+  // macros
+  ["tension","brightness","space"].forEach(function(macro){
+    var el = document.getElementById("macro-"+macro);
+    if(el){
+      el._dragging = false;
+      el.addEventListener("input", function(){
+        var v = parseFloat(this.value);
+        if(WORKLET) WORKLET.port.postMessage({type:"setMacro", macro:macro, value:v});
+      });
+      el.addEventListener("pointerdown", function(){ this._dragging = true; });
+      el.addEventListener("pointerup", function(){ this._dragging = false; });
+    }
+  });
+  // mixer
+  ["kick","bass","sub","lead","pad","drums"].forEach(function(ch){
+    var vol = document.getElementById("mix-"+ch+"-vol");
+    if(vol){
+      vol._dragging = false;
+      vol.addEventListener("input", function(){
+        var v = parseFloat(this.value);
+        if(WORKLET) WORKLET.port.postMessage({type:"setMixer", channel:ch, prop:"vol", value:v});
+      });
+      vol.addEventListener("pointerdown", function(){ this._dragging = true; });
+      vol.addEventListener("pointerup", function(){ this._dragging = false; });
+    }
+    var mute = document.getElementById("mix-"+ch+"-mute");
+    if(mute){
+      mute.addEventListener("click", function(){
+        var isMuted = this.classList.toggle("muted");
+        if(WORKLET) WORKLET.port.postMessage({type:"setMixer", channel:ch, prop:"mute", value:isMuted});
+      });
+    }
+  });
+  // presets
+  document.querySelectorAll(".preset").forEach(function(p){
+    p.addEventListener("click", function(){
+      var slot = p.dataset.slot;
+      var key = "psy-studio-preset-" + slot;
+      var saved = localStorage.getItem(key);
+      if(!saved || p.classList.contains("active")){
+        var data = JSON.stringify({seed:STATE.seed, bpm:STATE.bpm, energy:STATE.energy, mood:STATE.mood});
+        localStorage.setItem(key, data);
+        p.classList.add("saved"); p.classList.remove("active");
+        setStatus("preset " + ["A","B","C","D"][slot] + " saved", true);
+      } else {
+        var data = JSON.parse(saved);
+        STATE.seed = data.seed; STATE.bpm = data.bpm; STATE.energy = data.energy; STATE.mood = data.mood;
+        if(WORKLET){
+          WORKLET.port.postMessage({type:"setSeed", seed:STATE.seed});
+          WORKLET.port.postMessage({type:"setParams", params:{bpm:STATE.bpm, energy:STATE.energy, mood:STATE.mood}});
+        }
+        slEnergy.value = STATE.energy; valEnergy.textContent = STATE.energy.toFixed(2);
+        slBpm.value = STATE.bpm; valBpm.textContent = STATE.bpm;
+        document.querySelectorAll(".mood").forEach(function(x){ x.classList.toggle("active", x.dataset.mood === STATE.mood); });
+        document.querySelectorAll(".preset").forEach(function(x){ x.classList.remove("active"); });
+        p.classList.add("active");
+        setStatus("preset " + ["A","B","C","D"][slot] + " recalled", true);
+      }
+    });
+  });
+  // reseed
+  document.getElementById("btn-reseed").addEventListener("click", function(){
+    STATE.seed = Math.floor(Math.random() * 1000000);
+    if(WORKLET) WORKLET.port.postMessage({type:"setSeed", seed:STATE.seed});
+    setStatus("reseeded", true);
+  });
+  // share
+  document.getElementById("btn-share").addEventListener("click", function(){
+    var url = location.origin + location.pathname + "#s=" + STATE.seed + "&b=" + STATE.bpm + "&m=" + STATE.mood + "&e=" + STATE.energy.toFixed(2);
+    if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ setStatus("URL copied", true); }); }
+    else { prompt("Copy:", url); }
+  });
+  // transport
+  var playBtn = document.getElementById("btn-play");
+  if(playBtn) playBtn.addEventListener("click", function(){
+    if(STATE.playing){
+      if(WORKLET) WORKLET.port.postMessage({type:"stop"});
+      STATE.playing = false; playBtn.textContent = "▶ PLAY";
+    } else {
+      if(WORKLET) WORKLET.port.postMessage({type:"start"});
+      STATE.playing = true; playBtn.textContent = "⏸ PAUSE";
+    }
+  });
+  // seek to section
+  document.querySelectorAll(".section-jump").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var sec = this.dataset.section;
+      var barMap = {INTRO:0, BUILD:4, DROP:8, BREAK:16, RISER:20, DROP2:24};
+      var bar = barMap[sec] || 0;
+      if(WORKLET) WORKLET.port.postMessage({type:"seekBar", bar:bar});
+      setStatus("jumped to " + sec, true);
+    });
+  });
+  // export
+  var exportBtn = document.getElementById("btn-export");
+  var exportMenu = document.getElementById("export-menu");
+  exportBtn.addEventListener("click", function(e){ e.stopPropagation(); exportMenu.classList.toggle("open"); });
+  document.addEventListener("click", function(){ exportMenu.classList.remove("open"); });
+  exportMenu.addEventListener("click", function(e){ e.stopPropagation(); });
+  document.querySelectorAll(".export-item").forEach(function(item){
+    item.addEventListener("click", function(){
+      var type = this.dataset.export;
+      exportMenu.classList.remove("open");
+      handleExport(type);
+    });
+  });
+}
+
+/* ═══════ export ═══════ */
+function handleExport(type){
+  if(!F){ setStatus("foundation not loaded", false); return; }
+  if(type === "project"){
+    var project = {version:"1.0", seed:STATE.seed, bpm:STATE.bpm, energy:STATE.energy, mood:STATE.mood, created:new Date().toISOString()};
+    var blob = new Blob([JSON.stringify(project,null,2)], {type:"application/json"});
+    downloadBlob(blob, "psy-studio-" + STATE.seed + ".psy.json");
+    setStatus("project saved", true); return;
+  }
+  if(type === "midi"){
+    WORKLET.port.postMessage({type:"getTimeline", bars:32});
+    setStatus("generating MIDI...", true); STATE._pendingMidi = true; return;
+  }
+  var bars = type === "wav1" ? 8 : (type === "wav5" ? 40 : 80);
+  setStatus("rendering...", true);
+  WORKLET.port.postMessage({type:"getTimeline", bars:bars});
+  STATE._pendingWav = {bars:bars, type:type};
+}
+function downloadBlob(blob, name){
+  var url = URL.createObjectURL(blob); var a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+function onTimelineForExport(timeline){
+  if(STATE._pendingMidi){
+    STATE._pendingMidi = false;
+    var midi = F.midi.timelineToMidiFile({events:timeline.events.map(function(e){
+      return {voice:e.voice, midi:e.midi, beat:e.audioTime/(60/STATE.bpm), durationBeats:0.5, velocity:0.8, accent:0.5, bar:e.bar, step:e.step};
+    }), eventCount:timeline.events.length, lengthBeats:timeline.lengthSeconds*(STATE.bpm/60)},
+      {bpm:timeline.bpm, ticksPerBeat:480});
+    downloadBlob(new Blob([midi],{type:"audio/midi"}), "psy-studio-" + STATE.seed + ".mid");
+    setStatus("MIDI: " + (midi.byteLength/1024).toFixed(1) + " KB", true); return;
+  }
+  if(STATE._pendingWav){
+    var p = STATE._pendingWav; STATE._pendingWav = null;
+    var SR = 44100, numSamples = Math.floor(timeline.lengthSeconds * SR);
+    var data = new Float32Array(numSamples);
+    timeline.events.forEach(function(ev){
+      var start = Math.floor(ev.audioTime * SR), dur = Math.floor(0.15 * SR);
+      var freq = ev.midi !== null ? 440*Math.pow(2,(ev.midi-69)/12) : 60;
+      for(var i = 0; i < dur && start+i < numSamples; i++){
+        var t = i/SR, amp = Math.exp(-t*8)*(ev.voice==="kick"?0.4:0.2);
+        if(ev.voice==="kick") data[start+i] += Math.sin(2*Math.PI*(60-t*40)*t)*amp;
+        else data[start+i] += Math.sin(2*Math.PI*freq*t)*amp;
+      }
+    });
+    for(var i = 0; i < data.length; i++){ if(data[i]>1)data[i]=1; if(data[i]<-1)data[i]=-1; }
+    var buf = {sampleRate:SR, numberOfChannels:1, length:numSamples, getChannelData:function(){return data;}};
+    var wav = F.render.audioBufferToWav(buf);
+    downloadBlob(new Blob([wav],{type:"audio/wav"}), "psy-studio-" + STATE.seed + ".wav");
+    setStatus("WAV: " + (wav.byteLength/1024/1024).toFixed(1) + " MB", true);
+  }
+}
+
+/* ═══════ URL state ═══════ */
+function parseUrlState(){
+  if(!location.hash) return;
+  var params = new URLSearchParams(location.hash.slice(1));
+  if(params.has("s")) STATE.seed = parseInt(params.get("s")) || STATE.seed;
+  if(params.has("b")) STATE.bpm = parseInt(params.get("b")) || STATE.bpm;
+  if(params.has("m")) STATE.mood = params.get("m") || STATE.mood;
+  if(params.has("e")) STATE.energy = parseFloat(params.get("e")) || STATE.energy;
+  document.getElementById("sl-energy").value = STATE.energy;
+  document.getElementById("val-energy").textContent = STATE.energy.toFixed(2);
+  document.getElementById("sl-bpm").value = STATE.bpm;
+  document.getElementById("val-bpm").textContent = STATE.bpm;
+  document.querySelectorAll(".mood").forEach(function(x){ x.classList.toggle("active", x.dataset.mood === STATE.mood); });
+}
+
+/* ═══════ boot ═══════ */
+setStatus("loading foundation...");
+loadFoundation().then(function(loaded){ F = loaded; setStatus("foundation ready — click to start", true); })
+.catch(function(err){ console.warn("[PSY STUDIO]", err); setStatus("foundation load failed — export disabled", true); });
+parseUrlState();
+setupControls();
+document.getElementById("start").addEventListener("click", function(){
+  if(!AUDIO){ AUDIO = new (window.AudioContext || window.webkitAudioContext)(); }
+  if(AUDIO.state === "suspended"){
+    AUDIO.resume().then(function(){ start(); }).catch(function(err){ setStatus("resume failed: "+err.message, false); });
+  } else { start(); }
+});
+setTimeout(function(){
+  ["A","B","C","D"].forEach(function(letter, i){
+    if(localStorage.getItem("psy-studio-preset-" + i)) document.querySelectorAll(".preset")[i].classList.add("saved");
+  });
+}, 100);
+</script>
+</body>
+</html>
+
