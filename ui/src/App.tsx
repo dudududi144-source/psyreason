@@ -5,15 +5,14 @@ import CableView from './components/CableView';
 import PianoRollUI from './components/PianoRollUI';
 import BrowserView from './components/BrowserView';
 import TransportBar from './components/TransportBar';
+import Keyboard from './components/Keyboard';
+import LevelMeters from './components/LevelMeters';
 
 type ViewMode = 'rack' | 'cables' | 'sequencer' | 'pianoroll' | 'browser';
 
 const DEFAULT_CABLE_DEVICES = [
   {
-    id: 'subtractor1',
-    name: 'SUBTRACTOR',
-    x: 40,
-    y: 40,
+    id: 'subtractor1', name: 'SUBTRACTOR', x: 40, y: 40,
     inputs: [
       { id: 'sub1-cv-gate', name: 'Gate In', type: 'cv' as const },
       { id: 'sub1-cv-pitch', name: 'Pitch CV', type: 'cv' as const },
@@ -24,10 +23,7 @@ const DEFAULT_CABLE_DEVICES = [
     ],
   },
   {
-    id: 'thor1',
-    name: 'THOR',
-    x: 40,
-    y: 200,
+    id: 'thor1', name: 'THOR', x: 40, y: 200,
     inputs: [
       { id: 'thor1-cv-gate', name: 'Gate In', type: 'cv' as const },
       { id: 'thor1-cv-mod', name: 'Mod CV', type: 'cv' as const },
@@ -38,10 +34,26 @@ const DEFAULT_CABLE_DEVICES = [
     ],
   },
   {
-    id: 'delay1',
-    name: 'DDL-1 DELAY',
-    x: 340,
-    y: 40,
+    id: 'kong1', name: 'KONG', x: 40, y: 360,
+    inputs: [{ id: 'kong1-trigger', name: 'Trigger', type: 'cv' as const }],
+    outputs: [
+      { id: 'kong1-out-l', name: 'Out L', type: 'audio' as const },
+      { id: 'kong1-out-r', name: 'Out R', type: 'audio' as const },
+    ],
+  },
+  {
+    id: 'sync1', name: 'SYNCHRONOUS', x: 340, y: 40,
+    inputs: [
+      { id: 'sync1-in-l', name: 'In L', type: 'audio' as const },
+      { id: 'sync1-in-r', name: 'In R', type: 'audio' as const },
+    ],
+    outputs: [
+      { id: 'sync1-out-l', name: 'Out L', type: 'audio' as const },
+      { id: 'sync1-out-r', name: 'Out R', type: 'audio' as const },
+    ],
+  },
+  {
+    id: 'delay1', name: 'DDL-1 DELAY', x: 340, y: 200,
     inputs: [
       { id: 'delay1-in-l', name: 'In L', type: 'audio' as const },
       { id: 'delay1-in-r', name: 'In R', type: 'audio' as const },
@@ -52,10 +64,7 @@ const DEFAULT_CABLE_DEVICES = [
     ],
   },
   {
-    id: 'reverb1',
-    name: 'RV-7 REVERB',
-    x: 340,
-    y: 200,
+    id: 'reverb1', name: 'RV-7 REVERB', x: 340, y: 360,
     inputs: [
       { id: 'reverb1-in-l', name: 'In L', type: 'audio' as const },
       { id: 'reverb1-in-r', name: 'In R', type: 'audio' as const },
@@ -66,10 +75,7 @@ const DEFAULT_CABLE_DEVICES = [
     ],
   },
   {
-    id: 'mixer1',
-    name: 'MIXER 14:2',
-    x: 640,
-    y: 40,
+    id: 'mixer1', name: 'MIXER 14:2', x: 640, y: 40,
     inputs: [
       { id: 'mixer1-in1-l', name: 'Ch 1 L', type: 'audio' as const },
       { id: 'mixer1-in1-r', name: 'Ch 1 R', type: 'audio' as const },
@@ -82,22 +88,30 @@ const DEFAULT_CABLE_DEVICES = [
     ],
   },
   {
-    id: 'lfo1',
-    name: 'LFO',
-    x: 40,
-    y: 380,
-    inputs: [],
-    outputs: [
-      { id: 'lfo1-cv-out', name: 'CV Out', type: 'cv' as const },
+    id: 'vocoder1', name: 'PULSAR VOCODER', x: 640, y: 280,
+    inputs: [
+      { id: 'voc1-carrier', name: 'Carrier', type: 'audio' as const },
+      { id: 'voc1-modulator', name: 'Modulator', type: 'audio' as const },
     ],
+    outputs: [
+      { id: 'voc1-out-l', name: 'Out L', type: 'audio' as const },
+      { id: 'voc1-out-r', name: 'Out R', type: 'audio' as const },
+    ],
+  },
+  {
+    id: 'lfo1', name: 'LFO', x: 40, y: 500,
+    inputs: [],
+    outputs: [{ id: 'lfo1-cv-out', name: 'CV Out', type: 'cv' as const }],
   },
 ];
 
 const DEFAULT_CABLES = [
-  { id: 'cable-1', fromPort: 'sub1-out-l', toPort: 'delay1-in-l', type: 'audio' as const },
-  { id: 'cable-2', fromPort: 'delay1-out-l', toPort: 'mixer1-in1-l', type: 'audio' as const },
-  { id: 'cable-3', fromPort: 'thor1-out-l', toPort: 'reverb1-in-l', type: 'audio' as const },
-  { id: 'cable-4', fromPort: 'reverb1-out-l', toPort: 'mixer1-in2-l', type: 'audio' as const },
+  { id: 'cable-1', fromPort: 'sub1-out-l', toPort: 'sync1-in-l', type: 'audio' as const },
+  { id: 'cable-2', fromPort: 'sync1-out-l', toPort: 'mixer1-in1-l', type: 'audio' as const },
+  { id: 'cable-3', fromPort: 'thor1-out-l', toPort: 'delay1-in-l', type: 'audio' as const },
+  { id: 'cable-4', fromPort: 'delay1-out-l', toPort: 'mixer1-in2-l', type: 'audio' as const },
+  { id: 'cable-5', fromPort: 'kong1-out-l', toPort: 'reverb1-in-l', type: 'audio' as const },
+  { id: 'cable-6', fromPort: 'reverb1-out-l', toPort: 'vocoder1-carrier', type: 'audio' as const },
 ];
 
 export default function App() {
@@ -105,16 +119,20 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(145);
   const [cables, setCables] = useState(DEFAULT_CABLES);
+  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [lastNote, setLastNote] = useState<number | null>(null);
 
   const handleConnect = (fromPort: string, toPort: string, type: 'audio' | 'cv') => {
-    setCables((prev) => [
-      ...prev,
-      { id: 'cable-' + Date.now(), fromPort, toPort, type },
-    ]);
+    setCables((prev) => [...prev, { id: 'cable-' + Date.now(), fromPort, toPort, type }]);
   };
 
   const handleDisconnect = (cableId: string) => {
     setCables((prev) => prev.filter((c) => c.id !== cableId));
+  };
+
+  const handleNoteOn = (midi: number, velocity: number) => {
+    setLastNote(midi);
+    void velocity;
   };
 
   return (
@@ -122,7 +140,7 @@ export default function App() {
       <header className="header">
         <div className="logo-section">
           <h1 className="logo">PSYREASON</h1>
-          <span className="logo-sub">Psytrance Production Studio</span>
+          <span className="logo-sub">Psytrance Production Studio v0.4</span>
         </div>
         <nav className="view-switcher">
           <button className={viewMode === 'rack' ? 'active' : ''} onClick={() => setViewMode('rack')}>RACK</button>
@@ -131,6 +149,12 @@ export default function App() {
           <button className={viewMode === 'pianoroll' ? 'active' : ''} onClick={() => setViewMode('pianoroll')}>PIANO ROLL</button>
           <button className={viewMode === 'browser' ? 'active' : ''} onClick={() => setViewMode('browser')}>BROWSER</button>
         </nav>
+        <button
+          className={'keyboard-toggle ' + (showKeyboard ? 'active' : '')}
+          onClick={() => setShowKeyboard(!showKeyboard)}
+        >
+          KEYBOARD
+        </button>
       </header>
 
       <TransportBar
@@ -139,6 +163,19 @@ export default function App() {
         bpm={bpm}
         onBpmChange={setBpm}
       />
+
+      <div className="status-strip">
+        <LevelMeters isPlaying={isPlaying} bpm={bpm} />
+        <span className="status-info">
+          {lastNote !== null ? 'Last note: MIDI ' + lastNote : 'Ready'}
+        </span>
+      </div>
+
+      {showKeyboard && (
+        <div className="keyboard-panel">
+          <Keyboard onNoteOn={handleNoteOn} />
+        </div>
+      )}
 
       <main className="main-content">
         {viewMode === 'rack' && <RackView />}
@@ -162,7 +199,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <span>PsyReason v0.3.0 | Built from 15 PSY repos | 1,300+ KB of code</span>
+        <span>PsyReason v0.4.0 | 23 devices | Built from 15 PSY repos</span>
         <span>{bpm} BPM | 4/4 | Psytrance | {cables.length} cables</span>
       </footer>
     </div>
