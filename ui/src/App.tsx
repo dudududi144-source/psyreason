@@ -59,9 +59,9 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
   return (
     <div className="view">
       <div className="timeline">
-        {ARRANGEMENT.map((sec, i) => {
-          const left = (barAcc / TOTAL_BARS) * 100; barAcc += sec.bars;
-          const width = (sec.bars / TOTAL_BARS) * 100;
+        {engine.arrangement.map((sec, i) => {
+          const TB = engine.totalBars(); const left = (barAcc / TB) * 100; barAcc += sec.bars;
+          const width = (sec.bars / engine.totalBars()) * 100;
           const active = pos.bar >= 0 && sectionAtBar(pos.bar).index === i;
           return (
             <div key={sec.name} className={'tl-sec' + (active ? ' on' : '')} style={{ left: left + '%', width: width + '%' }}>
@@ -69,7 +69,7 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
             </div>
           );
         })}
-        {pos.bar >= 0 && <div className="tl-play" style={{ left: ((pos.bar + (pos.step + 1) / 16) / TOTAL_BARS) * 100 + '%' }} />}
+        {pos.bar >= 0 && <div className="tl-play" style={{ left: ((pos.bar + (pos.step + 1) / 16) / engine.totalBars()) * 100 + '%' }} />}
       </div>
       <div className="lanes">
         {rows.map((r) => {
@@ -78,7 +78,7 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
             <div key={r.id} className="lane">
               <div className="lane-head" style={{ color: meta.color, borderColor: meta.color }}>
                 {meta.name}
-                <button className="prev-btn" onClick={() => engine.preview(r.id)}>▶</button>
+                <span className="lane-btns"><button className="prev-btn" title="regenerate" onClick={() => { engine.regenTrack(r.id); force((x) => x + 1); }}>⟲</button><button className="prev-btn" onClick={() => engine.preview(r.id)}>▶</button></span>
               </div>
               <div className="lane-cells">
                 {r.cells.map((c, i) => (
@@ -207,6 +207,7 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [bpm, setBpm] = useState(145);
   const [pos, setPos] = useState({ bar: -1, step: -1 });
+  const [, force] = useState(0);
   const mRef = useMeter('master', playing);
   useEffect(() => { engine.onTick = (bar, step) => setPos({ bar, step }); return () => { engine.onTick = null; }; }, []);
   const toggle = async () => { if (playing) { engine.stop(); setPlaying(false); } else { await engine.start(); setPlaying(true); } };
@@ -223,6 +224,7 @@ export default function App() {
       </header>
       <div className="transport">
         <button className={'play' + (playing ? ' on' : '')} onClick={toggle}>{playing ? '■ STOP' : '▶ PLAY'}</button>
+        <button className="gen" onClick={() => { engine.generate(); force((x) => x + 1); }} title="generate a new track">⚄ GENERATE</button>
         <div className="t-block"><span>BPM</span><input type="number" value={bpm} min={90} max={200} onChange={(e) => { const v = Number(e.target.value); setBpm(v); engine.setBpm(v); }} /></div>
         <div className="t-block"><span>POS</span><b>{pos.bar >= 0 ? 'BAR ' + (pos.bar + 1) + ' . ' + (pos.step + 1) : '—'}</b></div>
         <div className="t-block"><span>SECTION</span><b className="sec">{secName}</b></div>
@@ -236,7 +238,7 @@ export default function App() {
       </main>
       <footer className="foot">
         <span>PsyReason v4 — one coherent engine: scheduler → voices → channel mixer → FX sends → master chain</span>
-        <span>{playing ? 'RUNNING' : 'IDLE'} • {bpm} BPM • {TOTAL_BARS}-bar arrangement</span>
+        <span>{playing ? 'RUNNING' : 'IDLE'} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
   );
