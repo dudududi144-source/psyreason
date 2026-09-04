@@ -95,7 +95,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic';
+  styleId = 'fullon'; subId = 'classic'; clapOn = false;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -108,6 +108,25 @@ export class Engine {
     this.params.lead = { ...this.params.lead, cutoff: sb.leadCut, res: sb.leadRes, decay: sb.leadDecay, wave: sb.leadWave };
     this.params.kick = { ...this.params.kick, decay: sb.kickDecay, punch: sb.punch };
     this.params.hats = { ...this.params.hats, tone: sb.hatTone };
+    const BC: Record<string, any> = {
+      pluck: { pluck: 1, sub: 0.3, glide: 0 }, flat: { pluck: 0.25, sub: 0.5, glide: 0 },
+      acid: { pluck: 0.85, sub: 0.2, glide: 0.5 }, sub: { pluck: 0.3, sub: 0.95, glide: 0 },
+      growl: { pluck: 0.6, sub: 0.6, glide: 0.2 } };
+    const LC: Record<string, any> = {
+      acid: { voices: 1, detune: 0, glide: 0.6, resBoost: 8 }, super: { voices: 3, detune: 14, glide: 0, resBoost: 0 },
+      pluck: { voices: 1, detune: 4, glide: 0, resBoost: 2 }, air: { voices: 2, detune: 8, glide: 0, resBoost: -2 },
+      twist: { voices: 2, detune: 20, glide: 0.3, resBoost: 5 } };
+    const DC: Record<string, any> = {
+      punch: { decay: 0.24, punch: 0.7, metal: 0.6, body: 0.3 }, round: { decay: 0.32, punch: 0.4, metal: 0.4, body: 0.7 },
+      soft: { decay: 0.4, punch: 0.25, metal: 0.2, body: 0.6 }, hard: { decay: 0.2, punch: 0.9, metal: 0.8, body: 0.2 },
+      breaky: { decay: 0.26, punch: 0.6, metal: 0.5, body: 0.4 } };
+    Object.assign(this.params.bass, BC[sb.bassChar] || BC.pluck);
+    const lc = LC[sb.leadChar] || LC.pluck;
+    Object.assign(this.params.lead, lc);
+    this.params.lead.res = Math.max(0, sb.leadRes + lc.resBoost);
+    Object.assign(this.params.kick, DC[sb.drumChar] || DC.punch);
+    this.params.hats.metal = (DC[sb.drumChar] || DC.punch).metal;
+    this.clapOn = !!sb.clap;
   }
   generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
@@ -185,7 +204,7 @@ export class Engine {
   // ---------- voices ----------
   vKick(t: number) {
     const ctx = this.ctx!; const p = this.params.kick; const out = this.channels.kick.bus;
-    const o = ctx.createOscillator(); o.type = 'sine';
+    const o = ctx.createOscillator(); o.type = (((this.params.kick as any).body ?? 0.3) > 0.6 ? 'triangle' : 'sine');
     o.frequency.setValueAtTime(165, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.09);
     const g = ctx.createGain(); g.gain.setValueAtTime(1.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + p.decay);
     o.connect(g); g.connect(out); o.start(t); o.stop(t + p.decay + 0.05);
@@ -207,12 +226,12 @@ export class Engine {
     const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f;
     const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
-    lp.frequency.setValueAtTime(p.cutoff * 2.2 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * 0.5 * this.sweep), t + dur);
+    const pl = (p as any).pluck ?? 0.6; lp.frequency.setValueAtTime(p.cutoff * (1 + 2.5 * pl) * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * (1 - 0.6 * pl) * this.sweep), t + dur);
     const dr = ctx.createWaveShaper(); dr.curve = this.driveCurve(p.drive);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.005);
     g.gain.setValueAtTime(0.5, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, t); sg.gain.linearRampToValueAtTime(0.35, t + 0.005); sg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, t); sg.gain.linearRampToValueAtTime(0.15 + 0.45 * ((p as any).sub ?? 0.35), t + 0.005); sg.gain.exponentialRampToValueAtTime(0.001, t + dur);
     o.connect(lp); lp.connect(dr); dr.connect(g); sub.connect(sg);
     g.connect(out); sg.connect(out);
     o.start(t); o.stop(t + dur + 0.05); sub.start(t); sub.stop(t + dur + 0.05);
@@ -226,7 +245,7 @@ export class Engine {
     const ctx = this.ctx!; const p = open ? this.params.open : this.params.hats;
     const out = open ? this.channels.open.bus : this.channels.hats.bus;
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = p.tone;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = p.tone; hp.Q.value = ((p as any).metal ?? 0.5) > 0.6 ? 1.2 : 0.7;
     const g = ctx.createGain(); const dur = open ? 0.28 : 0.05;
     g.gain.setValueAtTime(open ? 0.35 : 0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     n.connect(hp); hp.connect(g); g.connect(out); n.start(t); n.stop(t + dur + 0.05);
@@ -238,8 +257,15 @@ export class Engine {
     lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    for (const det of [-8, 8]) {
-      const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f; o.detune.value = det;
+    const voicesN = Math.max(1, (p as any).voices ?? 2);
+    const detAmt = (p as any).detune ?? 8;
+    const glide = (p as any).glide ?? 0;
+    for (let vi = 0; vi < voicesN; vi++) {
+      const det = voicesN === 1 ? 0 : (vi - (voicesN - 1) / 2) * detAmt;
+      const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth';
+      if (glide > 0) { o.frequency.setValueAtTime(f * 0.7, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04); }
+      else o.frequency.value = f;
+      o.detune.value = det;
       o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
     }
     lp.connect(g); g.connect(out);
@@ -258,6 +284,17 @@ export class Engine {
 
   sweep = 1;
 
+  vClap(t: number) {
+    const ctx = this.ctx!;
+    const n = ctx.createBufferSource(); n.buffer = this.noise();
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 1.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    for (let i = 0; i < 3; i++) { g.gain.setValueAtTime(0.4, t + i * 0.012); g.gain.exponentialRampToValueAtTime(0.05, t + i * 0.012 + 0.01); }
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    n.connect(bp); bp.connect(g); g.connect(this.channels.kick.bus);
+    n.start(t); n.stop(t + 0.2);
+  }
   vRiser(t: number, dur: number) {
     const ctx = this.ctx!;
     const n = ctx.createBufferSource(); n.buffer = this.noise(); n.loop = true;
@@ -294,6 +331,7 @@ export class Engine {
     }
     if (section.name === 'BUILD') this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
+    if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
     if (lastBar && on('kick') && step >= 12) { this.vKick(t); this.vHat(t, false); } // transition fill
     if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92); }
     if (on('hats') && s.hats[step]) this.vHat(t, false);
