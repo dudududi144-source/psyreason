@@ -218,10 +218,12 @@ export class Engine {
       const an = ctx.createAnalyser(); an.fftSize = 256;
       const dSend = ctx.createGain(); dSend.gain.value = 0;
       const rSend = ctx.createGain(); rSend.gain.value = 0;
-      bus.connect(duck); duck.connect(fader); fader.connect(pan); pan.connect(an); an.connect(this.master);
+      const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 18000;
+      const drv = ctx.createWaveShaper(); drv.curve = this.driveCurve(0.0001);
+      bus.connect(duck); duck.connect(tone); tone.connect(drv); drv.connect(fader); fader.connect(pan); pan.connect(an); an.connect(this.master);
       bus.connect(dSend); dSend.connect(dIn);
       bus.connect(rSend); rSend.connect(rIn);
-      this.channels[t.id] = { bus, duck, fader, pan, an, dSend, rSend, mute: false, solo: false, level: 0.9 };
+      this.channels[t.id] = { bus, duck, tone, drv, fader, pan, an, dSend, rSend, mute: false, solo: false, level: 0.9 };
     }
     // default sends
     this.channels.lead.dSend.gain.value = this.params.lead.dSend;
@@ -247,7 +249,7 @@ export class Engine {
   noise(): AudioBuffer { if (!this._noise) this._noise = this.noiseBuf(); return this._noise; }
 
   // ---------- voices ----------
-  vKick(t: number) {
+  vKick(t: number, vel = 1) {
     const ctx = this.ctx!; const p = this.params.kick as any; const out = this.channels.kick.bus;
     // layered: body osc + sub tail + click, through soft saturation
     const o = ctx.createOscillator(); o.type = (p.body ?? 0.3) > 0.6 ? 'triangle' : 'sine';
@@ -255,7 +257,7 @@ export class Engine {
     o.frequency.exponentialRampToValueAtTime(40 + 8 * (p.body ?? 0.3), t + 0.09);
     const ws = ctx.createWaveShaper(); ws.curve = this.driveCurve(0.3 + ((this.params.kick as any).sat ?? 0.4));
     const g = ctx.createGain();
-    g.gain.setValueAtTime(1.15, t);
+    g.gain.setValueAtTime(1.15 * vel, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + p.decay);
     o.connect(ws); ws.connect(g); g.connect(out);
     o.start(t); o.stop(t + p.decay + 0.05);
@@ -469,6 +471,8 @@ export class Engine {
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK' && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
+    if (section.name === 'BREAK' && step === 0 && barIn % 2 === 0) this.vKick(t, 0.45); // half-time heartbeat keeps pulse
+    if (section.name === 'BREAK' && barIn < 2 && step % 4 === 2) this.vBass(t, 0, stepDur * 0.9, 0.5); // bass tail continuity
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, section.name === 'BREAK' ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
   }
 
@@ -632,6 +636,15 @@ export class Engine {
 
   pendingJump: number | null = null;
   jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
+  setTone(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.tone.frequency.value = 200 + v * 16000; }
+  setDrive(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.drv.curve = this.driveCurve(v); }
+  async playVoice(track: string, midi: number) {
+    await this.init(); if (this.ctx && this.ctx.state !== 'running') { try { await this.ctx.resume(); } catch (e) {} }
+    const t = this.ctx!.currentTime + 0.02; const sd = 60 / this.bpm / 4;
+    if (track === 'lead') this.vLead(t, midi, sd * 3);
+    else if (track === 'bass') this.vBass(t, midi - 33, sd * 4);
+    else if (track === 'pad') this.vPad(t, [midi, midi + 3, midi + 7], sd * 8);
+  }
   audioState(): string { return this.ctx ? this.ctx.state : 'off'; }
   level(id: TrackId | 'master'): number {
     const an = id === 'master' ? this.masterAn : this.channels[id] ? this.channels[id].an : null;
