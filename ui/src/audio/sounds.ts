@@ -19,7 +19,7 @@ const HW = ['Classic', 'Tight', 'Loose', 'Metal', 'Soft', 'Busy'];
 function buildBass(): SoundPreset[] {
   const out: SoundPreset[] = [];
   const waves = ['sawtooth', 'square'];
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 400; i++) {
     const r = rng(1000 + i);
     const ch = pick(r, ['pluck', 'flat', 'acid', 'sub', 'growl']);
     const base: any = { pluck: { pluck: 1, sub: 0.3 }, flat: { pluck: 0.25, sub: 0.5 }, acid: { pluck: 0.85, sub: 0.2 }, sub: { pluck: 0.3, sub: 0.95 }, growl: { pluck: 0.6, sub: 0.6 } }[ch];
@@ -33,7 +33,7 @@ function buildBass(): SoundPreset[] {
 
 function buildLead(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 400; i++) {
     const r = rng(5000 + i);
     const engine = pick(r, ['analog', 'analog', 'fm', 'wave']);
     const p: any = {
@@ -52,7 +52,7 @@ function buildLead(): SoundPreset[] {
 
 function buildPad(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 160; i++) {
+  for (let i = 0; i < 200; i++) {
     const r = rng(9000 + i);
     out.push({ name: PW[i % PW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { cutoff: Math.round(r2(r, 500, 2600)), rSend: +r2(r, 0.4, 0.85).toFixed(2) } });
   }
@@ -61,7 +61,7 @@ function buildPad(): SoundPreset[] {
 
 function buildKick(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 160; i++) {
+  for (let i = 0; i < 200; i++) {
     const r = rng(13000 + i);
     out.push({ name: KW[i % KW.length] + ' Kick ' + String(i + 1).padStart(2, '0'), p: { decay: +r2(r, 0.18, 0.42).toFixed(2), punch: +r2(r, 0.25, 0.9).toFixed(2), body: +r2(r, 0.2, 0.8).toFixed(2), subk: +r2(r, 0.3, 0.8).toFixed(2) } });
   }
@@ -70,7 +70,7 @@ function buildKick(): SoundPreset[] {
 
 function buildHats(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 140; i++) {
+  for (let i = 0; i < 160; i++) {
     const r = rng(17000 + i);
     out.push({ name: HW[i % HW.length] + ' Hat ' + String(i + 1).padStart(2, '0'), p: { tone: Math.round(r2(r, 5500, 9500)), metal: +r2(r, 0.2, 0.9).toFixed(2) } });
   }
@@ -81,7 +81,7 @@ function buildHats(): SoundPreset[] {
 const FW = ['Riser', 'Impact', 'Downlift', 'EchoThrow', 'SpaceWash', 'Tunnel', 'Shimmer', 'Void'];
 function buildFx(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 96; i++) {
+  for (let i = 0; i < 120; i++) {
     const r = rng(21000 + i);
     out.push({ name: FW[i % FW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { delayFb: +r2(r, 0.2, 0.62).toFixed(2), delayTone: Math.round(r2(r, 1500, 6000)), space: +r2(r, 0.5, 1.4).toFixed(2) } });
   }
@@ -100,7 +100,7 @@ function buildChords(): SoundPreset[] {
     [0, 5, 3, 4], [0, 3, 0, 4], [0, 0, 3, 4], [0, 5, 0, 6], [0, 2, 3, 4], [0, 6, 5, 4], [0, 3, 5, 4], [0, 1, 3, 4],
   ];
   const scales = [MIN, PHR, MAJ, DOR];
-  for (let i = 0; i < 96; i++) {
+  for (let i = 0; i < 120; i++) {
     const r = rng(25000 + i);
     const scale = pick(r, scales);
     const prog = pick(r, progs);
@@ -194,6 +194,45 @@ function buildAtmos(): SoundPreset[] {
   }
   return out;
 }
+
+const BPW = ['Rolling', 'Offbeat Bounce', 'KBB Punch', 'Hypnotic 16', 'Driving 8'];
+function buildBassPat(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  const styles = ['rolling', 'offbeat', 'kbb', 'hypnotic', 'driving'];
+  for (let i = 0; i < 48; i++) {
+    const r = rng(53000 + i);
+    out.push({ name: BPW[i % BPW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { style: styles[Math.floor(r() * styles.length)], density: +r2(r, 0.7, 1).toFixed(2) } });
+  }
+  return out;
+}
+const DPW = ['Offbeat Hats', 'Busy Hats', 'Sparse Air', 'Shuffle Hats'];
+function buildDrumPat(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  const hs = ['offbeat', 'busy', 'sparse', 'shuffle'];
+  for (let i = 0; i < 48; i++) {
+    const r = rng(57000 + i);
+    out.push({ name: DPW[i % DPW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { hatStyle: hs[Math.floor(r() * hs.length)], openPos: pick(r, [8, 12, 14]) } });
+  }
+  return out;
+}
+const HW2 = ['Rising Hook', 'Falling Hook', 'Wave Hook', 'Jump Hook', 'Anthem Hook'];
+function buildHooks(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  const ms = ['rising', 'falling', 'wave', 'jump', 'anthem'];
+  for (let i = 0; i < 48; i++) {
+    out.push({ name: HW2[i % HW2.length] + ' ' + String(i + 1).padStart(2, '0'), p: { motif: ms[i % ms.length] } });
+  }
+  return out;
+}
+const TW = ['Short Roll', 'Long Roll', 'Open Into Drop', 'Soft Roll', 'Hard Roll'];
+function buildTrans(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 36; i++) {
+    const r = rng(61000 + i);
+    out.push({ name: TW[i % TW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { rollLen: pick(r, [4, 6, 8]), openIntoDrop: r() > 0.5, rollVel: +r2(r, 0.7, 1.2).toFixed(2) } });
+  }
+  return out;
+}
 export const SOUND_LIB: Record<string, SoundPreset[]> = {
   bass: buildBass(),
   lead: buildLead(),
@@ -209,6 +248,10 @@ export const SOUND_LIB: Record<string, SoundPreset[]> = {
   arp: buildArp(),
   sidechain: buildSidechain(),
   atmos: buildAtmos(),
+  basspat: buildBassPat(),
+  drumpat: buildDrumPat(),
+  hooks: buildHooks(),
+  transitions: buildTrans(),
 };
 
 export function soundCount(): number {
