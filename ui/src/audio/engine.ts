@@ -103,7 +103,7 @@ export class Engine {
     this.styleId = styleId; this.subId = subId;
     this.seed = sessionSeed(sb.id, session);
     this.song = generateSongForSub(sb, this.seed);
-    this.arrangement = generateArrangementForSub(sb, this.seed);
+    this.arrangement = this.stripOutro(generateArrangementForSub(sb, this.seed));
     this.bpm = sb.bpm;
     this.bassRoot = 33;
     // sub-style SOUND: timbres applied to the synth engines
@@ -457,6 +457,7 @@ export class Engine {
     const stepDur = 60 / this.bpm / 4;
     while (this.nextTime < ctx.currentTime + 0.2) {
       if (this.pendingJump !== null && this.step16 % 16 === 0) { this.step16 = this.pendingJump; this.pendingJump = null; }
+      if (this.pendingSession && this.step16 % 16 === 0) { const ps = this.pendingSession; this.pendingSession = null; this.loadSession(ps.s, ps.sb, ps.ss); this.sweep = 1; this.vHat(this.nextTime, true, 0.7); } // DJ-style switch at bar
       this.schedule(this.step16, this.nextTime);
       const g = this.step16;
       const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
@@ -684,8 +685,11 @@ export class Engine {
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
 
   pendingJump: number | null = null;
+  pendingSession: { s: string; sb: string; ss: number } | null = null;
+  queueSession(s: string, sb: string, ss: number) { this.pendingSession = { s, sb, ss }; }
+  private stripOutro(arr: any[]) { return arr.filter((s) => (s.role || '') !== 'outro' && s.name !== 'OUTRO' && !String(s.name).includes('OUTRO')); }
   loadArrangement(sections: { name: string; bars: number; active: string[] }[]) {
-    this.arrangement = sections as any;
+    this.arrangement = this.stripOutro(sections as any);
     this.step16 = 0; this.pendingJump = null;
   }
   jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
