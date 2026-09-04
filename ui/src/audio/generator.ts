@@ -160,7 +160,25 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'golden', name: 'Golden Hour', bpm: 146, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.75, padProb: 1, desc: 'golden hour euphoria' }),
     sub({ id: 'horizon', name: 'Horizon', bpm: 147, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadLeap: 0.5, padProb: 1, leadWave: 'square', desc: 'endless horizon anthem' }),
   ]},
+  { id: 'hypnoforest', name: 'HYPNO FOREST', color: '#55aa88', family: 'HYPNOTIC', desc: 'forest hypnosis 144-147', subs: [
+    sub({ id: 'canopy', name: 'Canopy', bpm: 145, scale: DOR, bassChar: 'growl', leadChar: 'twist', drumChar: 'round', bassStyle: 'hypnotic', leadDensity: 0.4, padProb: 0.5, desc: 'layers under the canopy' }),
+    sub({ id: 'roots', name: 'Roots', bpm: 147, bassChar: 'sub', leadChar: 'air', drumChar: 'hard', bassStyle: 'hypnotic', leadDensity: 0.35, padProb: 0.4, desc: 'deep root pressure' }),
+  ]},
+  { id: 'morningfull', name: 'MORNING FULL-ON', color: '#ffcc77', family: 'PSY MAIN', desc: 'sunrise full-on 146-148', subs: [
+    sub({ id: 'firstlight', name: 'First Light', bpm: 146, scale: MAJ, bassChar: 'pluck', leadChar: 'super', clap: true, leadDensity: 0.7, padProb: 0.8, desc: 'first light energy' }),
+    sub({ id: 'daybreak', name: 'Daybreak', bpm: 148, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadLeap: 0.45, padProb: 0.9, desc: 'full daybreak rush' }),
+  ]},
+  { id: 'darktech', name: 'DARK TECH', color: '#8899bb', family: 'TECH', desc: 'industrial dark 138-141', subs: [
+    sub({ id: 'machine', name: 'Machine', bpm: 139, bassChar: 'flat', leadChar: 'pluck', drumChar: 'hard', bassWave: 'square', bassStyle: 'hypnotic', leadDensity: 0.25, desc: 'mechanical dark pulse' }),
+    sub({ id: 'factory', name: 'Factory', bpm: 141, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', bassDrive: 0.8, leadDensity: 0.3, desc: 'industrial clang' }),
+  ]},
+  { id: 'chillgoa', name: 'CHILL GOA', color: '#99ddbb', family: 'CHILL', desc: 'goa flavors downtempo 92-98', subs: [
+    sub({ id: 'oasisc', name: 'Oasis', bpm: 96, scale: HARM, bassChar: 'sub', leadChar: 'acid', drumChar: 'soft', kickMode: 'half', leadDensity: 0.4, padProb: 0.9, desc: 'goa oasis chill' }),
+    sub({ id: 'temple', name: 'Temple', bpm: 92, scale: HARM, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', kickMode: 'half', leadDensity: 0.35, padProb: 1, desc: 'temple ambience' }),
+  ]},
 ];
+
+
 
 
 
