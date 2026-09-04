@@ -111,3 +111,18 @@ body { background: var(--bg); color: var(--tx); font-family: 'Segoe UI', 'Helvet
 .mixer.compact .strip { min-width: 78px; padding: 8px 6px; }
 .mixer.compact .strip-meter { height: 90px; }
 .mixer.compact .fader { height: 80px; }
+
+/* sub-style row + library */
+.stylebar.sub { padding-top: 0; background: var(--p1); }
+.subchip { font-size: 9px; padding: 6px 10px; }
+.library { gap: 14px; }
+.lib-head { font-size: 11px; letter-spacing: 2px; color: var(--grn); font-weight: 800; }
+.lib-style { background: var(--p1); border: 1px solid var(--ln); border-radius: 6px; padding: 12px; }
+.lib-style-head { font-size: 12px; font-weight: 800; letter-spacing: 2px; margin-bottom: 8px; }
+.lib-style-head em { font-style: normal; font-size: 9px; color: var(--dim); margin-left: 8px; }
+.lib-sub { margin: 6px 0 10px 6px; }
+.lib-sub-head { font-size: 10px; color: var(--tx); font-weight: 700; margin-bottom: 5px; }
+.lib-sub-head em { font-style: normal; font-size: 9px; color: var(--dim); margin-left: 6px; }
+.lib-sessions { display: flex; gap: 6px; }
+.lib-session { background: var(--p2); border: 1px solid; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 10px; font-weight: 800; }
+.lib-session:hover { background: #ffffff14; }
