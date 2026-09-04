@@ -328,9 +328,9 @@ export function generateSongForSub(st: SubStyle, seed: number): SongData {
 export function generateArrangementForSub(st: SubStyle, seed: number): Section[] {
   const rng = mulberry32(seed ^ 0x9e3779b9);
   const all: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
-  const intro: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad']; // full set; engine layers them in gradually
+  const intro: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad', 'atmos']; // full set; engine layers them in gradually
   const build: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead'];
-  const breakSec: TrackId[] = st.padProb > 0.4 ? ['lead', 'pad'] : ['lead', 'hats'];
+  const breakSec: TrackId[] = st.padProb > 0.4 ? ['lead', 'pad', 'atmos'] : ['lead', 'hats', 'atmos'];
   const b1 = pick(rng, [4, 4, 8]); const d1 = pick(rng, [24, 24, 32]); const br = pick(rng, [8, 16]); const d2 = pick(rng, [24, 32]);
   const outro: TrackId[] = ['kick', 'bass', 'hats'];
   return [
