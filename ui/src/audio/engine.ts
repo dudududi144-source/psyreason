@@ -710,6 +710,11 @@ export class Engine {
   pendingJump: number | null = null;
   pendingSession: { s: string; sb: string; ss: number } | null = null;
   queueSession(s: string, sb: string, ss: number) { this.pendingSession = { s, sb, ss }; }
+  newSessionKeepForm(session: number) {
+    const arr = this.arrangement;
+    this.loadSession(this.styleId, this.subId, session);
+    this.arrangement = arr;
+  }
   private stripOutro(arr: any[]) { return arr.filter((s) => (s.role || '') !== 'outro' && s.name !== 'OUTRO' && !String(s.name).includes('OUTRO')); }
   loadArrangement(sections: { name: string; bars: number; active: string[] }[]) {
     this.arrangement = this.stripOutro(sections as any);
