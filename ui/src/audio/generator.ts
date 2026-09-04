@@ -192,6 +192,22 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'meadow', name: 'Meadow', bpm: 141, scale: DOR, bassChar: 'flat', leadChar: 'super', drumChar: 'round', bassStyle: 'rolling', leadDensity: 0.6, padProb: 0.7, desc: 'uplifting forest meadow' }),
     sub({ id: 'sunbeams', name: 'Sunbeams', bpm: 143, scale: MAJ, bassChar: 'pluck', leadChar: 'super', drumChar: 'round', leadDensity: 0.65, padProb: 0.8, desc: 'sunbeams through trees' }),
   ]},
+  { id: 'goapsy', name: 'GOA PSY', color: '#ffaa55', family: 'GOA & CLASSICS', desc: 'modern goa-psy 142-145', subs: [
+    sub({ id: 'fusion', name: 'Fusion', bpm: 143, scale: HARM, bassChar: 'acid', leadChar: 'super', drumChar: 'round', clap: true, leadDensity: 0.65, padProb: 0.7, desc: 'goa meets full-on' }),
+    sub({ id: 'ritual', name: 'Ritual', bpm: 145, scale: HARM, bassChar: 'acid', leadChar: 'acid', drumChar: 'round', leadRes: 11, leadDensity: 0.6, desc: 'psychedelic ritual' }),
+  ]},
+  { id: 'darkzen', name: 'DARK ZEN', color: '#7788aa', family: 'DARK', desc: 'zen darkness 134-137', subs: [
+    sub({ id: 'still', name: 'Still', bpm: 135, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', bassStyle: 'hypnotic', leadDensity: 0.3, padProb: 0.6, desc: 'still dark water' }),
+    sub({ id: 'koan', name: 'Koan', bpm: 137, scale: DOR, bassChar: 'growl', leadChar: 'twist', drumChar: 'round', bassStyle: 'hypnotic', leadDensity: 0.35, desc: 'dark zen koan' }),
+  ]},
+  { id: 'sunpsy', name: 'SUN PSY', color: '#ffdd44', family: 'PSY MAIN', desc: 'solar energy 144-147', subs: [
+    sub({ id: 'solar', name: 'Solar', bpm: 145, scale: MAJ, bassChar: 'pluck', leadChar: 'super', clap: true, leadDensity: 0.7, padProb: 0.8, desc: 'solar flare energy' }),
+    sub({ id: 'flare', name: 'Flare', bpm: 147, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadLeap: 0.5, padProb: 0.9, leadWave: 'square', desc: 'blinding flare' }),
+  ]},
+  { id: 'icepsy', name: 'ICE PSY', color: '#aaddff', family: 'CHILL', desc: 'frozen atmospheres 100-108', subs: [
+    sub({ id: 'glacier', name: 'Glacier', bpm: 104, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', kickMode: 'half', leadDensity: 0.35, padProb: 1, desc: 'glacier slow motion' }),
+    sub({ id: 'frost', name: 'Frost', bpm: 108, scale: DOR, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', kickMode: 'half', leadDensity: 0.4, padProb: 0.9, desc: 'frost crystals' }),
+  ]},
 ];
 
 
@@ -206,7 +222,9 @@ export const STYLES: StyleDef[] = [
 
 
 
-export const SESSIONS_PER_SUB = 12;
+
+
+export const SESSIONS_PER_SUB = 16;
 
 export function styleById(id: string): StyleDef { return STYLES.find((s) => s.id === id) || STYLES[0]; }
 export function subById(styleId: string, subId: string): SubStyle {
