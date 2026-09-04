@@ -128,8 +128,8 @@ export class Engine {
     this.params.lead.res = Math.max(0, sb.leadRes + lc.resBoost);
     Object.assign(this.params.kick, DC[sb.drumChar] || DC.punch);
     this.params.hats.metal = (DC[sb.drumChar] || DC.punch).metal;
-    const flavors = ['std', 'bright', 'dark', 'wide', 'tight', 'acid', 'soft', 'hard', 'wider', 'deeper'];
-    const fl = flavors[session % 10];
+    const flavors = ['std', 'bright', 'dark', 'wide', 'tight', 'acid', 'soft', 'hard', 'wider', 'deeper', 'punchy', 'airy'];
+    const fl = flavors[session % 12];
     if (fl === 'bright') { this.params.lead.cutoff *= 1.2; this.params.hats.tone *= 1.1; }
     if (fl === 'dark') { this.params.lead.cutoff *= 0.8; this.params.bass.cutoff *= 0.85; }
     if (fl === 'wide') { this.params.lead.detune = Math.max(8, (this.params.lead.detune ?? 8) + 6); this.params.lead.voices = 3; }
@@ -139,6 +139,8 @@ export class Engine {
     if (fl === 'hard') { this.params.kick.punch = Math.min(1, this.params.kick.punch + 0.2); this.params.bass.drive = Math.min(1, this.params.bass.drive + 0.2); }
     if (fl === 'wider') { this.params.lead.voices = 3; this.params.lead.detune = 18; this.params.pad.rSend = Math.min(1, (this.params.pad.rSend ?? 0.5) + 0.2); }
     if (fl === 'deeper') { this.params.bass.sub = Math.min(1, (this.params.bass.sub ?? 0.4) + 0.3); this.params.kick.decay = Math.min(0.5, this.params.kick.decay + 0.06); }
+    if (fl === 'punchy') { this.params.kick.punch = Math.min(1, this.params.kick.punch + 0.25); this.params.bass.drive = Math.min(1, this.params.bass.drive + 0.15); }
+    if (fl === 'airy') { this.params.lead.cutoff *= 1.25; this.params.pad.rSend = Math.min(1, (this.params.pad.rSend ?? 0.5) + 0.25); this.params.hats.tone *= 1.15; }
     this.clapOn = !!sb.clap;
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
@@ -312,114 +314,7 @@ export class Engine {
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.07, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
     n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + 0.08);
   }
-  vCrash(t: number) {
-    // smooth crash: shaped noise wash + low sub impact only (no metallic pings)
-    const ctx = this.ctx!; const out = this.channels.open.bus;
-    const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000; hp.Q.value = 0.4;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 12000;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.11, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
-    n.connect(hp); hp.connect(lp); lp.connect(g); g.connect(out);
-    n.start(t); n.stop(t + 0.95);
-    const o = ctx.createOscillator(); o.type = 'sine';
-    o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(35, t + 0.25);
-    const og = ctx.createGain(); og.gain.setValueAtTime(0.35, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.32);
-  }
-  private leadOsc(ctx: AudioContext, p: any, f: number, t: number): OscillatorNode {
-    if (p.engine === 'fm') {
-      const car = ctx.createOscillator(); car.type = 'sine';
-      const mod = ctx.createOscillator(); mod.type = 'sine';
-      const ratio = p.fmRatio ?? 2; const amt = p.fmAmt ?? 2;
-      mod.frequency.value = f * ratio;
-      const mg = ctx.createGain(); mg.gain.value = f * ratio * amt;
-      mod.connect(mg); mg.connect(car.frequency);
-      (car as any)._mod = mod;
-      return car;
-    }
-    if (p.engine === 'wave') {
-      const n = 16; const real = new Float32Array(n); const imag = new Float32Array(n);
-      const wt = p.wt ?? 0.5;
-      for (let h = 1; h < n; h++) {
-        imag[h] = (h % 2 === 1 ? 1 / h : 0) * (1 - wt * 0.5) + (wt > 0.5 ? (1 / (h * h)) * (wt - 0.5) * 2 : 0);
-      }
-      const wave = ctx.createPeriodicWave(real, imag);
-      const o = ctx.createOscillator(); o.setPeriodicWave(wave);
-      return o;
-    }
-    const o = ctx.createOscillator(); o.type = (p.wave as OscillatorType) || 'sawtooth';
-    return o;
-  }
-  vLead(t: number, midi: number, dur: number) {
-    const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
-    const f = mtof(midi);
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
-    lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    const voicesN = Math.max(1, (p as any).voices ?? 2);
-    const detAmt = (p as any).detune ?? 8;
-    const glide = (p as any).glide ?? 0;
-    for (let vi = 0; vi < voicesN; vi++) {
-      const det = voicesN === 1 ? 0 : (vi - (voicesN - 1) / 2) * detAmt;
-      const o = this.leadOsc(ctx, p as any, f, t);
-      if (glide > 0) { o.frequency.setValueAtTime(f * 0.7, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04); }
-      else o.frequency.value = f;
-      o.detune.value = det;
-      const mod = (o as any)._mod as OscillatorNode | undefined;
-      if ((p as any).vib) { const vl = ctx.createOscillator(); vl.frequency.value = 5.2; const vg = ctx.createGain(); vg.gain.value = (p as any).vib * 9; vl.connect(vg); vg.connect(o.detune); vl.start(t); vl.stop(t + dur + 0.05); }
-      o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
-      if (mod) { mod.start(t); mod.stop(t + dur + 0.05); }
-    }
-    lp.connect(g); g.connect(out);
-  }
-  vPad(t: number, chord: number[], dur: number) {
-    const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
-    for (const m of chord) for (const det of [-6, 6]) {
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff; lp.Q.value = 0.4;
-      const plf = ctx.createOscillator(); plf.frequency.value = 0.12; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.35; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.1);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045, t + 0.5);
-      g.gain.setValueAtTime(0.045, t + Math.max(0.6, dur - 0.6)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-      o.connect(lp); lp.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.1);
-    }
-  }
-  vClap(t: number) {
-    const ctx = this.ctx!;
-    const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 1.5;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    for (let i = 0; i < 3; i++) { g.gain.setValueAtTime(0.28, t + i * 0.012); g.gain.exponentialRampToValueAtTime(0.04, t + i * 0.012 + 0.01); }
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    n.connect(bp); bp.connect(g); g.connect(this.channels.kick.bus);
-    n.start(t); n.stop(t + 0.2);
-  }
-  vRiser(t: number, dur: number) {
-    const ctx = this.ctx!;
-    const n = ctx.createBufferSource(); n.buffer = this.noise(); n.loop = true;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
-    bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(7000, t + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(0.35, t + dur);
-    g.gain.linearRampToValueAtTime(0.001, t + dur + 0.1);
-    n.connect(bp); bp.connect(g); g.connect(this.master!);
-    n.start(t); n.stop(t + dur + 0.15);
-  }
 
-  // ---------- scheduler (lookahead, sample-accurate start times) ----------
-  private tick = () => {
-    const ctx = this.ctx!; const stepDur = 60 / this.bpm / 4;
-    while (this.nextTime < ctx.currentTime + 0.12) {
-      this.schedule(this.step16, this.nextTime);
-      const g = this.step16; const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
-      window.setTimeout(() => { if (this.onTick) this.onTick(Math.floor(g / 16) % this.totalBars(), g % 16, sectionAtBarIn(this.arrangement, Math.floor(g / 16) % this.totalBars()).index); }, ms);
-      this.step16++; this.nextTime += stepDur;
-    }
-  };
   private schedule(g: number, t: number) {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
@@ -505,6 +400,30 @@ export class Engine {
       const tr = (arr: any[]) => arr.forEach((e, i) => { if (typeof e === 'number' && e !== null) arr[i] = Math.max(30, Math.min(96, e + sh)); });
       tr(this.song.lead as any[]); if (this.song.leadB) tr(this.song.leadB as any[]);
       if ((this.song as any).chords) (this.song as any).chords = (this.song as any).chords.map((c: number[]) => c.map((n) => n + sh));
+      return;
+    }
+    if (cat === 'arp') {
+      const stepsPer = (p.rate ?? 0.25) === 0.25 ? 1 : 2;
+      const mode = p.mode ?? 'up';
+      const lead = this.song.lead as (number | null)[];
+      const anchors: number[] = [];
+      lead.forEach((v, i) => { if (v !== null) anchors.push(i); });
+      if (anchors.length === 0) anchors.push(0);
+      const out: (number | null)[] = Array(16).fill(null);
+      for (let a2 = 0; a2 < anchors.length; a2++) {
+        const start = anchors[a2];
+        const end2 = a2 + 1 < anchors.length ? anchors[a2 + 1] : 16;
+        const root = lead[anchors[a2]] as number;
+        const tones = [root, root + 3, root + 7, root + 12];
+        let seq: number[] = [0, 1, 2, 3];
+        if (mode === 'down') seq = [3, 2, 1, 0];
+        if (mode === 'updown') seq = [0, 1, 2, 3, 2, 1];
+        if (mode === 'random') seq = [0, 2, 1, 3, 3, 1, 2, 0];
+        for (let s2 = start; s2 < end2; s2 += stepsPer) {
+          out[s2] = Math.min(96, tones[seq[(s2 - start) % seq.length] % 4]);
+        }
+      }
+      this.song.lead = out;
       return;
     }
     const target = (this.params as any)[cat];
