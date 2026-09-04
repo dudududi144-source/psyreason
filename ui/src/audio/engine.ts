@@ -351,7 +351,14 @@ export class Engine {
 
   async start() {
     await this.init();
-    if (this.ctx && this.ctx.state !== 'running') { try { await this.ctx.resume(); } catch (e) {} }
+    if (this.ctx && this.ctx.state !== 'running') {
+      try { await this.ctx.resume(); } catch (e) {}
+      // watchdog: retry resume a few times (some browsers need it post-gesture)
+      for (let i = 0; i < 5 && this.ctx.state !== 'running'; i++) {
+        await new Promise((res) => setTimeout(res, 120));
+        try { await this.ctx.resume(); } catch (e) {}
+      }
+    }
     if (this.running) return;
     this.running = true; this.step16 = 0; this.nextTime = this.ctx!.currentTime + 0.1;
     this.timer = window.setInterval(this.tick, 25);
