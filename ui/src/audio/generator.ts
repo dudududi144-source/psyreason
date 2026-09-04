@@ -294,16 +294,36 @@ function chordAt(scale: number[], root: number, deg: number): number[] {
   return [0, 2, 4].map((off) => { const d = deg + off; return root + scale[d % n] + Math.floor(d / n) * 12; });
 }
 function genChords(rng: () => number, st: SubStyle): number[][] {
-  const roots = st.scale === MAJ ? [0, 5, 3, 4] : st.scale === HARM ? [0, 5, 2, 6] : [0, 5, 2, 6];
+  const roots = st.scale === MAJ ? [0, 5, 3, 4] : st.scale === PHR ? [0, 0, 5, 0] : st.scale === HARM ? [0, 5, 2, 6] : [0, 5, 2, 6];
   return roots.map((d) => chordAt(st.scale, 57, d));
+}
+
+function genLeadForChord(rng: () => number, st: SubStyle, chord: number[]): (number | null)[] {
+  const lead: (number | null)[] = Array(16).fill(null);
+  const tones = chord.map((t) => t + 12);
+  let cur = tones[0];
+  for (let i = 0; i < 16; i++) {
+    const prob = i % 4 === 0 ? 0.9 : st.leadDensity;
+    if (rng() < prob) {
+      const r = rng();
+      if (i % 4 === 0 || r < 0.35) cur = tones[Math.floor(rng() * tones.length)];
+      else if (r < 0.75) cur = cur + pick(rng, [-2, -1, 1, 2]);
+      else cur = tones[Math.floor(rng() * tones.length)] + pick(rng, [0, 12]);
+      lead[i] = cur;
+    }
+  }
+  if (lead[0] === null) lead[0] = tones[0];
+  return lead;
 }
 
 export function generateSongForSub(st: SubStyle, seed: number): SongData {
   const rng = mulberry32(seed);
-  const lead = genLead(rng, st); const leadB = genLead(rng, st);
+  const chords = genChords(rng, st);
+  const leads = chords.map((c) => genLeadForChord(rng, st, c));
+  const leadsB = chords.map((c) => genLeadForChord(rng, st, c));
   const bass = genBass(rng, st); const bassB = genBass(rng, st);
   const d = genDrums(rng, st);
-  return { kick: d.kick, bass, hats: d.hats, open: d.open, lead, padChord: genChords(rng, st)[0], bassB, leadB, chords: genChords(rng, st) } as SongData;
+  return { kick: d.kick, bass, hats: d.hats, open: d.open, lead: leads[0], padChord: chords[0], bassB, leadB: leadsB[0], leads, leadsB, chords } as SongData;
 }
 
 export function generateArrangementForSub(st: SubStyle, seed: number): Section[] {
