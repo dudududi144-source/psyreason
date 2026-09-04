@@ -76,6 +76,7 @@ export class Engine {
   comp: DynamicsCompressorNode | null = null; limiter: DynamicsCompressorNode | null = null;
   masterAn: AnalyserNode | null = null;
   delayIn: GainNode | null = null; reverbIn: GainNode | null = null;
+  delayFbGain: GainNode | null = null; delayLp: BiquadFilterNode | null = null; reverbOut: GainNode | null = null;
   channels = {} as Record<TrackId, Channel>;
   song: SongData = defaultSong();
   bpm = 145;
@@ -126,6 +127,15 @@ export class Engine {
     this.params.lead.res = Math.max(0, sb.leadRes + lc.resBoost);
     Object.assign(this.params.kick, DC[sb.drumChar] || DC.punch);
     this.params.hats.metal = (DC[sb.drumChar] || DC.punch).metal;
+    const flavors = ['std', 'bright', 'dark', 'wide', 'tight', 'acid', 'soft', 'hard'];
+    const fl = flavors[session % 8];
+    if (fl === 'bright') { this.params.lead.cutoff *= 1.2; this.params.hats.tone *= 1.1; }
+    if (fl === 'dark') { this.params.lead.cutoff *= 0.8; this.params.bass.cutoff *= 0.85; }
+    if (fl === 'wide') { this.params.lead.detune = Math.max(8, (this.params.lead.detune ?? 8) + 6); this.params.lead.voices = 3; }
+    if (fl === 'tight') { this.params.lead.voices = 1; this.params.lead.detune = 3; }
+    if (fl === 'acid') { this.params.bass.pluck = 0.9; this.params.bass.res = Math.min(18, this.params.bass.res + 4); }
+    if (fl === 'soft') { this.params.kick.punch *= 0.8; this.params.lead.res = Math.max(1, this.params.lead.res - 2); }
+    if (fl === 'hard') { this.params.kick.punch = Math.min(1, this.params.kick.punch + 0.2); this.params.bass.drive = Math.min(1, this.params.bass.drive + 0.2); }
     this.clapOn = !!sb.clap;
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
@@ -162,9 +172,10 @@ export class Engine {
     const dIn = ctx.createGain(); const dNode = ctx.createDelay(2); dNode.delayTime.value = (60 / this.bpm) * 0.75;
     const dFb = ctx.createGain(); dFb.gain.value = 0.4; const dLp = ctx.createBiquadFilter(); dLp.type = 'lowpass'; dLp.frequency.value = 3200;
     dIn.connect(dNode); dNode.connect(dLp); dLp.connect(dFb); dFb.connect(dNode); dLp.connect(this.master);
-    this.delayIn = dIn;
+    this.delayIn = dIn; this.delayFbGain = dFb; this.delayLp = dLp;
     const rIn = ctx.createGain(); const conv = ctx.createConvolver(); conv.buffer = this.makeImpulse(2.2, 2.6);
-    rIn.connect(conv); conv.connect(this.master); this.reverbIn = rIn;
+    const rOut = ctx.createGain(); rOut.gain.value = 1;
+    rIn.connect(conv); conv.connect(rOut); rOut.connect(this.master); this.reverbIn = rIn; this.reverbOut = rOut;
 
     // channels
     for (const t of TRACKS) {
@@ -448,6 +459,16 @@ export class Engine {
     if (id === 'pad' && key === 'rSend') this.setSend('pad', 'r', v);
   }
   applySound(cat: string, p: Record<string, any>) {
+    if (cat === 'fx') {
+      if (p.delayFb !== undefined && this.delayFbGain) this.delayFbGain.gain.value = p.delayFb;
+      if (p.delayTone !== undefined && this.delayLp) this.delayLp.frequency.value = p.delayTone;
+      if (p.space !== undefined && this.reverbOut) this.reverbOut.gain.value = p.space;
+      return;
+    }
+    if (cat === 'chords') {
+      if (p.chords) { (this.song as any).chords = p.chords; (this.song as any).padChord = p.chords[0]; }
+      return;
+    }
     const target = (this.params as any)[cat];
     if (target) Object.assign(target, p);
   }
