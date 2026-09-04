@@ -508,6 +508,12 @@ export class Engine {
         if (id === 'kick' || id === 'hats' || id === 'open') return frac >= 0.55;
         if (id === 'lead') return frac >= 0.8;
       }
+      if (roleNow === 'intro_drum') {
+        const frac = barIn / Math.max(1, section.bars);
+        if (id === 'kick' || id === 'hats' || id === 'open') return true;
+        if (id === 'bass') return frac >= 0.4;
+        if (id === 'lead' || id === 'pad') return frac >= 0.7;
+      }
       return true;
     };
     const s = this.song as any; const stepDur = 60 / this.bpm / 4;
