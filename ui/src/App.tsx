@@ -220,50 +220,38 @@ function Rack() {
 
 
 function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => void }) {
+  const [q, setQ] = useState('');
   const stats = libraryStats();
+  const ql = q.toLowerCase();
   return (
     <div className="view library">
-      <div className="lib-head">LIBRARY — {stats.styles} styles • {stats.subs} sub-styles • {stats.sessions} curated sessions, each with its own sound</div>
-      {STYLES.map((st) => (
-        <div key={st.id} className="lib-style">
-          <div className="lib-style-head" style={{ color: st.color }}>{st.name} <em>{st.desc}</em></div>
-          {st.subs.map((sb) => (
-            <div key={sb.id} className="lib-sub">
-              <div className="lib-sub-head">{sb.name} <em>{sb.bpm} BPM • {sb.desc}</em></div>
-              <div className="lib-sessions">
-                {[1, 2, 3, 4].map((v) => (
-                  <button key={v} className="lib-session" style={{ borderColor: st.color, color: st.color }} onClick={() => onPick(st.id, sb.id, v)}>S{v}</button>
+      <div className="lib-head">LIBRARY — {stats.styles} styles • {stats.subs} sub-styles • {stats.sessions} sessions • 46 sounds</div>
+      <input className="lib-search" placeholder="search style / sub-style..." value={q} onChange={(e) => setQ(e.target.value)} />
+      {FAMILIES.map((fam) => {
+        const styles = STYLES.filter((s) => s.family === fam)
+          .filter((s) => !ql || s.name.toLowerCase().includes(ql) || s.subs.some((sb) => sb.name.toLowerCase().includes(ql)));
+        if (styles.length === 0) return null;
+        return (
+          <div key={fam} className="lib-family">
+            <div className="lib-family-head">{fam}</div>
+            {styles.map((st) => (
+              <div key={st.id} className="lib-style">
+                <div className="lib-style-head" style={{ color: st.color }}>{st.name} <em>{st.desc}</em></div>
+                {st.subs.map((sb) => (
+                  <div key={sb.id} className="lib-sub">
+                    <div className="lib-sub-head">{sb.name} <em>{sb.bpm} BPM • {sb.desc}</em></div>
+                    <div className="lib-sessions">
+                      {[1, 2, 3, 4, 5, 6].map((v) => (
+                        <button key={v} className="lib-session" style={{ borderColor: st.color, color: st.color }} onClick={() => onPick(st.id, sb.id, v)}>S{v}</button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-
-function Sounds() {
-  const [, force] = useState(0);
-  const cats = Object.keys(SOUND_LIB);
-  return (
-    <div className="view library">
-      <div className="lib-head">SOUND LIBRARY — {soundCount()} timbre presets, applied live to the engines</div>
-      {cats.map((c) => (
-        <div key={c} className="lib-style">
-          <div className="lib-style-head">{c.toUpperCase()}</div>
-          <div className="lib-sessions" style={{ flexWrap: 'wrap' }}>
-            {SOUND_LIB[c].map((pr) => (
-              <button key={pr.name} className="lib-session" style={{ borderColor: '#00ff88', color: '#00ff88' }}
-                onClick={() => { engine.applySound(c, pr.p); force((x) => x + 1); }}>
-                {pr.name}
-              </button>
             ))}
           </div>
-        </div>
-      ))}
-      <div className="hint">Click a preset to re-voice that engine instantly; then PLAY or GENERATE to hear it in context.</div>
+        );
+      })}
     </div>
   );
 }
