@@ -195,12 +195,17 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
   const build: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead'];
   const breakSec: TrackId[] = st.padProb > 0.4 ? ['lead', 'pad'] : ['lead', 'hats'];
   const b1 = pick(rng, [4, 4, 8]); const d1 = pick(rng, [8, 8, 16]); const br = pick(rng, [4, 8]); const d2 = pick(rng, [8, 16]);
+  const mid: TrackId[] = ['kick', 'bass', 'hats', 'open'];
+  const outro: TrackId[] = ['kick', 'hats'];
   return [
     { name: 'INTRO', bars: b1, active: intro },
     { name: 'BUILD', bars: 4, active: build },
     { name: 'DROP', bars: d1, active: all },
+    { name: 'MID', bars: 4, active: mid },
     { name: 'BREAK', bars: br, active: breakSec },
+    { name: 'BUILD 2', bars: 2, active: build },
     { name: 'DROP 2', bars: d2, active: all },
+    { name: 'OUTRO', bars: 4, active: outro },
   ];
 }
 
