@@ -72,16 +72,17 @@ function buildPad(): SoundPreset[] {
   const waves = ['sawtooth', 'triangle', 'sine'];
   const PW = ['Blanket', 'Atmos', 'Walls', 'Fog', 'Stack', 'Space', 'Shimmer', 'Drone', 'Air', 'Velvet'];
   for (let i = 0; i < 200; i++) {
-    const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9, t3 = (Math.floor(i / 100) % 2);
+    const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9;
+    const wv = waves[i % 3];
     out.push({
       name: PW[i % PW.length] + ' ' + String(i + 1).padStart(3, '0'),
       p: {
-        wave: waves[i % 3],
-        cutoff: Math.round(300 * Math.pow(3500 / 300, t1)),
-        det: [2, 6, 12][i % 3],
-        bright: [0.6, 1, 1.6][Math.floor(t2 * 2.99)],
-        width: +t2.toFixed(2),
-        rSend: +(0.3 + t2 * 0.5).toFixed(2),
+        wave: wv,
+        cutoff: Math.round(400 * Math.pow(2200 / 400, t1)),
+        det: [4, 8, 12][i % 3],
+        bright: [0.7, 0.9, 1.1][Math.floor(t2 * 2.99)],
+        width: +(0.3 + t2 * 0.5).toFixed(2),
+        rSend: +(0.35 + t2 * 0.25).toFixed(2),
       },
     });
   }
