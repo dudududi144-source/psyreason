@@ -163,10 +163,14 @@ export class Engine {
     };
     const dt = drumTaste[fam]; if (dt) { Object.assign(this.params.kick, dt.kick); Object.assign(this.params.hats, dt.hats); }
     const padTaste: Record<string, any> = {
-      'TRANCE': { width: 0.9, bright: 1.4 }, 'CHILL': { width: 0.8, bright: 0.8 },
-      'DARK': { width: 0.4, bright: 0.7 }, 'WILD': { width: 0.6, bright: 1.1 },
-      'GOA & CLASSICS': { width: 0.6, bright: 1.2 }, 'HYPNOTIC': { width: 0.5, bright: 0.9 },
-      'PSY MAIN': { width: 0.6, bright: 1.1 }, 'TECH': { width: 0.4, bright: 0.9 },
+      'TRANCE': { width: 0.9, bright: 1.4, wave: 'sawtooth', det: 8 },
+      'CHILL': { width: 0.8, bright: 0.8, wave: 'triangle', det: 4 },
+      'DARK': { width: 0.4, bright: 0.7, wave: 'sawtooth', det: 6 },
+      'WILD': { width: 0.6, bright: 1.1, wave: 'sawtooth', det: 10 },
+      'GOA & CLASSICS': { width: 0.6, bright: 1.2, wave: 'sawtooth', det: 6 },
+      'HYPNOTIC': { width: 0.5, bright: 0.9, wave: 'triangle', det: 5 },
+      'PSY MAIN': { width: 0.6, bright: 1.1, wave: 'sawtooth', det: 6 },
+      'TECH': { width: 0.4, bright: 0.9, wave: 'sawtooth', det: 3 },
     };
     const pt = padTaste[fam]; if (pt) Object.assign(this.params.pad, pt);
     // PER-FAMILY SIGNATURE: genuine sonic identity per family (lead/bass/drums/feel/FX)
