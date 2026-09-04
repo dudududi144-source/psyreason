@@ -440,6 +440,23 @@ export class Engine {
     let peak = 0; for (let i = 0; i < arr.length; i++) { const v = Math.abs(arr[i] - 128) / 128; if (v > peak) peak = v; }
     return peak;
   }
+  async previewSound(cat: string, p: any) {
+    await this.init();
+    if (this.ctx && this.ctx.state !== 'running') { try { await this.ctx.resume(); } catch (e) {} }
+    this.applySound(cat, p);
+    const t0 = this.ctx!.currentTime + 0.05;
+    const sd = 60 / this.bpm / 4;
+    if (cat === 'bass') { for (let i = 0; i < 8; i++) this.vBass(t0 + i * sd, i === 6 ? 3 : 0, sd * 0.9, i % 4 === 2 ? 1.4 : 1); }
+    else if (cat === 'lead' || cat === 'arp' || cat === 'fx') { [69, 72, 76, 72].forEach((m, i) => this.vLead(t0 + i * sd * 2, m, sd * 3)); }
+    else if (cat === 'pad') this.vPad(t0, [57, 60, 64], 2.0);
+    else if (cat === 'chords' && p.chords) this.vPad(t0, p.chords[0], 2.0);
+    else if (cat === 'kick') { this.vKick(t0); this.vKick(t0 + sd * 4); }
+    else if (cat === 'hats') { for (let i = 0; i < 8; i++) this.vHat(t0 + i * sd * 2, false, i % 2 === 0 ? 1 : 0.7); }
+    else if (cat === 'kits') { this.vKick(t0); this.vHat(t0 + sd * 2, false, 1); this.vSnare(t0 + sd * 4, 0.5); this.vHat(t0 + sd * 6, false, 0.7); }
+    else if (cat === 'grooves') { for (let i = 0; i < 8; i++) { if (i % 4 === 0) this.vKick(t0 + i * sd * 2); this.vBass(t0 + i * sd * 2 + (i % 2 === 1 ? this.swing * sd * 0.35 : 0), 0, sd * 0.9); } }
+    else if (cat === 'master') { this.vKick(t0); this.vKick(t0 + sd * 4); for (let i = 0; i < 8; i++) this.vBass(t0 + i * sd, 0, sd * 0.9); }
+    else if (cat === 'keys') { const sh = p.shift ?? 0; this.vLead(t0, 69 + sh, sd * 4); this.vBass(t0, sh, sd * 6); }
+  }
   async preview(id: TrackId) {
     await this.init(); const t = this.ctx!.currentTime + 0.05;
     if (id === 'kick') { this.vKick(t); this.vKick(t + 0.42); }
