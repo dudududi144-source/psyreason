@@ -265,6 +265,34 @@ function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => vo
   );
 }
 
+const KEYMAP: Record<string, number> = { a: 0, w: 1, s: 2, e: 3, d: 4, f: 5, t: 6, g: 7, y: 8, h: 9, u: 10, j: 11, k: 12, o: 13, l: 14, p: 15 };
+function Keyboard() {
+  const [track, setTrack] = useState<'lead' | 'bass' | 'pad'>('lead');
+  const [active, setActive] = useState<Set<number>>(new Set());
+  const base = track === 'lead' ? 69 : track === 'bass' ? 33 : 57;
+  const play = (off: number) => { const m = base + off; engine.playVoice(track, m); setActive((p) => new Set(p).add(off)); window.setTimeout(() => setActive((p) => { const n = new Set(p); n.delete(off); return n; }), 180); };
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.repeat) return; const o = KEYMAP[e.key.toLowerCase()]; if (o !== undefined) play(o); };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, [track]);
+  return (
+    <div className="kb-bar">
+      <div className="kb-tracks">
+        {(['lead', 'bass', 'pad'] as const).map((t) => (
+          <button key={t} className={'kb-track' + (track === t ? ' on' : '')} onClick={() => setTrack(t)}>{t.toUpperCase()}</button>
+        ))}
+      </div>
+      <div className="kb-keys">
+        {Array.from({ length: 16 }, (_, i) => (
+          <div key={i} className={'kb-key' + (active.has(i) ? ' on' : '') + ([1, 3, 6, 8, 10, 13, 15].includes(i) ? ' black' : '')} onMouseDown={() => play(i)} />
+        ))}
+      </div>
+      <span className="kb-hint">play with A W S E D F T G Y H U J K O L P</span>
+    </div>
+  );
+}
+
 // ---------- APP ----------
 function Sounds() {
   const [, force] = useState(0);
