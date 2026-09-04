@@ -327,22 +327,64 @@ export function generateSongForSub(st: SubStyle, seed: number): SongData {
 
 export function generateArrangementForSub(st: SubStyle, seed: number): Section[] {
   const rng = mulberry32(seed ^ 0x9e3779b9);
-  const all: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
-  const intro: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad', 'atmos']; // full set; engine layers them in gradually
+  const all: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad', 'atmos'];
+  const intro: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad', 'atmos'];
   const build: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead'];
   const breakSec: TrackId[] = st.padProb > 0.4 ? ['lead', 'pad', 'atmos'] : ['lead', 'hats', 'atmos'];
-  const b1 = pick(rng, [4, 4, 8]); const d1 = pick(rng, [24, 24, 32]); const br = pick(rng, [8, 16]); const d2 = pick(rng, [24, 32]);
+  const atmosBreak: TrackId[] = ['pad', 'atmos'];
+  const perc: TrackId[] = ['kick', 'hats', 'open', 'atmos'];
   const outro: TrackId[] = ['kick', 'bass', 'hats'];
+  const chill = st.padProb > 0.55 || st.kickMode === 'half';
+  const hypnotic = st.bassStyle === 'hypnotic';
+  const peak = (st.punch ?? 0.5) >= 0.8 && st.padProb <= 0.35;
+  const d1 = pick(rng, [24, 24, 32]); const d2 = pick(rng, [24, 32]);
+  if (chill) {
+    return [
+      { name: 'AMBIENT INTRO', bars: 16, active: intro, role: 'intro' },
+      { name: 'BUILD', bars: 4, active: build, role: 'build' },
+      { name: 'DROP', bars: d1, active: all, role: 'drop' },
+      { name: 'AMBIENT BREAK', bars: 16, active: atmosBreak, role: 'ambient' },
+      { name: 'BUILD 2', bars: 4, active: build, role: 'build' },
+      { name: 'DROP 2', bars: d2, active: all, role: 'drop2' },
+      { name: 'OUTRO', bars: 16, active: outro, role: 'outro' },
+    ];
+  }
+  if (hypnotic) {
+    return [
+      { name: 'INTRO', bars: 16, active: intro, role: 'intro' },
+      { name: 'BUILD', bars: 4, active: build, role: 'build' },
+      { name: 'DROP', bars: 32, active: all, role: 'drop' },
+      { name: 'PERC TRIBAL', bars: 8, active: perc, role: 'perc' },
+      { name: 'DROP 2', bars: 32, active: all, role: 'drop2' },
+      { name: 'BREAK', bars: 8, active: breakSec, role: 'break' },
+      { name: 'CLIMAX', bars: 16, active: all, role: 'climax' },
+      { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
+    ];
+  }
+  if (peak) {
+    return [
+      { name: 'INTRO', bars: 8, active: intro, role: 'intro' },
+      { name: 'BUILD', bars: 4, active: build, role: 'build' },
+      { name: 'DROP', bars: 24, active: all, role: 'drop' },
+      { name: 'BREAK', bars: 8, active: breakSec, role: 'break' },
+      { name: 'BUILD 2', bars: 4, active: build, role: 'build' },
+      { name: 'DROP 2', bars: 24, active: all, role: 'drop2' },
+      { name: 'CLIMAX', bars: 16, active: all, role: 'climax' },
+      { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
+    ];
+  }
   return [
     { name: 'INTRO', bars: 16, active: intro, role: 'intro' },
     { name: 'BUILD', bars: 4, active: build, role: 'build' },
     { name: 'DROP', bars: d1, active: all, role: 'drop' },
-    { name: 'BREAK', bars: br, active: breakSec, role: 'break' },
+    { name: 'BREAK', bars: pick(rng, [8, 16]), active: breakSec, role: 'break' },
     { name: 'BUILD 2', bars: 4, active: build, role: 'build' },
     { name: 'DROP 2', bars: d2, active: all, role: 'drop2' },
     { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
   ];
 }
+
+
 
 // legacy wrappers
 export function generateSongForStyle(styleId: string, seed: number): SongData { return generateSongForSub(subById(styleId, 'classic'), seed); }
