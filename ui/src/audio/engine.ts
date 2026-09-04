@@ -499,9 +499,7 @@ export class Engine {
     if (section.name === 'BREAK' && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; } // darken then build2 reopens
     if ((section.name === 'BUILD 2' || section.name === 'DROP 2') && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
-    if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
-    if (section.name === 'BREAK' && step === 0 && barIn % 2 === 0) this.vKick(t, 0.45); // half-time heartbeat keeps pulse
-    if (section.name === 'BREAK' && barIn < 2 && step % 4 === 2) this.vBass(t, 0, stepDur * 0.9, 0.5); // bass tail continuity
+    if (section.name === 'BREAK' && step === 0 && barIn >= 2 && barIn % 2 === 0) this.vKick(t, 0.32); // gentle heartbeat only after clean open
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, section.name === 'BREAK' ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
   }
 
