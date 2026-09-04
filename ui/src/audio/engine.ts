@@ -96,7 +96,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0;
+  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -104,6 +104,7 @@ export class Engine {
     this.song = generateSongForSub(sb, this.seed);
     this.arrangement = generateArrangementForSub(sb, this.seed);
     this.bpm = sb.bpm;
+    this.bassRoot = 33;
     // sub-style SOUND: timbres applied to the synth engines
     this.params.bass = { ...this.params.bass, cutoff: sb.bassCut, res: sb.bassRes, drive: sb.bassDrive, wave: sb.bassWave };
     this.params.lead = { ...this.params.lead, cutoff: sb.leadCut, res: sb.leadRes, decay: sb.leadDecay, wave: sb.leadWave };
@@ -244,7 +245,7 @@ export class Engine {
   }
   vBass(t: number, semi: number, dur: number, accent = 1) {
     const ctx = this.ctx!; const p = this.params.bass; const out = this.channels.bass.bus;
-    const f = mtof(33 + semi);
+    const f = mtof(this.bassRoot + semi);
     const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f;
     const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
@@ -489,6 +490,21 @@ export class Engine {
     if (cat === 'master') {
       if (this.eqLow && p.low !== undefined) { this.eqLow.gain.value = p.low; if (this.eqMid) this.eqMid.gain.value = p.mid; if (this.eqHigh) this.eqHigh.gain.value = p.high; }
       if (this.comp && p.thresh !== undefined) { this.comp.threshold.value = p.thresh; this.comp.ratio.value = p.ratio; }
+      return;
+    }
+    if (cat === 'kits') {
+      if (p.kick) Object.assign(this.params.kick, p.kick);
+      if (p.hats) Object.assign(this.params.hats, p.hats);
+      if (p.clap !== undefined) this.clapOn = p.clap;
+      if (p.shaker !== undefined) this.shakerOn = p.shaker;
+      return;
+    }
+    if (cat === 'keys') {
+      const sh = p.shift ?? 0;
+      this.bassRoot = 33 + sh;
+      const tr = (arr: any[]) => arr.forEach((e, i) => { if (typeof e === 'number' && e !== null) arr[i] = Math.max(30, Math.min(96, e + sh)); });
+      tr(this.song.lead as any[]); if (this.song.leadB) tr(this.song.leadB as any[]);
+      if ((this.song as any).chords) (this.song as any).chords = (this.song as any).chords.map((c: number[]) => c.map((n) => n + sh));
       return;
     }
     const target = (this.params as any)[cat];
