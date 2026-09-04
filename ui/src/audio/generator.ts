@@ -1,6 +1,5 @@
-// PsyReason Generator v2 - style sessions + variation engine
-// 6 psytrance styles, 3 curated sessions each, A/B pattern variants,
-// fills, risers, chord progressions -> interesting sequences, not loops.
+// PsyReason Generator v3 - full style library
+// 10 styles x sub-styles x 4 sessions, each sub-style has its own SOUND (timbre).
 
 import { SongData, Section, TrackId } from './engine';
 
@@ -15,33 +14,93 @@ export function mulberry32(seed: number) {
 }
 const pick = <T,>(rng: () => number, arr: T[]): T => arr[Math.floor(rng() * arr.length)];
 
-export interface StyleDef {
-  id: string; name: string; color: string; bpm: number;
-  scale: number[]; bassStyles: string[];
-  leadDensity: number; leadLeap: number;
-  hatBusy: number; openProb: number; padProb: number;
+export interface SubStyle {
+  id: string; name: string; bpm: number; scale: number[];
+  bassStyle: string; bassWave: string; bassCut: number; bassRes: number; bassDrive: number;
+  leadWave: string; leadCut: number; leadRes: number; leadDecay: number;
+  kickDecay: number; punch: number; hatTone: number;
+  leadDensity: number; leadLeap: number; hatBusy: number; openProb: number; padProb: number;
   desc: string;
+}
+export interface StyleDef { id: string; name: string; color: string; desc: string; subs: SubStyle[]; }
+
+const PHR = [0, 1, 3, 5, 7, 8, 10];
+const MIN = [0, 2, 3, 5, 7, 8, 10];
+const HARM = [0, 1, 4, 5, 7, 8, 10];
+const DOR = [0, 2, 3, 5, 7, 9, 10];
+const MAJ = [0, 2, 4, 5, 7, 9, 11];
+
+function sub(o: any): SubStyle {
+  return { scale: PHR, bassStyle: 'rolling', bassWave: 'sawtooth', bassCut: 900, bassRes: 6, bassDrive: 0.4,
+    leadWave: 'sawtooth', leadCut: 4200, leadRes: 5, leadDecay: 0.3, kickDecay: 0.28, punch: 0.5, hatTone: 7500,
+    leadDensity: 0.6, leadLeap: 0.3, hatBusy: 0.5, openProb: 0.7, padProb: 0.6, desc: '', ...o };
 }
 
 export const STYLES: StyleDef[] = [
-  { id: 'fullon', name: 'FULL-ON', color: '#00ff88', bpm: 145, scale: [0, 1, 3, 5, 7, 8, 10], bassStyles: ['rolling', 'rolling', 'kbb'], leadDensity: 0.7, leadLeap: 0.3, hatBusy: 0.6, openProb: 0.9, padProb: 0.8, desc: '145 BPM, driving rolling bass, energetic leads' },
-  { id: 'goa', name: 'GOA', color: '#ff8800', bpm: 140, scale: [0, 1, 4, 5, 7, 8, 10], bassStyles: ['rolling', 'offbeat'], leadDensity: 0.6, leadLeap: 0.45, hatBusy: 0.5, openProb: 0.7, padProb: 0.6, desc: '140 BPM, harmonic flavor, acid 303 lines' },
-  { id: 'dark', name: 'DARK PSY', color: '#8866ff', bpm: 150, scale: [0, 1, 3, 5, 7, 8, 10], bassStyles: ['kbb', 'rolling'], leadDensity: 0.4, leadLeap: 0.55, hatBusy: 0.4, openProb: 0.5, padProb: 0.3, desc: '150 BPM, phrygian tension, sparse twisted leads' },
-  { id: 'prog', name: 'PROGRESSIVE', color: '#00aaff', bpm: 132, scale: [0, 2, 3, 5, 7, 8, 10], bassStyles: ['offbeat', 'offbeat', 'rolling'], leadDensity: 0.35, leadLeap: 0.25, hatBusy: 0.3, openProb: 0.6, padProb: 0.9, desc: '132 BPM, open grooves, long pads, space' },
-  { id: 'hitech', name: 'HI-TECH', color: '#ff2bd6', bpm: 165, scale: [0, 1, 3, 5, 7, 8, 10], bassStyles: ['rolling'], leadDensity: 0.85, leadLeap: 0.6, hatBusy: 0.8, openProb: 0.8, padProb: 0.2, desc: '165 BPM, frantic density, wild leaps' },
-  { id: 'forest', name: 'FOREST', color: '#66cc66', bpm: 152, scale: [0, 1, 3, 5, 7, 9, 10], bassStyles: ['kbb', 'kbb', 'rolling'], leadDensity: 0.45, leadLeap: 0.5, hatBusy: 0.45, openProb: 0.5, padProb: 0.4, desc: '152 BPM, modal darkness, echoing motifs' },
+  { id: 'fullon', name: 'FULL-ON', color: '#00ff88', desc: 'driving 145-ish energy', subs: [
+    sub({ id: 'classic', name: 'Classic Full-On', bpm: 145, leadDensity: 0.7, desc: 'the standard rolling sound' }),
+    sub({ id: 'night', name: 'Night Full-On', bpm: 148, scale: PHR, bassCut: 700, bassDrive: 0.6, leadRes: 8, leadDensity: 0.6, padProb: 0.4, desc: 'darker edge, harder drive' }),
+    sub({ id: 'melodic', name: 'Melodic Full-On', bpm: 143, scale: MIN, leadDensity: 0.8, leadLeap: 0.4, padProb: 0.9, leadCut: 5200, desc: 'big melodic hooks + pads' }),
+  ]},
+  { id: 'goa', name: 'GOA', color: '#ff8800', desc: 'acid psychedelic roots', subs: [
+    sub({ id: 'classic', name: 'Classic Goa', bpm: 140, scale: HARM, bassStyle: 'rolling', leadRes: 9, leadCut: 3800, leadLeap: 0.45, desc: '303 acid lines, harmonic scale' }),
+    sub({ id: 'morning', name: 'Morning Goa', bpm: 144, scale: MAJ, leadDensity: 0.7, padProb: 0.8, leadWave: 'square', desc: 'uplifting major morning energy' }),
+    sub({ id: 'acid', name: 'Acid Goa', bpm: 138, scale: HARM, leadRes: 14, leadCut: 3000, bassRes: 10, bassDrive: 0.7, desc: 'screaming resonance acid' }),
+  ]},
+  { id: 'dark', name: 'DARK PSY', color: '#8866ff', desc: 'phrygian tension 150+', subs: [
+    sub({ id: 'dark', name: 'Dark', bpm: 150, leadDensity: 0.4, leadLeap: 0.55, padProb: 0.3, bassStyle: 'kbb', desc: 'twisted sparse leads' }),
+    sub({ id: 'twilight', name: 'Twilight', bpm: 147, scale: DOR, padProb: 0.5, leadDensity: 0.5, desc: 'dusk atmosphere, modal' }),
+    sub({ id: 'abyss', name: 'Abyss', bpm: 154, bassCut: 600, bassDrive: 0.8, leadRes: 10, leadDensity: 0.35, padProb: 0.2, desc: 'deep driving darkness' }),
+  ]},
+  { id: 'prog', name: 'PROGRESSIVE', color: '#00aaff', desc: 'open space 128-135', subs: [
+    sub({ id: 'progpsy', name: 'Prog Psy', bpm: 132, scale: MIN, bassStyle: 'offbeat', leadDensity: 0.35, padProb: 0.9, desc: 'groove + atmosphere' }),
+    sub({ id: 'minimal', name: 'Minimal Prog', bpm: 128, bassStyle: 'offbeat', leadDensity: 0.25, hatBusy: 0.2, padProb: 0.6, bassCut: 750, desc: 'stripped hypnotic' }),
+    sub({ id: 'atmo', name: 'Atmospheric', bpm: 130, scale: DOR, padProb: 1, leadWave: 'triangle', leadCut: 3500, desc: 'huge pads, slow burns' }),
+  ]},
+  { id: 'hitech', name: 'HI-TECH', color: '#ff2bd6', desc: 'frantic 165+', subs: [
+    sub({ id: 'hitech', name: 'Hi-Tech', bpm: 165, leadDensity: 0.85, leadLeap: 0.6, hatBusy: 0.8, desc: 'wild fast squiggles' }),
+    sub({ id: 'psycore', name: 'Psycore', bpm: 175, bassStyle: 'kbb', bassDrive: 0.9, leadDensity: 0.7, leadLeap: 0.7, kickDecay: 0.22, desc: 'extreme speed aggression' }),
+  ]},
+  { id: 'forest', name: 'FOREST', color: '#66cc66', desc: 'modal darkness 150s', subs: [
+    sub({ id: 'forest', name: 'Forest', bpm: 152, scale: DOR, bassStyle: 'kbb', leadDensity: 0.45, padProb: 0.4, desc: 'echoing forest motifs' }),
+    sub({ id: 'darkforest', name: 'Dark Forest', bpm: 158, scale: PHR, bassCut: 650, leadRes: 9, padProb: 0.3, desc: 'deeper, harder forest' }),
+  ]},
+  { id: 'suomi', name: 'SUOMI', color: '#ffcc00', desc: 'playful weird 140s', subs: [
+    sub({ id: 'suomisaundi', name: 'Suomisaundi', bpm: 145, scale: MAJ, leadLeap: 0.7, leadDensity: 0.65, leadWave: 'square', desc: 'freeform playful melodies' }),
+    sub({ id: 'freeform', name: 'Freeform', bpm: 150, scale: DOR, leadLeap: 0.8, hatBusy: 0.7, desc: 'anything goes' }),
+  ]},
+  { id: 'psychill', name: 'PSYCHILL', color: '#66ccff', desc: 'downtempo 85-100', subs: [
+    sub({ id: 'chill', name: 'Psychill', bpm: 95, scale: MIN, bassStyle: 'offbeat', leadDensity: 0.4, leadWave: 'triangle', padProb: 1, kickDecay: 0.35, punch: 0.3, hatTone: 6000, desc: 'relaxed floating' }),
+    sub({ id: 'ambient', name: 'Ambient Psy', bpm: 85, bassStyle: 'offbeat', leadDensity: 0.3, padProb: 1, hatBusy: 0.1, openProb: 0.3, desc: 'beatless-ish textures' }),
+  ]},
+  { id: 'morning', name: 'MORNING', color: '#ffee66', desc: 'euphoric sunrise', subs: [
+    sub({ id: 'morningtrance', name: 'Morning Trance', bpm: 142, scale: MAJ, leadDensity: 0.75, padProb: 0.9, leadCut: 5600, desc: 'hands-up euphoria' }),
+  ]},
+  { id: 'psytech', name: 'PSY-TECH', color: '#aaaacc', desc: 'techy groove 136', subs: [
+    sub({ id: 'psytech', name: 'Psy-Tech', bpm: 136, scale: MIN, bassStyle: 'offbeat', leadDensity: 0.3, bassWave: 'square', bassCut: 800, hatBusy: 0.6, desc: 'minimal tech groove' }),
+  ]},
 ];
 
+export const SESSIONS_PER_SUB = 4;
+
 export function styleById(id: string): StyleDef { return STYLES.find((s) => s.id === id) || STYLES[0]; }
+export function subById(styleId: string, subId: string): SubStyle {
+  const st = styleById(styleId);
+  return st.subs.find((s) => s.id === subId) || st.subs[0];
+}
+export function sessionSeed(subId: string, session: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < subId.length; i++) { h ^= subId.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0) + session * 104729 + 13;
+}
 
-const LEAD_ROOT = 69; const BASS_ROOT = 33;
+const LEAD_ROOT = 69;
 
-function genLeadStyle(rng: () => number, st: StyleDef, variant: number): (number | null)[] {
+function genLead(rng: () => number, st: SubStyle): (number | null)[] {
   const lead: (number | null)[] = Array(16).fill(null);
   let deg = Math.floor(rng() * 3);
-  const density = Math.min(0.9, st.leadDensity + (variant === 2 ? 0.1 : 0));
   for (let i = 0; i < 16; i++) {
-    const prob = i % 4 === 0 ? 0.9 : density;
+    const prob = i % 4 === 0 ? 0.9 : st.leadDensity;
     if (rng() < prob) {
       const leap = rng() < st.leadLeap;
       const move = leap ? pick(rng, [-3, -2, 2, 3, 4]) : (rng() < 0.5 ? 1 : -1);
@@ -54,16 +113,15 @@ function genLeadStyle(rng: () => number, st: StyleDef, variant: number): (number
   return lead;
 }
 
-function genBassStyle(rng: () => number, st: StyleDef): { on: boolean; semi: number }[] {
-  const style = pick(rng, st.bassStyles);
-  const vars = st.id === 'goa' ? [0, 0, 3, 8, 7] : st.id === 'dark' ? [0, 0, 1, 6] : [0, 0, 0, 1, 3, 5, 7, 8, 10];
+function genBass(rng: () => number, st: SubStyle): { on: boolean; semi: number }[] {
+  const vars = st.scale === HARM ? [0, 0, 3, 8, 7] : st.scale === PHR ? [0, 0, 1, 6] : [0, 0, 0, 1, 3, 5, 7];
   const bass: { on: boolean; semi: number }[] = [];
   for (let i = 0; i < 16; i++) {
     const isKick = i % 4 === 0;
     let on = false;
-    if (style === 'rolling') on = !isKick || rng() < 0.15;
-    if (style === 'offbeat') on = i % 4 === 2 || (i % 2 === 1 && rng() < 0.3);
-    if (style === 'kbb') on = i % 4 === 2 || i % 4 === 3;
+    if (st.bassStyle === 'rolling') on = !isKick || rng() < 0.15;
+    if (st.bassStyle === 'offbeat') on = i % 4 === 2 || (i % 2 === 1 && rng() < 0.3);
+    if (st.bassStyle === 'kbb') on = i % 4 === 2 || i % 4 === 3;
     let semi = 0;
     if (i >= 12 && rng() < 0.6) semi = pick(rng, vars);
     else if (rng() < 0.12) semi = pick(rng, vars);
@@ -72,7 +130,7 @@ function genBassStyle(rng: () => number, st: StyleDef): { on: boolean; semi: num
   return bass;
 }
 
-function genDrumsStyle(rng: () => number, st: StyleDef) {
+function genDrums(rng: () => number, st: SubStyle) {
   const kick = Array(16).fill(false);
   for (let i = 0; i < 16; i += 4) kick[i] = true;
   if (rng() < 0.3) kick[14] = true;
@@ -80,7 +138,6 @@ function genDrumsStyle(rng: () => number, st: StyleDef) {
   for (let i = 2; i < 16; i += 4) hats[i] = true;
   if (rng() < st.hatBusy) hats[7] = true;
   if (rng() < st.hatBusy * 0.7) hats[15] = true;
-  if (rng() < st.hatBusy * 0.4) { hats[3] = true; hats[11] = true; }
   const open = Array(16).fill(false);
   if (rng() < st.openProb) open[pick(rng, [14, 8, 12])] = true;
   return { kick, hats, open };
@@ -90,28 +147,22 @@ function chordAt(scale: number[], root: number, deg: number): number[] {
   const n = scale.length;
   return [0, 2, 4].map((off) => { const d = deg + off; return root + scale[d % n] + Math.floor(d / n) * 12; });
 }
-
-function genChords(rng: () => number, st: StyleDef): number[][] {
-  const roots = st.id === 'prog' ? [0, 5, 3, 4] : st.id === 'goa' ? [0, 3, 0, 4] : [0, 0, 3, 4];
+function genChords(rng: () => number, st: SubStyle): number[][] {
+  const roots = st.scale === MAJ ? [0, 3, 4, 5] : st.scale === HARM ? [0, 3, 0, 4] : [0, 0, 3, 4];
   return roots.map((d) => chordAt(st.scale, 57, d));
 }
 
-export function generateSongForStyle(styleId: string, seed: number): SongData {
-  const st = styleById(styleId); const rng = mulberry32(seed);
-  const variant = seed % 3;
-  const lead = genLeadStyle(rng, st, variant);
-  const bass = genBassStyle(rng, st);
-  // B variants for A/B variation across bars
-  const leadB = genLeadStyle(rng, st, variant + 1);
-  const bassB = genBassStyle(rng, st);
-  const d = genDrumsStyle(rng, st);
+export function generateSongForSub(st: SubStyle, seed: number): SongData {
+  const rng = mulberry32(seed);
+  const lead = genLead(rng, st); const leadB = genLead(rng, st);
+  const bass = genBass(rng, st); const bassB = genBass(rng, st);
+  const d = genDrums(rng, st);
   return { kick: d.kick, bass, hats: d.hats, open: d.open, lead, padChord: genChords(rng, st)[0], bassB, leadB, chords: genChords(rng, st) } as SongData;
 }
 
-export function generateArrangementForStyle(styleId: string, seed: number): Section[] {
-  const st = styleById(styleId); const rng = mulberry32(seed ^ 0x9e3779b9);
+export function generateArrangementForSub(st: SubStyle, seed: number): Section[] {
+  const rng = mulberry32(seed ^ 0x9e3779b9);
   const all: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
-  const noPad = all.filter((t) => t !== 'pad');
   const intro: TrackId[] = st.padProb > 0.7 ? ['bass', 'hats', 'lead', 'pad'] : ['kick', 'bass', 'hats'];
   const build: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead'];
   const breakSec: TrackId[] = st.padProb > 0.4 ? ['lead', 'pad'] : ['lead', 'hats'];
@@ -121,27 +172,26 @@ export function generateArrangementForStyle(styleId: string, seed: number): Sect
     { name: 'BUILD', bars: 4, active: build },
     { name: 'DROP', bars: d1, active: all },
     { name: 'BREAK', bars: br, active: breakSec },
-    { name: 'DROP 2', bars: d2, active: st.padProb > 0.5 ? all : noPad.concat('pad') },
+    { name: 'DROP 2', bars: d2, active: all },
   ];
 }
 
-// curated session seeds: 3 quality sessions per style
-export function sessionSeed(styleId: string, session: number): number {
-  let h = 2166136261;
-  for (let i = 0; i < styleId.length; i++) { h ^= styleId.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return (h >>> 0) + session * 104729 + 13;
-}
-
+// legacy wrappers
+export function generateSongForStyle(styleId: string, seed: number): SongData { return generateSongForSub(subById(styleId, 'classic'), seed); }
+export function generateArrangementForStyle(styleId: string, seed: number): Section[] { return generateArrangementForSub(subById(styleId, 'classic'), seed); }
+export function generateSong(seed: number): SongData { return generateSongForSub(STYLES[0].subs[0], seed); }
+export function generateArrangement(seed: number): Section[] { return generateArrangementForSub(STYLES[0].subs[0], seed); }
 export function generateTrack(id: TrackId, seed: number, current: SongData): SongData {
-  const rng = mulberry32(seed);
-  const st = STYLES[0];
+  const rng = mulberry32(seed); const st = STYLES[0].subs[0];
   const s: any = { ...current, bass: current.bass.map((b) => ({ ...b })), kick: [...current.kick], hats: [...current.hats], open: [...current.open], lead: [...current.lead], padChord: [...current.padChord] };
-  if (id === 'lead') { s.lead = genLeadStyle(rng, st, 0); s.leadB = genLeadStyle(rng, st, 1); }
-  if (id === 'bass') { s.bass = genBassStyle(rng, st); s.bassB = genBassStyle(rng, st); }
-  if (id === 'kick' || id === 'hats' || id === 'open') { const d = genDrumsStyle(rng, st); s.kick = d.kick; s.hats = d.hats; s.open = d.open; }
+  if (id === 'lead') { s.lead = genLead(rng, st); s.leadB = genLead(rng, st); }
+  if (id === 'bass') { s.bass = genBass(rng, st); s.bassB = genBass(rng, st); }
+  if (id === 'kick' || id === 'hats' || id === 'open') { const d = genDrums(rng, st); s.kick = d.kick; s.hats = d.hats; s.open = d.open; }
   if (id === 'pad') s.chords = genChords(rng, st);
   return s as SongData;
 }
 
-export function generateSong(seed: number): SongData { return generateSongForStyle('fullon', seed); }
-export function generateArrangement(seed: number): Section[] { return generateArrangementForStyle('fullon', seed); }
+export function libraryStats() {
+  const subs = STYLES.reduce((a, s) => a + s.subs.length, 0);
+  return { styles: STYLES.length, subs, sessions: subs * SESSIONS_PER_SUB };
+}
