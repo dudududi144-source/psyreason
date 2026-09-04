@@ -244,6 +244,12 @@ export class Engine {
     ng.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
     n.connect(hp); hp.connect(ng); ng.connect(out);
     n.start(t); n.stop(t + 0.02);
+    if (this.params.bass.sidechain > 0) {
+      const dg = this.channels.bass.duck.gain;
+      dg.cancelScheduledValues(t);
+      dg.setValueAtTime(1 - this.pumpDepth * this.params.bass.sidechain, t);
+      dg.setTargetAtTime(1, t + 0.03, 0.1);
+    }
   }
   vBass(t: number, semi: number, dur: number, accent = 1) {
     const ctx = this.ctx!; const p = this.params.bass; const out = this.channels.bass.bus;
