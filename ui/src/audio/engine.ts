@@ -561,6 +561,23 @@ export class Engine {
     const lastBar = barIn === section.bars - 1;
     if (step === 0 && barIn === 0) { if (isBuild) this.sweep = 0.15; else this.sweep = 1; }
     if (isBuild) this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
+    if (step === 0) {
+      for (const tr of TRACKS) {
+        const ch = (this.channels as any)[tr.id]; if (!ch) continue;
+        const onNow = on(tr.id);
+        const wasOn = this.trackOnPrev[tr.id];
+        if (wasOn === undefined) {
+          ch.bus.gain.cancelScheduledValues(t); ch.bus.gain.setValueAtTime(onNow ? 1 : 0.0001, t);
+        } else if (onNow && !wasOn) {
+          ch.bus.gain.cancelScheduledValues(t); ch.bus.gain.setValueAtTime(0.0001, t); ch.bus.gain.linearRampToValueAtTime(1, t + stepDur * 16);
+        } else if (!onNow && wasOn) {
+          ch.bus.gain.cancelScheduledValues(t); ch.bus.gain.setValueAtTime(1, t); ch.bus.gain.linearRampToValueAtTime(0.0001, t + stepDur * 8);
+        } else if (onNow && wasOn) {
+          ch.bus.gain.cancelScheduledValues(t); ch.bus.gain.setValueAtTime(1, t);
+        }
+        this.trackOnPrev[tr.id] = onNow;
+      }
+    }
     if (on('kick') && s.kick[step]) this.vKick(t);
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
     if (on('kick') || isBreak) {
@@ -756,6 +773,7 @@ export class Engine {
 
   pendingJump: number | null = null;
   pendingSession: { s: string; sb: string; ss: number } | null = null;
+  trackOnPrev: Record<string, boolean> = {};
   queueSession(s: string, sb: string, ss: number) { this.pendingSession = { s, sb, ss }; }
   newSessionKeepForm(session: number) {
     const arr = this.arrangement;
