@@ -95,7 +95,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic'; clapOn = false;
+  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -127,6 +127,8 @@ export class Engine {
     Object.assign(this.params.kick, DC[sb.drumChar] || DC.punch);
     this.params.hats.metal = (DC[sb.drumChar] || DC.punch).metal;
     this.clapOn = !!sb.clap;
+    this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
+    this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
   }
   generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
@@ -302,6 +304,30 @@ export class Engine {
     const nhp = ctx.createBiquadFilter(); nhp.type = 'highpass'; nhp.frequency.value = 6000;
     n.connect(nhp); nhp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 1.15);
   }
+  private leadOsc(ctx: AudioContext, p: any, f: number, t: number): OscillatorNode {
+    if (p.engine === 'fm') {
+      const car = ctx.createOscillator(); car.type = 'sine';
+      const mod = ctx.createOscillator(); mod.type = 'sine';
+      const ratio = p.fmRatio ?? 2; const amt = p.fmAmt ?? 2;
+      mod.frequency.value = f * ratio;
+      const mg = ctx.createGain(); mg.gain.value = f * ratio * amt;
+      mod.connect(mg); mg.connect(car.frequency);
+      (car as any)._mod = mod;
+      return car;
+    }
+    if (p.engine === 'wave') {
+      const n = 16; const real = new Float32Array(n); const imag = new Float32Array(n);
+      const wt = p.wt ?? 0.5;
+      for (let h = 1; h < n; h++) {
+        imag[h] = (h % 2 === 1 ? 1 / h : 0) * (1 - wt * 0.5) + (wt > 0.5 ? 1 / (h * h) * (wt - 0.5) * 2 : 0);
+      }
+      const wave = ctx.createPeriodicWave(real, imag);
+      const o = ctx.createOscillator(); o.setPeriodicWave(wave);
+      return o;
+    }
+    const o = ctx.createOscillator(); o.type = (p.wave as OscillatorType) || 'sawtooth';
+    return o;
+  }
   vLead(t: number, midi: number, dur: number) {
     const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
     const f = mtof(midi);
@@ -314,11 +340,13 @@ export class Engine {
     const glide = (p as any).glide ?? 0;
     for (let vi = 0; vi < voicesN; vi++) {
       const det = voicesN === 1 ? 0 : (vi - (voicesN - 1) / 2) * detAmt;
-      const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth';
+      const o = this.leadOsc(ctx, p as any, f, t);
       if (glide > 0) { o.frequency.setValueAtTime(f * 0.7, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04); }
       else o.frequency.value = f;
       o.detune.value = det;
+      const mod = (o as any)._mod as OscillatorNode | undefined;
       o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
+      if (mod) { mod.start(t); mod.stop(t + dur + 0.05); }
     }
     lp.connect(g); g.connect(out);
   }
@@ -384,7 +412,9 @@ export class Engine {
     if (section.name === 'BUILD') this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
-    if (lastBar && on('kick') && step >= 12) { this.vKick(t); this.vHat(t, false); } // transition fill
+    if (lastBar && on('kick') && step >= 12) { this.vKick(t); this.vHat(t, false); this.vSnare(t, 0.25 + 0.18 * (step - 12)); } // snare roll fill
+    if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2') && this.crashOn) this.vCrash(t); // impact
+    if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
     if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92); }
     if (on('hats') && s.hats[step]) this.vHat(t, false);
     if (on('open') && s.open[step]) this.vHat(t, true);
