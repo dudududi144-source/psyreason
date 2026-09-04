@@ -386,3 +386,31 @@ export function libraryStats() {
   return T.map(([name, form]) => ({ name: 'FORM • ' + name, p: { form } }));
 }
 
+
+export function composeForm(seed: number) {
+  const r = mulberry32(seed);
+  const pk = <T,>(arr: T[]): T => arr[Math.floor(r() * arr.length)];
+  const FULL = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
+  const GROOVE = ['kick', 'bass', 'hats'];
+  const AIR = ['lead', 'pad'];
+  const MIN = ['kick', 'hats'];
+  const BUILD = ['kick', 'bass', 'hats', 'open', 'lead'];
+  const PERC = ['kick', 'hats', 'open'];
+  const ACID = ['bass', 'lead'];
+  const HALF = ['kick', 'bass', 'pad'];
+  const FS = (name: string, bars: number, active: string[], role: string) => ({ name, bars, active, role });
+  const f: any[] = [];
+  f.push(FS('INTRO', pk([8, 16]), GROOVE, 'intro'));
+  if (r() > 0.5) f.push(FS('TEASER', 8, [...GROOVE, 'lead'], 'intro'));
+  f.push(FS('BUILD', pk([4, 8]), BUILD, 'build'));
+  f.push(FS('DROP', pk([16, 24, 32]), FULL, 'drop'));
+  const midRole = pk(['break', 'perc', 'acid', 'ambient', 'half']);
+  const midAct: any = { break: AIR, perc: PERC, acid: ACID, ambient: ['pad'], half: HALF }[midRole];
+  const midName: any = { break: 'BREAK', perc: 'PERC TRIBAL', acid: 'ACID BREAK', ambient: 'AMBIENT', half: 'HALF-TIME' }[midRole];
+  f.push(FS(midName, pk([8, 16]), midAct, midRole));
+  if (r() > 0.5) f.push(FS('BUILD 2', pk([4, 8]), BUILD, 'build'));
+  f.push(FS(r() > 0.5 ? 'RE-ENTRY' : 'DROP 2', pk([16, 24, 32]), FULL, r() > 0.5 ? 'dropin' : 'drop2'));
+  if (r() > 0.55) f.push(FS('CLIMAX', pk([16, 24, 32]), FULL, 'climax'));
+  f.push(FS('OUTRO', pk([8, 16]), MIN, 'outro'));
+  return f;
+}
