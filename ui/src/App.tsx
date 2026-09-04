@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from './audio/engine';
-import { STYLES, SESSIONS_PER_SUB, subById, libraryStats } from './audio/generator';
+import { STYLES, SESSIONS_PER_SUB, subById, libraryStats, FAMILIES } from './audio/generator';
 import { SOUND_LIB, soundCount } from './audio/sounds';
 
 type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library' | 'sounds';
@@ -275,6 +275,7 @@ export default function App() {
   const [bpm, setBpm] = useState(145);
   const [pos, setPos] = useState({ bar: -1, step: -1 });
   const [, force] = useState(0);
+  const [family, setFamily] = useState('PSY MAIN');
   const [styleId, setStyleId] = useState('fullon');
   const [subId, setSubId] = useState('classic');
   const mRef = useMeter('master', playing);
@@ -307,17 +308,24 @@ export default function App() {
         <div className="t-meter"><span>MST</span><div className="t-meter-track"><div className="t-meter-fill" ref={mRef} /></div></div>
       </div>
       <div className="stylebar">
-        <span className="sb-label">STYLE</span>
-        {STYLES.map((st) => (
-          <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')}
-            style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined}
-            onClick={() => { setStyleId(st.id); const sb = st.subs[0]; setSubId(sb.id); engine.loadSession(st.id, sb.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
-            {st.name}
+        <span className="sb-label">FAMILY</span>
+        {FAMILIES.map((f) => (
+          <button key={f} className={'style-chip fam' + (family === f ? ' on' : '')}
+            onClick={() => { setFamily(f); const st = STYLES.find((s) => s.family === f) || STYLES[0]; setStyleId(st.id); setSubId(st.subs[0].id); engine.loadSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
+            {f}
           </button>
         ))}
       </div>
       <div className="stylebar sub">
-        <span className="sb-label">SUB-STYLE</span>
+        <span className="sb-label">STYLE</span>
+        {STYLES.filter((s) => s.family === family).map((st) => (
+          <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')}
+            style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined}
+            onClick={() => { setStyleId(st.id); setSubId(st.subs[0].id); engine.loadSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
+            {st.name}
+          </button>
+        ))}
+        <span className="sb-label">SUB</span>
         {(STYLES.find((s) => s.id === styleId) || STYLES[0]).subs.map((sb) => (
           <button key={sb.id} className={'style-chip subchip' + (subId === sb.id ? ' on' : '')}
             style={subId === sb.id ? { borderColor: '#ffffff', color: '#ffffff' } : undefined}
@@ -326,10 +334,13 @@ export default function App() {
           </button>
         ))}
         <span className="style-desc">{subById(styleId, subId).desc}</span>
+      </div>
+      <div className="stylebar sub">
         <span className="sb-label">SESSION</span>
-        {[1, 2, 3, 4].map((v) => (
+        {[1, 2, 3, 4, 5, 6].map((v) => (
           <button key={v} className="var-btn" onClick={() => { engine.loadSession(styleId, subId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
         ))}
+        <span className="style-desc">6 curated sessions per sub-style • GENERATE for infinite</span>
       </div>
       <main className="content">
         {view === 'arrange' && <Arrange pos={pos} playing={playing} />}
