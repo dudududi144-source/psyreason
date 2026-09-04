@@ -312,7 +312,7 @@ function Sounds() {
       <div className="snd-grid">
         {list.map((pr) => (
           <button key={pr.name} className="lib-session snd-item" style={{ borderColor: '#00ff88', color: '#00ff88' }}
-            onClick={() => { engine.previewSound(cat, pr.p); force((x) => x + 1); }}>
+            onClick={() => { if (cat === 'form' && pr.p.form) { engine.loadArrangement(pr.p.form); setView('arrange'); } else { engine.previewSound(cat, pr.p); } force((x) => x + 1); }}>
             {pr.name}
           </button>
         ))}
