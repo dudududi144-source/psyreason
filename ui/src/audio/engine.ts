@@ -171,14 +171,14 @@ export class Engine {
     const pt = padTaste[fam]; if (pt) Object.assign(this.params.pad, pt);
     // PER-FAMILY SIGNATURE: genuine sonic identity per family (lead/bass/drums/feel/FX)
     const sig: Record<string, any> = {
-      'PSY MAIN': { swing: 0, lead: { ftype: 0, sus: 0.2, voices: 2 }, bass: { ftype: 'lp' }, kick: { sat: 0.5, decay: 0.26, punch: 0.7 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.35, rSend: 0.2 },
-      'GOA & CLASSICS': { swing: 0.15, lead: { ftype: 1, sus: 0.3, voices: 1, wave: 'sawtooth' }, bass: { ftype: 'bp' }, kick: { sat: 0.4, decay: 0.3, punch: 0.5 }, hats: { tone: 7000, metal: 0.35, decay: 0.6 }, dFb: 0.5, dSend: 0.45, rSend: 0.25 },
-      'DARK': { swing: 0, lead: { ftype: 2, sus: 0.1, voices: 2 }, bass: { ftype: 'lp', drive: 0.7 }, kick: { sat: 0.75, decay: 0.21, punch: 0.9 }, hats: { tone: 8200, metal: 0.7, decay: 0.35 }, dFb: 0.35, dSend: 0.3, rSend: 0.3 },
-      'HYPNOTIC': { swing: 0, lead: { ftype: 0, sus: 0.5, voices: 2 }, bass: { ftype: 'lp' }, kick: { sat: 0.4, decay: 0.28, punch: 0.6 }, hats: { tone: 7000, metal: 0.4, decay: 0.5 }, dFb: 0.45, dSend: 0.4, rSend: 0.3 },
-      'CHILL': { swing: 0.25, lead: { ftype: 0, sus: 0.8, voices: 1, wave: 'triangle' }, bass: { ftype: 'lp', sub: 0.9 }, kick: { sat: 0.2, decay: 0.4, punch: 0.3 }, hats: { tone: 6000, metal: 0.25, decay: 0.8 }, dFb: 0.5, dSend: 0.5, rSend: 0.6 },
-      'TRANCE': { swing: 0, lead: { ftype: 0, sus: 0.6, voices: 3 }, bass: { ftype: 'lp' }, kick: { sat: 0.4, decay: 0.28, punch: 0.6 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.4, rSend: 0.45 },
-      'TECH': { swing: 0, lead: { ftype: 1, sus: 0.2, voices: 1 }, bass: { ftype: 'bp' }, kick: { sat: 0.6, decay: 0.24, punch: 0.8 }, hats: { tone: 8000, metal: 0.6, decay: 0.4 }, dFb: 0.3, dSend: 0.3, rSend: 0.2 },
-      'WILD': { swing: 0, lead: { ftype: 2, sus: 0.2, voices: 2 }, bass: { ftype: 'lp', drive: 0.8 }, kick: { sat: 0.85, decay: 0.2, punch: 0.9 }, hats: { tone: 8500, metal: 0.8, decay: 0.3 }, dFb: 0.3, dSend: 0.35, rSend: 0.25 },
+      'PSY MAIN': { swing: 0, lead: { ftype: 0, sus: 0.2, voices: 2 }, bass: { ftype: 'lp', pluck: 0.9, wave: 'sawtooth', res: 5, cutoff: 900, drive: 0.4, sub: 0.35 }, kick: { sat: 0.5, decay: 0.26, punch: 0.7 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.35, rSend: 0.2 },
+      'GOA & CLASSICS': { swing: 0.15, lead: { ftype: 1, sus: 0.3, voices: 1, wave: 'sawtooth' }, bass: { ftype: 'bp', pluck: 0.85, wave: 'sawtooth', res: 11, cutoff: 1200, drive: 0.6, sub: 0.25 }, kick: { sat: 0.4, decay: 0.3, punch: 0.5 }, hats: { tone: 7000, metal: 0.35, decay: 0.6 }, dFb: 0.5, dSend: 0.45, rSend: 0.25 },
+      'DARK': { swing: 0, lead: { ftype: 2, sus: 0.1, voices: 2 }, bass: { ftype: 'lp', pluck: 0.5, wave: 'sawtooth', res: 4, cutoff: 500, drive: 0.85, sub: 0.8 }, kick: { sat: 0.75, decay: 0.21, punch: 0.9 }, hats: { tone: 8200, metal: 0.7, decay: 0.35 }, dFb: 0.35, dSend: 0.3, rSend: 0.3 },
+      'HYPNOTIC': { swing: 0, lead: { ftype: 0, sus: 0.5, voices: 2 }, bass: { ftype: 'lp', pluck: 0.4, wave: 'sawtooth', res: 5, cutoff: 700, drive: 0.35, sub: 0.6 }, kick: { sat: 0.4, decay: 0.28, punch: 0.6 }, hats: { tone: 7000, metal: 0.4, decay: 0.5 }, dFb: 0.45, dSend: 0.4, rSend: 0.3 },
+      'CHILL': { swing: 0.25, lead: { ftype: 0, sus: 0.8, voices: 1, wave: 'triangle' }, bass: { ftype: 'lp', pluck: 0.2, wave: 'square', res: 3, cutoff: 450, drive: 0.2, sub: 0.95 }, kick: { sat: 0.2, decay: 0.4, punch: 0.3 }, hats: { tone: 6000, metal: 0.25, decay: 0.8 }, dFb: 0.5, dSend: 0.5, rSend: 0.6 },
+      'TRANCE': { swing: 0, lead: { ftype: 0, sus: 0.6, voices: 3 }, bass: { ftype: 'lp', pluck: 0.6, wave: 'sawtooth', res: 5, cutoff: 800, drive: 0.4, sub: 0.5 }, kick: { sat: 0.4, decay: 0.28, punch: 0.6 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.4, rSend: 0.45 },
+      'TECH': { swing: 0, lead: { ftype: 1, sus: 0.2, voices: 1 }, bass: { ftype: 'bp', pluck: 0.7, wave: 'square', res: 6, cutoff: 750, drive: 0.5, sub: 0.4 }, kick: { sat: 0.6, decay: 0.24, punch: 0.8 }, hats: { tone: 8000, metal: 0.6, decay: 0.4 }, dFb: 0.3, dSend: 0.3, rSend: 0.2 },
+      'WILD': { swing: 0, lead: { ftype: 2, sus: 0.2, voices: 2 }, bass: { ftype: 'lp', pluck: 0.8, wave: 'sawtooth', res: 8, cutoff: 1000, drive: 0.9, sub: 0.55 }, kick: { sat: 0.85, decay: 0.2, punch: 0.9 }, hats: { tone: 8500, metal: 0.8, decay: 0.3 }, dFb: 0.3, dSend: 0.35, rSend: 0.25 },
     };
     const sg = sig[fam];
     if (sg) {
