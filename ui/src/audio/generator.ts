@@ -128,11 +128,21 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'greenprog', name: 'Green Prog', bpm: 134, scale: DOR, bassChar: 'flat', leadChar: 'air', drumChar: 'round', bassStyle: 'hypnotic', leadDensity: 0.3, padProb: 0.6, desc: 'organic forest groove' }),
     sub({ id: 'mossy', name: 'Mossy', bpm: 137, scale: DOR, bassChar: 'growl', leadChar: 'twist', drumChar: 'round', bassStyle: 'hypnotic', leadDensity: 0.35, padProb: 0.5, desc: 'deep mossy textures' }),
   ]},
+  { id: 'vertigo', name: 'VERTIGO', color: '#66ddff', family: 'HYPNOTIC', desc: 'spinning hypnotic 138', subs: [
+    sub({ id: 'spin', name: 'Spin', bpm: 138, bassChar: 'flat', leadChar: 'twist', bassStyle: 'hypnotic', leadDensity: 0.45, padProb: 0.5, desc: 'rotating hypnotic layers' }),
+    sub({ id: 'spiral', name: 'Spiral', bpm: 139, scale: DOR, bassChar: 'growl', leadChar: 'air', bassStyle: 'hypnotic', leadDensity: 0.4, padProb: 0.6, desc: 'descending spiral motion' }),
+  ]},
+  { id: 'blackout', name: 'BLACKOUT', color: '#3344aa', family: 'DARK', desc: 'pitch black 152', subs: [
+    sub({ id: 'void', name: 'Void', bpm: 152, bassChar: 'sub', leadChar: 'twist', drumChar: 'hard', bassCut: 600, leadDensity: 0.35, padProb: 0.2, desc: 'empty void pressure' }),
+    sub({ id: 'eclipse', name: 'Eclipse', bpm: 153, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', bassRes: 10, leadRes: 11, leadDensity: 0.4, desc: 'total eclipse darkness' }),
+  ]},
 ];
 
 
 
-export const SESSIONS_PER_SUB = 8;
+
+
+export const SESSIONS_PER_SUB = 10;
 
 export function styleById(id: string): StyleDef { return STYLES.find((s) => s.id === id) || STYLES[0]; }
 export function subById(styleId: string, subId: string): SubStyle {
