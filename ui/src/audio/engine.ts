@@ -149,6 +149,25 @@ export class Engine {
     this.followChords = fam === 'TRANCE' || fam === 'CHILL' || fam === 'HYPNOTIC';
     this.phraseFills = fam === 'TRANCE' || fam === 'CHILL' || fam === 'GOA & CLASSICS';
     this.breakEcho = fam !== 'DARK' && fam !== 'TECH';
+    // family drum + pad taste: each family's default drums/pads sound distinct
+    const drumTaste: Record<string, any> = {
+      'PSY MAIN': { kick: { sat: 0.5, punch: 0.7, decay: 0.26 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 } },
+      'GOA & CLASSICS': { kick: { sat: 0.4, punch: 0.5, decay: 0.3 }, hats: { tone: 7000, metal: 0.4, decay: 0.6 } },
+      'DARK': { kick: { sat: 0.7, punch: 0.9, decay: 0.22 }, hats: { tone: 8000, metal: 0.7, decay: 0.4 } },
+      'HYPNOTIC': { kick: { sat: 0.4, punch: 0.6, decay: 0.28 }, hats: { tone: 7000, metal: 0.4, decay: 0.5 } },
+      'CHILL': { kick: { sat: 0.2, punch: 0.3, decay: 0.4 }, hats: { tone: 6000, metal: 0.3, decay: 0.8 } },
+      'TRANCE': { kick: { sat: 0.4, punch: 0.6, decay: 0.28 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 } },
+      'TECH': { kick: { sat: 0.6, punch: 0.8, decay: 0.24 }, hats: { tone: 8000, metal: 0.6, decay: 0.4 } },
+      'WILD': { kick: { sat: 0.8, punch: 0.9, decay: 0.2 }, hats: { tone: 8500, metal: 0.8, decay: 0.3 } },
+    };
+    const dt = drumTaste[fam]; if (dt) { Object.assign(this.params.kick, dt.kick); Object.assign(this.params.hats, dt.hats); }
+    const padTaste: Record<string, any> = {
+      'TRANCE': { width: 0.9, bright: 1.4 }, 'CHILL': { width: 0.8, bright: 0.8 },
+      'DARK': { width: 0.4, bright: 0.7 }, 'WILD': { width: 0.6, bright: 1.1 },
+      'GOA & CLASSICS': { width: 0.6, bright: 1.2 }, 'HYPNOTIC': { width: 0.5, bright: 0.9 },
+      'PSY MAIN': { width: 0.6, bright: 1.1 }, 'TECH': { width: 0.4, bright: 0.9 },
+    };
+    const pt = padTaste[fam]; if (pt) Object.assign(this.params.pad, pt);
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
   }
