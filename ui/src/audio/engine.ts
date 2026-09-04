@@ -249,7 +249,7 @@ export class Engine {
     for (const t of TRACKS) {
       const bus = ctx.createGain();
       const duck = ctx.createGain();
-      const LV: Record<string, number> = { kick: 0.96, bass: 0.9, hats: 0.4, open: 0.42, lead: 0.58, pad: 0.5 };
+      const LV: Record<string, number> = { kick: 0.93, bass: 0.88, hats: 0.42, open: 0.44, lead: 0.66, pad: 0.5 };
       const fader = ctx.createGain(); fader.gain.value = LV[t.id] ?? 0.8;
       const pan = ctx.createStereoPanner();
       const an = ctx.createAnalyser(); an.fftSize = 256;
@@ -301,9 +301,9 @@ export class Engine {
     o.start(t); o.stop(t + p.decay + 0.05);
     const so = ctx.createOscillator(); so.type = 'sine'; so.frequency.value = 42;
     const sg = ctx.createGain();
-    sg.gain.setValueAtTime(0.5 * (p.subk ?? 0.5), t);
-    sg.gain.exponentialRampToValueAtTime(0.001, t + p.decay * 1.4);
-    so.connect(sg); sg.connect(out); so.start(t); so.stop(t + p.decay * 1.5);
+    sg.gain.setValueAtTime(0.42 * (p.subk ?? 0.5), t);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + p.decay * 1.1);
+    so.connect(sg); sg.connect(out); so.start(t); so.stop(t + p.decay * 1.2);
     const n = ctx.createBufferSource(); n.buffer = this.noise();
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2000;
     const ng = ctx.createGain();
