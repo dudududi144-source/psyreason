@@ -671,6 +671,7 @@ export class Engine {
     this.step16 = 0; this.pendingJump = null;
   }
   jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
+  setMasterLevel(v: number) { if (this.master) this.master.gain.value = 0.5 + v * 0.6; }
   setTone(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.tone.frequency.value = 200 + v * 16000; }
   setDrive(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.drv.curve = this.driveCurve(v); }
   async playVoice(track: string, midi: number) {
