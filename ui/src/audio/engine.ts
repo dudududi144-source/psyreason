@@ -504,9 +504,10 @@ export class Engine {
       if (roleNow === 'intro') {
         const frac = barIn / Math.max(1, section.bars);
         if (id === 'pad') return true;
-        if (id === 'bass') return frac >= 0.3;
-        if (id === 'kick' || id === 'hats' || id === 'open') return frac >= 0.55;
-        if (id === 'lead') return frac >= 0.8;
+        if (id === 'bass') return frac >= 0.25;
+        if (id === 'kick') return frac >= 0.5;
+        if (id === 'hats' || id === 'open') return frac >= 0.6;
+        if (id === 'lead') return frac >= 0.75;
       }
       if (roleNow === 'intro_drum') {
         const frac = barIn / Math.max(1, section.bars);
@@ -527,7 +528,7 @@ export class Engine {
     const isPerc = rn === 'perc';
     const isOutro = rn === 'outro' || section.name === 'OUTRO';
     const isIntroSec = roleNow.startsWith('intro');
-    const en = (section as any).energy ?? (isIntroSec ? 0.2 + 0.5 * (barIn / Math.max(1, section.bars)) : isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
+    const en = (section as any).energy ?? (isIntroSec ? 0.15 + 0.65 * (barIn / Math.max(1, section.bars)) : isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
     if (step === 0 && barIn === 0 && this.formGain) this.formGain.gain.setTargetAtTime(0.78 + 0.28 * en, t, 0.3); // macro energy arc
     if (isDrop && bar % 8 === 7 && step === 14) this.vHat(t, true, 0.4); // 8-bar ear candy
     const useB = barIn % 4 >= 2 || isDrop2;
