@@ -142,6 +142,9 @@ export class Engine {
     if (fl === 'punchy') { this.params.kick.punch = Math.min(1, this.params.kick.punch + 0.25); this.params.bass.drive = Math.min(1, this.params.bass.drive + 0.15); }
     if (fl === 'airy') { this.params.lead.cutoff *= 1.25; this.params.pad.rSend = Math.min(1, (this.params.pad.rSend ?? 0.5) + 0.25); this.params.hats.tone *= 1.15; }
     this.clapOn = !!sb.clap;
+    if (sb.kickMode === 'half') { this.params.lead.dSend = 0.5; this.params.pad.rSend = 0.55; this.swing = 0.2; this.pumpDepth = 0.6; }
+    if ((sb as any).dSend !== undefined) this.params.lead.dSend = (sb as any).dSend;
+    if ((sb as any).rSend !== undefined) { this.params.lead.rSend = (sb as any).rSend; this.params.pad.rSend = (sb as any).rSend; }
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
   }
@@ -226,7 +229,7 @@ export class Engine {
     const o = ctx.createOscillator(); o.type = (p.body ?? 0.3) > 0.6 ? 'triangle' : 'sine';
     o.frequency.setValueAtTime(150 + 50 * (p.punch ?? 0.5), t);
     o.frequency.exponentialRampToValueAtTime(40 + 8 * (p.body ?? 0.3), t + 0.09);
-    const ws = ctx.createWaveShaper(); ws.curve = this.driveCurve(0.45);
+    const ws = ctx.createWaveShaper(); ws.curve = this.driveCurve(0.3 + ((this.params.kick as any).sat ?? 0.4));
     const g = ctx.createGain();
     g.gain.setValueAtTime(1.15, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + p.decay);
@@ -371,8 +374,8 @@ export class Engine {
   vPad(t: number, chord: number[], dur: number) {
     const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
     for (const m of chord) for (const det of [-6, 6]) {
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff; lp.Q.value = 0.4;
+      const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det * ((p as any).det ?? 1);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff * ((p as any).bright ?? 1); lp.Q.value = 0.4;
       const plf = ctx.createOscillator(); plf.frequency.value = 0.12; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.35; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.1);
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045, t + 0.08);
@@ -429,7 +432,7 @@ export class Engine {
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
-    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; this.vPad(t, chords[bar % chords.length], stepDur * 16); }
+    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, section.name === 'BREAK' ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
   }
 
   async start() {
