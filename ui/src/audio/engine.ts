@@ -420,15 +420,16 @@ export class Engine {
     if (section.name === 'BUILD') this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
-    if (lastBar && on('kick') && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); } // clean noise snare roll
+    if (lastBar && (on('kick') || section.name === 'BREAK') && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); } // clean noise snare roll
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
     if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
     if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); }
-    if (on('hats') && s.hats[step]) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7);
+    if (on('hats') && s.hats[step]) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
-    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; this.vPad(t, chords[barIn % chords.length], stepDur * 16); }
+    if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
+    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; this.vPad(t, chords[bar % chords.length], stepDur * 16); }
   }
 
   async start() {
