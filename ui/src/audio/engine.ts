@@ -321,6 +321,18 @@ export class Engine {
     n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + 0.08);
   }
 
+  private tick = () => {
+    const ctx = this.ctx!;
+    const stepDur = 60 / this.bpm / 4;
+    while (this.nextTime < ctx.currentTime + 0.2) {
+      this.schedule(this.step16, this.nextTime);
+      const g = this.step16;
+      const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
+      window.setTimeout(() => { if (this.onTick) this.onTick(Math.floor(g / 16) % this.totalBars(), g % 16, sectionAtBarIn(this.arrangement, Math.floor(g / 16) % this.totalBars()).index); }, ms);
+      this.step16++;
+      this.nextTime += stepDur;
+    }
+  };
   private schedule(g: number, t: number) {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
