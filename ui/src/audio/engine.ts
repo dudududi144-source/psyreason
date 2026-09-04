@@ -96,7 +96,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33; droneOn = false; droneLevel = 0.05; droneRatio = 1; pumpDepth = 0.8; rollLen = 4; openIntoDrop = false; rollVel = 1;
+  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33; droneOn = false; droneLevel = 0.05; droneRatio = 1; pumpDepth = 0.8; rollLen = 4; openIntoDrop = false; rollVel = 1; followChords = false; phraseFills = false; breakEcho = true;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -145,6 +145,10 @@ export class Engine {
     if (sb.kickMode === 'half') { this.params.lead.dSend = 0.5; this.params.pad.rSend = 0.55; this.swing = 0.2; this.pumpDepth = 0.6; }
     if ((sb as any).dSend !== undefined) this.params.lead.dSend = (sb as any).dSend;
     if ((sb as any).rSend !== undefined) { this.params.lead.rSend = (sb as any).rSend; this.params.pad.rSend = (sb as any).rSend; }
+    const fam = styleById(styleId).family;
+    this.followChords = fam === 'TRANCE' || fam === 'CHILL' || fam === 'HYPNOTIC';
+    this.phraseFills = fam === 'TRANCE' || fam === 'CHILL' || fam === 'GOA & CLASSICS';
+    this.breakEcho = fam !== 'DARK' && fam !== 'TECH';
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
   }
@@ -399,6 +403,7 @@ export class Engine {
     const ctx = this.ctx!;
     const stepDur = 60 / this.bpm / 4;
     while (this.nextTime < ctx.currentTime + 0.2) {
+      if (this.pendingJump !== null && this.step16 % 16 === 0) { this.step16 = this.pendingJump; this.pendingJump = null; }
       this.schedule(this.step16, this.nextTime);
       const g = this.step16;
       const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
@@ -431,12 +436,12 @@ export class Engine {
     if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[bar % chordsG.length][0];
-    const rootShift = chordRoot - 24 - this.bassRoot;
+    const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
     const phraseLast = bar % 4 === 3;
-    if (on('bass') && !(section.name === 'OUTRO' && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
+    if (on('bass') && !(section.name === 'OUTRO' && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
     if (on('hats') && s.hats[step] && !(section.name === 'OUTRO' && barIn >= 6)) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7); }
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK') this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK' && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, section.name === 'BREAK' ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
@@ -600,6 +605,8 @@ export class Engine {
   }
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
 
+  pendingJump: number | null = null;
+  jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
   audioState(): string { return this.ctx ? this.ctx.state : 'off'; }
   level(id: TrackId | 'master'): number {
     const an = id === 'master' ? this.masterAn : this.channels[id] ? this.channels[id].an : null;
