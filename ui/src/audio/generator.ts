@@ -136,7 +136,17 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'void', name: 'Void', bpm: 152, bassChar: 'sub', leadChar: 'twist', drumChar: 'hard', bassCut: 600, leadDensity: 0.35, padProb: 0.2, desc: 'empty void pressure' }),
     sub({ id: 'eclipse', name: 'Eclipse', bpm: 153, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', bassRes: 10, leadRes: 11, leadDensity: 0.4, desc: 'total eclipse darkness' }),
   ]},
+  { id: 'classicpsy', name: 'CLASSIC PSY', color: '#ffdd66', family: 'GOA & CLASSICS', desc: '90s psy essence 145', subs: [
+    sub({ id: 'nineties', name: '90s Psy', bpm: 145, bassChar: 'pluck', leadChar: 'acid', drumChar: 'round', leadDensity: 0.6, padProb: 0.5, desc: 'the original psy sound' }),
+    sub({ id: 'oldgoa', name: 'Old Goa', bpm: 143, scale: HARM, bassChar: 'acid', leadChar: 'acid', drumChar: 'round', leadRes: 12, leadDensity: 0.65, desc: 'raw goa energy' }),
+  ]},
+  { id: 'darkprog', name: 'DARK PROGRESSIVE', color: '#5577aa', family: 'HYPNOTIC', desc: 'slow dark burn 128-131', subs: [
+    sub({ id: 'slowburn', name: 'Slow Burn', bpm: 129, bassChar: 'flat', leadChar: 'air', drumChar: 'soft', bassStyle: 'hypnotic', leadDensity: 0.25, padProb: 0.7, desc: 'patient dark tension' }),
+    sub({ id: 'deepprog', name: 'Deep Prog', bpm: 131, scale: DOR, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', bassStyle: 'offbeat', leadDensity: 0.3, padProb: 0.6, desc: 'submerged progression' }),
+  ]},
 ];
+
+
 
 
 
