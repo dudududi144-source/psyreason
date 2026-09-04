@@ -568,6 +568,7 @@ export class Engine {
       if (lastBar && step < 16 - this.rollLen && step % 2 === 0) this.vSnare(t, 0.22);
       if (lastBar && step >= 16 - this.rollLen) this.vSnare(t, (0.2 + 0.18 * (step - (16 - this.rollLen))) * this.rollVel);
     }
+    if (this.pendingSession && step >= 16 - this.rollLen) this.vSnare(t, 0.2 + 0.18 * (step - (16 - this.rollLen)));
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t);
     if (isBreak && barIn >= 4 && step % 2 === 1) this.vShaker(t);
     if (isDrop2 && step % 2 === 1) this.vShaker(t);
