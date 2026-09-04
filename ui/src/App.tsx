@@ -19,6 +19,7 @@ function useMeter(id: TrackId | 'master', playing: boolean) {
 }
 
 function Knob({ label, value, min, max, onChange, color }: any) {
+  value = typeof value === 'number' && isFinite(value) ? value : (Number(value) || 0);
   const [drag, setDrag] = useState(false);
   const sy = useRef(0); const sv = useRef(0);
   const rot = -135 + ((value - min) / (max - min)) * 270;
