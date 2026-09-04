@@ -15,6 +15,7 @@ export function mulberry32(seed: number) {
 const pick = <T,>(rng: () => number, arr: T[]): T => arr[Math.floor(rng() * arr.length)];
 
 export interface SubStyle {
+  bassChar: string; leadChar: string; drumChar: string; clap: boolean;
   id: string; name: string; bpm: number; scale: number[];
   bassStyle: string; bassWave: string; bassCut: number; bassRes: number; bassDrive: number;
   leadWave: string; leadCut: number; leadRes: number; leadDecay: number;
@@ -22,7 +23,8 @@ export interface SubStyle {
   leadDensity: number; leadLeap: number; hatBusy: number; openProb: number; padProb: number;
   desc: string;
 }
-export interface StyleDef { id: string; name: string; color: string; desc: string; subs: SubStyle[]; }
+export interface StyleDef { id: string; name: string; color: string; desc: string; family: string; subs: SubStyle[]; }
+export const FAMILIES = ['PSY MAIN', 'DARK', 'CHILL', 'TRANCE', 'TECH', 'WILD'];
 
 const PHR = [0, 1, 3, 5, 7, 8, 10];
 const MIN = [0, 2, 3, 5, 7, 8, 10];
@@ -33,6 +35,7 @@ const MAJ = [0, 2, 4, 5, 7, 9, 11];
 function sub(o: any): SubStyle {
   return { scale: PHR, bassStyle: 'rolling', bassWave: 'sawtooth', bassCut: 900, bassRes: 6, bassDrive: 0.4,
     leadWave: 'sawtooth', leadCut: 4200, leadRes: 5, leadDecay: 0.3, kickDecay: 0.28, punch: 0.5, hatTone: 7500, kickMode: 'four',
+    bassChar: 'pluck', leadChar: 'pluck', drumChar: 'punch', clap: false,
     leadDensity: 0.6, leadLeap: 0.3, hatBusy: 0.5, openProb: 0.7, padProb: 0.6, desc: '', ...o };
 }
 
