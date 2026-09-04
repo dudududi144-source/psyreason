@@ -1,63 +1,88 @@
-// PsyReason Sound Library - 46 timbre presets applied live to the engines
+// PsyReason Sound Library v2 - HUNDREDS of presets, procedurally curated
+// 3 synth engines for leads (analog / fm / wavetable), 5 bass characters, full drum tuning
+
 export interface SoundPreset { name: string; p: Record<string, any>; }
 
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const r2 = (r: () => number, a: number, b: number) => a + r() * (b - a);
+const pick = <T,>(r: () => number, arr: T[]): T => arr[Math.floor(r() * arr.length)];
+
+const BW = ['Acid', 'Rolling', 'Sub', 'Growl', 'Hypno', 'Punch', 'Twang', 'Deep', 'Night', 'Zen', 'Forest', 'Prog'];
+const LW = ['Scream', 'Anthem', 'Pluck', 'Twist', 'Air', 'Acid', 'Rise', 'Hook', 'Stab', 'Echo', 'Bell', 'Siren'];
+const PW = ['Blanket', 'Atmos', 'Walls', 'Fog', 'Stack', 'Space', 'Shimmer', 'Drone'];
+const KW = ['Thump', 'Punch', 'Round', 'Tight', 'Deep', 'Click', 'Big', 'Soft'];
+const HW = ['Classic', 'Tight', 'Loose', 'Metal', 'Soft', 'Busy'];
+
+function buildBass(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  const waves = ['sawtooth', 'square'];
+  for (let i = 0; i < 120; i++) {
+    const r = rng(1000 + i);
+    const ch = pick(r, ['pluck', 'flat', 'acid', 'sub', 'growl']);
+    const base: any = { pluck: { pluck: 1, sub: 0.3 }, flat: { pluck: 0.25, sub: 0.5 }, acid: { pluck: 0.85, sub: 0.2 }, sub: { pluck: 0.3, sub: 0.95 }, growl: { pluck: 0.6, sub: 0.6 } }[ch];
+    out.push({
+      name: BW[i % BW.length] + ' Bass ' + String(i + 1).padStart(3, '0'),
+      p: { wave: pick(r, waves), cutoff: Math.round(r2(r, 350, 1400)), res: Math.round(r2(r, 2, 15)), drive: +r2(r, 0.2, 0.85).toFixed(2), pluck: +r2(r, base.pluck * 0.7, Math.min(1, base.pluck * 1.3)).toFixed(2), sub: +r2(r, base.sub * 0.7, Math.min(1, base.sub * 1.3)).toFixed(2), glide: ch === 'acid' ? +r2(r, 0.3, 0.6).toFixed(2) : 0 },
+    });
+  }
+  return out;
+}
+
+function buildLead(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 120; i++) {
+    const r = rng(5000 + i);
+    const engine = pick(r, ['analog', 'analog', 'fm', 'wave']);
+    const p: any = {
+      cutoff: Math.round(r2(r, 2200, 6000)), res: Math.round(r2(r, 2, 14)),
+      decay: +r2(r, 0.12, 0.55).toFixed(2),
+      voices: pick(r, [1, 1, 2, 2, 3]), detune: Math.round(r2(r, 4, 20)),
+      engine,
+    };
+    if (engine === 'fm') { p.fmRatio = pick(r, [1.5, 2, 2.5, 3]); p.fmAmt = +r2(r, 0.8, 3).toFixed(2); }
+    if (engine === 'wave') { p.wt = +r.toFixed(2); }
+    if (engine === 'analog') { p.wave = pick(r, ['sawtooth', 'square', 'triangle']); }
+    out.push({ name: LW[i % LW.length] + ' ' + (engine === 'fm' ? 'FM' : engine === 'wave' ? 'WT' : 'AN') + ' ' + String(i + 1).padStart(3, '0'), p });
+  }
+  return out;
+}
+
+function buildPad(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 60; i++) {
+    const r = rng(9000 + i);
+    out.push({ name: PW[i % PW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { cutoff: Math.round(r2(r, 500, 2600)), rSend: +r2(r, 0.4, 0.85).toFixed(2) } });
+  }
+  return out;
+}
+
+function buildKick(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 60; i++) {
+    const r = rng(13000 + i);
+    out.push({ name: KW[i % KW.length] + ' Kick ' + String(i + 1).padStart(2, '0'), p: { decay: +r2(r, 0.18, 0.42).toFixed(2), punch: +r2(r, 0.25, 0.9).toFixed(2), body: +r2(r, 0.2, 0.8).toFixed(2), subk: +r2(r, 0.3, 0.8).toFixed(2) } });
+  }
+  return out;
+}
+
+function buildHats(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 40; i++) {
+    const r = rng(17000 + i);
+    out.push({ name: HW[i % HW.length] + ' Hat ' + String(i + 1).padStart(2, '0'), p: { tone: Math.round(r2(r, 5500, 9500)), metal: +r2(r, 0.2, 0.9).toFixed(2) } });
+  }
+  return out;
+}
+
 export const SOUND_LIB: Record<string, SoundPreset[]> = {
-  bass: [
-    { name: 'Rolling Classic', p: { wave: 'sawtooth', cutoff: 900, res: 6, drive: 0.4 } },
-    { name: 'Night Drive', p: { wave: 'sawtooth', cutoff: 700, res: 8, drive: 0.6 } },
-    { name: 'Acid Squelch', p: { wave: 'sawtooth', cutoff: 1200, res: 14, drive: 0.7 } },
-    { name: 'Sub Heavy', p: { wave: 'square', cutoff: 500, res: 4, drive: 0.3 } },
-    { name: 'Square Pusher', p: { wave: 'square', cutoff: 800, res: 7, drive: 0.5 } },
-    { name: 'Hypnotic 16ths', p: { wave: 'sawtooth', cutoff: 750, res: 5, drive: 0.45 } },
-    { name: 'Dark Growl', p: { wave: 'sawtooth', cutoff: 600, res: 10, drive: 0.8 } },
-    { name: 'Prog Bounce', p: { wave: 'sawtooth', cutoff: 850, res: 4, drive: 0.35 } },
-    { name: 'KBB Punch', p: { wave: 'sawtooth', cutoff: 950, res: 6, drive: 0.55 } },
-    { name: 'Forest Twang', p: { wave: 'sawtooth', cutoff: 1100, res: 9, drive: 0.6 } },
-    { name: 'Zenone Pulse', p: { wave: 'square', cutoff: 650, res: 6, drive: 0.5 } },
-    { name: 'Chill Sub', p: { wave: 'square', cutoff: 400, res: 3, drive: 0.2 } },
-  ],
-  lead: [
-    { name: 'Acid 303', p: { wave: 'sawtooth', cutoff: 3000, res: 14, decay: 0.25 } },
-    { name: 'Supersaw Anthem', p: { wave: 'sawtooth', cutoff: 5600, res: 4, decay: 0.4 } },
-    { name: 'Pluck Hook', p: { wave: 'sawtooth', cutoff: 4200, res: 6, decay: 0.15 } },
-    { name: 'Twisted Dark', p: { wave: 'sawtooth', cutoff: 2600, res: 10, decay: 0.3 } },
-    { name: 'Goa Air', p: { wave: 'triangle', cutoff: 3800, res: 5, decay: 0.35 } },
-    { name: 'Morning Rise', p: { wave: 'square', cutoff: 5200, res: 4, decay: 0.45 } },
-    { name: 'Hi-Tech Squiggle', p: { wave: 'sawtooth', cutoff: 4800, res: 9, decay: 0.12 } },
-    { name: 'Forest Echo', p: { wave: 'sawtooth', cutoff: 3200, res: 8, decay: 0.28 } },
-    { name: 'Prog Stab', p: { wave: 'sawtooth', cutoff: 2800, res: 4, decay: 0.2 } },
-    { name: 'Trance Anthem', p: { wave: 'triangle', cutoff: 4600, res: 3, decay: 0.5 } },
-    { name: 'Psychill Air', p: { wave: 'triangle', cutoff: 3000, res: 2, decay: 0.6 } },
-    { name: 'Suomi Weird', p: { wave: 'square', cutoff: 3600, res: 7, decay: 0.22 } },
-  ],
-  pad: [
-    { name: 'Warm Blanket', p: { cutoff: 1200, rSend: 0.5 } },
-    { name: 'Dark Atmosphere', p: { cutoff: 700, rSend: 0.6 } },
-    { name: 'Sunrise Walls', p: { cutoff: 2200, rSend: 0.5 } },
-    { name: 'Forest Fog', p: { cutoff: 900, rSend: 0.7 } },
-    { name: 'Anthem Stack', p: { cutoff: 2600, rSend: 0.4 } },
-    { name: 'Chill Space', p: { cutoff: 1600, rSend: 0.8 } },
-    { name: 'Twilight Shimmer', p: { cutoff: 1900, rSend: 0.6 } },
-    { name: 'Abyss Drone', p: { cutoff: 500, rSend: 0.7 } },
-  ],
-  kick: [
-    { name: 'Full-On Thump', p: { decay: 0.28, punch: 0.5 } },
-    { name: 'Psycore Punch', p: { decay: 0.2, punch: 0.8 } },
-    { name: 'Soft Psychill', p: { decay: 0.4, punch: 0.25 } },
-    { name: 'Goa Round', p: { decay: 0.32, punch: 0.4 } },
-    { name: 'Dark Click', p: { decay: 0.24, punch: 0.7 } },
-    { name: 'Tech Tight', p: { decay: 0.22, punch: 0.6 } },
-    { name: 'Forest Deep', p: { decay: 0.3, punch: 0.55 } },
-    { name: 'Morning Big', p: { decay: 0.34, punch: 0.6 } },
-  ],
-  hats: [
-    { name: 'Classic Offbeat', p: { tone: 7500 } },
-    { name: 'Busy Hi-Tech', p: { tone: 9000 } },
-    { name: 'Sparse Prog', p: { tone: 7000 } },
-    { name: 'Dark Tight', p: { tone: 8200 } },
-    { name: 'Suomi Loose', p: { tone: 6500 } },
-    { name: 'Chill Soft', p: { tone: 5800 } },
-  ],
+  bass: buildBass(),
+  lead: buildLead(),
+  pad: buildPad(),
+  kick: buildKick(),
+  hats: buildHats(),
 };
 
 export function soundCount(): number {
