@@ -645,6 +645,10 @@ export class Engine {
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
 
   pendingJump: number | null = null;
+  loadArrangement(sections: { name: string; bars: number; active: string[] }[]) {
+    this.arrangement = sections as any;
+    this.step16 = 0; this.pendingJump = null;
+  }
   jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
   setTone(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.tone.frequency.value = 200 + v * 16000; }
   setDrive(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.drv.curve = this.driveCurve(v); }
