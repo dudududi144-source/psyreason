@@ -324,6 +324,10 @@ function Keyboard() {
   );
 }
 
+function MasterMeter({ playing }: { playing: boolean }) {
+  const ref = useMeter('master', playing);
+  return <div className="t-meter-fill" ref={ref} />;
+}
 // ---------- APP ----------
 function Sounds() {
   const [, force] = useState(0);
@@ -384,4 +388,106 @@ function FormView() {
 }
 
 // ---------- APP ----------
+const KEYMAP: Record<string, number> = { a: 0, w: 1, s: 2, e: 3, d: 4, f: 5, t: 6, g: 7, y: 8, h: 9, u: 10, j: 11, k: 12, o: 13, l: 14, p: 15 };
+function Keyboard() {
+  const [track, setTrack] = useState<'lead' | 'bass' | 'pad'>('lead');
+  const [active, setActive] = useState<Set<number>>(new Set());
+  const base = track === 'lead' ? 69 : track === 'bass' ? 33 : 57;
+  const play = (off: number) => { const m = base + off; engine.playVoice(track, m); setActive((p) => new Set(p).add(off)); window.setTimeout(() => setActive((p) => { const n = new Set(p); n.delete(off); return n; }), 180); };
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.repeat) return; const o = KEYMAP[e.key.toLowerCase()]; if (o !== undefined) play(o); };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, [track]);
+  return (
+    <div className="kb-bar">
+      <div className="kb-tracks">
+        {(['lead', 'bass', 'pad'] as const).map((t) => (
+          <button key={t} className={'kb-track' + (track === t ? ' on' : '')} onClick={() => setTrack(t)}>{t.toUpperCase()}</button>
+        ))}
+      </div>
+      <div className="kb-keys">
+        {Array.from({ length: 16 }, (_, i) => (
+          <div key={i} className={'kb-key' + (active.has(i) ? ' on' : '') + ([1, 3, 6, 8, 10, 13, 15].includes(i) ? ' black' : '')} onMouseDown={() => play(i)} />
+        ))}
+      </div>
+      <span className="kb-hint">play with A W S E D F T G Y H U J K O L P</span>
+    </div>
+  );
+}
 
+export default function App() {
+  const [view, setView] = useState<View>('arrange');
+  const [playing, setPlaying] = useState(false);
+  const [bpm, setBpm] = useState(145);
+  const [pos, setPos] = useState({ bar: -1, step: -1 });
+  const [audioState, setAudioState] = useState('off');
+  useEffect(() => { const iv = setInterval(() => setAudioState(engine.audioState()), 400); return () => clearInterval(iv); }, []);
+  const [, force] = useState(0);
+  const [family, setFamily] = useState('PSY MAIN');
+  const [styleId, setStyleId] = useState('fullon');
+  const [subId, setSubId] = useState('classic');
+  useEffect(() => {
+    engine.onTick = (bar, step) => setPos({ bar, step });
+    engine.loadSession('fullon', 'classic', 1);
+    return () => { engine.onTick = null; };
+  }, []);
+  const toggle = async () => { if (playing) { engine.stop(); setPlaying(false); } else { await engine.start(); setPlaying(true); } };
+  const secName = pos.bar >= 0 ? sectionAtBar(pos.bar).section.name : '—';
+  return (
+    <div className="app">
+      <header className="top">
+        <div className="brand"><h1>PSYREASON</h1><span>WEB DAW — psytrance production system</span></div>
+        <nav className="tabs">
+          {(['arrange', 'form', 'mixer', 'pianoroll', 'rack', 'library', 'sounds'] as View[]).map((v) => (
+            <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{v === 'pianoroll' ? 'PIANO ROLL' : v.toUpperCase()}</button>
+          ))}
+        </nav>
+      </header>
+      <div className="transport">
+        <button className={'play' + (playing ? ' on' : '')} onClick={() => { engine.init(); toggle(); }}>{playing ? '■ STOP' : '▶ PLAY'}</button>
+        <button className="gen" onClick={() => { engine.loadSession(styleId, subId, Math.floor(Math.random() * 999)); setBpm(engine.bpm); force((x) => x + 1); }} title="generate">⚄ GENERATE</button>
+        <div className="t-block"><span>BPM</span><input type="number" value={bpm} min={90} max={200} onChange={(e) => { const v = Number(e.target.value); setBpm(v); engine.setBpm(v); }} /></div>
+        <div className="t-block"><span>POS</span><b>{pos.bar >= 0 ? 'BAR ' + (pos.bar + 1) + ' . ' + (pos.step + 1) : '—'}</b></div>
+        <div className="t-block"><span>SECTION</span><b className="sec">{secName}</b></div>
+        <div className="t-meter"><span>MST</span><div className="t-meter-track"><MasterMeter playing={playing} /></div></div>
+      </div>
+      <div className="stylebar">
+        <span className="sb-label">FAMILY</span>
+        {FAMILIES.map((f) => (
+          <button key={f} className={'style-chip fam' + (family === f ? ' on' : '')} onClick={() => { setFamily(f); const st = STYLES.find((s) => s.family === f) || STYLES[0]; setStyleId(st.id); setSubId(st.subs[0].id); engine.loadSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{f}</button>
+        ))}
+      </div>
+      <div className="stylebar sub">
+        <span className="sb-label">STYLE</span>
+        {STYLES.filter((s) => s.family === family).map((st) => (
+          <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')} style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined} onClick={() => { setStyleId(st.id); setSubId(st.subs[0].id); engine.loadSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{st.name}</button>
+        ))}
+        <span className="sb-label">SUB</span>
+        {(STYLES.find((s) => s.id === styleId) || STYLES[0]).subs.map((sb) => (
+          <button key={sb.id} className={'style-chip subchip' + (subId === sb.id ? ' on' : '')} style={subId === sb.id ? { borderColor: '#fff', color: '#fff' } : undefined} onClick={() => { setSubId(sb.id); engine.loadSession(styleId, sb.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{sb.name}</button>
+        ))}
+      </div>
+      <div className="stylebar sub">
+        <span className="sb-label">SESSION</span>
+        {Array.from({ length: 16 }, (_, i) => i + 1).map((v) => (
+          <button key={v} className="var-btn" onClick={() => { engine.loadSession(styleId, subId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
+        ))}
+      </div>
+      <main className="content">
+        {view === 'arrange' && <Arrange pos={pos} playing={playing} />}
+        {view === 'form' && <FormView />}
+        {view === 'mixer' && <Mixer playing={playing} />}
+        {view === 'pianoroll' && <PianoRoll pos={pos} playing={playing} />}
+        {view === 'rack' && <Rack />}
+        {view === 'sounds' && <Sounds />}
+        {view === 'library' && <Library onPick={(st, sb, s) => { setStyleId(st); setSubId(sb); engine.loadSession(st, sb, s); setBpm(engine.bpm); force((x) => x + 1); setView('arrange'); }} />}
+      </main>
+      <Keyboard />
+      <footer className="foot">
+        <span>PsyReason v5 — engine: scheduler→voices→per-channel tone/drive→mixer→FX→master | FORM library + tension automations</span>
+        <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
+      </footer>
+    </div>
+  );
+}
