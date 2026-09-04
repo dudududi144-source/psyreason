@@ -318,12 +318,11 @@ function genLeadForChord(rng: () => number, st: SubStyle, chord: number[]): (num
 
 export function generateSongForSub(st: SubStyle, seed: number): SongData {
   const rng = mulberry32(seed);
-  const chords = genChords(rng, st);
-  const leads = chords.map((c) => genLeadForChord(rng, st, c));
-  const leadsB = chords.map((c) => genLeadForChord(rng, st, c));
+  const lead = genLead(rng, st); const leadB = genLead(rng, st);
   const bass = genBass(rng, st); const bassB = genBass(rng, st);
   const d = genDrums(rng, st);
-  return { kick: d.kick, bass, hats: d.hats, open: d.open, lead: leads[0], padChord: chords[0], bassB, leadB: leadsB[0], leads, leadsB, chords } as SongData;
+  const chords = genChords(rng, st);
+  return { kick: d.kick, bass, hats: d.hats, open: d.open, lead, padChord: chords[0], bassB, leadB, chords } as SongData;
 }
 
 export function generateArrangementForSub(st: SubStyle, seed: number): Section[] {
