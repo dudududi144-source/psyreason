@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from './audio/engine';
-import { STYLES, SESSIONS_PER_SUB, subById, libraryStats, FAMILIES } from './audio/generator';
+import { STYLES, SESSIONS_PER_SUB, subById, libraryStats, FAMILIES, composeForm } from './audio/generator';
 import { SOUND_LIB, soundCount } from './audio/sounds';
 
 type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library' | 'sounds' | 'form';
@@ -320,6 +320,65 @@ function Keyboard() {
         ))}
       </div>
       <span className="kb-hint">play with A W S E D F T G Y H U J K O L P</span>
+    </div>
+  );
+}
+
+// ---------- APP ----------
+function Sounds() {
+  const [, force] = useState(0);
+  const cats = Object.keys(SOUND_LIB);
+  const [cat, setCat] = useState('bass');
+  const [q, setQ] = useState('');
+  const list = SOUND_LIB[cat].filter((pr) => !q || pr.name.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="view library">
+      <div className="lib-head">SOUND LIBRARY — {soundCount()} presets • 3 lead engines (AN/FM/WT) • 5 bass characters</div>
+      <div className="snd-tabs">
+        {cats.map((c) => (
+          <button key={c} className={'style-chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c.toUpperCase()} ({SOUND_LIB[c].length})</button>
+        ))}
+        <input className="lib-search" style={{ marginLeft: 'auto', width: 180 }} placeholder="search..." value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      <div className="snd-grid">
+        {list.map((pr) => (
+          <button key={pr.name} className="lib-session snd-item" style={{ borderColor: '#00ff88', color: '#00ff88' }}
+            onClick={() => { if (cat === 'form' && pr.p.form) { engine.loadArrangement(pr.p.form); setView('arrange'); } else { engine.previewSound(cat, pr.p); } force((x) => x + 1); }}>
+            {pr.name}
+          </button>
+        ))}
+      </div>
+      <div className="hint">Click any preset to HEAR it instantly + apply it. AN = analog, FM = frequency modulation, WT = wavetable.</div>
+    </div>
+  );
+}
+const ROLE_E: Record<string, number> = { intro: 0.4, build: 0.6, drop: 1, drop2: 1, dropin: 0.9, climax: 1, break: 0.3, ambient: 0.25, acid: 0.5, perc: 0.55, half: 0.45, outro: 0.3 };
+function FormView() {
+  const forms = SOUND_LIB.form || [];
+  const [custom, setCustom] = useState<any[]>([]);
+  const all = custom.length ? [...forms, ...custom] : forms;
+  return (
+    <div className="view formview">
+      <div className="lib-head form-head">
+        <span>FORM LIBRARY — {all.length} structures. Click to load.</span>
+        <button className="compose-btn" onClick={() => { const f = composeForm(Math.floor(Math.random() * 1e9)); setCustom((c) => [...c, { name: 'FORM • Composed ' + (c.length + 1), p: { form: f } }]); }}>⚄ COMPOSE NEW</button>
+      </div>
+      <div className="form-grid">
+        {all.map((f, idx) => {
+          const bars = f.p.form.reduce((a: number, s: any) => a + s.bars, 0);
+          return (
+            <button key={f.name + idx} className="form-card" onClick={() => engine.loadArrangement(f.p.form)}>
+              <span className="form-name">{f.name.replace('FORM • ', '')}</span>
+              <span className="form-energy">{f.p.form.map((s: any, i: number) => (
+                <i key={i} style={{ height: Math.round(4 + (ROLE_E[s.role] ?? 0.5) * 16) + 'px', background: (s.role === 'drop' || s.role === 'climax' || s.role === 'drop2' || s.role === 'dropin') ? 'var(--grn)' : (s.role === 'break' || s.role === 'ambient') ? '#5566aa' : '#8888aa' }} />
+              ))}</span>
+              <span className="form-meta">{bars} bars • {f.p.form.length} sections</span>
+              <span className="form-seq">{f.p.form.map((s: any) => s.name).join(' → ')}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="hint">Green = drop/climax • blue = break/ambient • grey = build/intro/outro. ⚄ COMPOSE builds a fresh professional form (energy arc + DJ rules).</div>
     </div>
   );
 }
