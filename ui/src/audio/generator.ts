@@ -18,7 +18,7 @@ export interface SubStyle {
   id: string; name: string; bpm: number; scale: number[];
   bassStyle: string; bassWave: string; bassCut: number; bassRes: number; bassDrive: number;
   leadWave: string; leadCut: number; leadRes: number; leadDecay: number;
-  kickDecay: number; punch: number; hatTone: number;
+  kickDecay: number; punch: number; hatTone: number; kickMode: string;
   leadDensity: number; leadLeap: number; hatBusy: number; openProb: number; padProb: number;
   desc: string;
 }
@@ -32,7 +32,7 @@ const MAJ = [0, 2, 4, 5, 7, 9, 11];
 
 function sub(o: any): SubStyle {
   return { scale: PHR, bassStyle: 'rolling', bassWave: 'sawtooth', bassCut: 900, bassRes: 6, bassDrive: 0.4,
-    leadWave: 'sawtooth', leadCut: 4200, leadRes: 5, leadDecay: 0.3, kickDecay: 0.28, punch: 0.5, hatTone: 7500,
+    leadWave: 'sawtooth', leadCut: 4200, leadRes: 5, leadDecay: 0.3, kickDecay: 0.28, punch: 0.5, hatTone: 7500, kickMode: 'four',
     leadDensity: 0.6, leadLeap: 0.3, hatBusy: 0.5, openProb: 0.7, padProb: 0.6, desc: '', ...o };
 }
 
@@ -81,7 +81,7 @@ export const STYLES: StyleDef[] = [
   ]},
 ];
 
-export const SESSIONS_PER_SUB = 4;
+export const SESSIONS_PER_SUB = 6;
 
 export function styleById(id: string): StyleDef { return STYLES.find((s) => s.id === id) || STYLES[0]; }
 export function subById(styleId: string, subId: string): SubStyle {
@@ -122,6 +122,8 @@ function genBass(rng: () => number, st: SubStyle): { on: boolean; semi: number }
     if (st.bassStyle === 'rolling') on = !isKick || rng() < 0.15;
     if (st.bassStyle === 'offbeat') on = i % 4 === 2 || (i % 2 === 1 && rng() < 0.3);
     if (st.bassStyle === 'kbb') on = i % 4 === 2 || i % 4 === 3;
+    if (st.bassStyle === 'hypnotic') on = true;
+    if (st.bassStyle === 'driving') on = i % 2 === 0;
     let semi = 0;
     if (i >= 12 && rng() < 0.6) semi = pick(rng, vars);
     else if (rng() < 0.12) semi = pick(rng, vars);
@@ -132,8 +134,9 @@ function genBass(rng: () => number, st: SubStyle): { on: boolean; semi: number }
 
 function genDrums(rng: () => number, st: SubStyle) {
   const kick = Array(16).fill(false);
-  for (let i = 0; i < 16; i += 4) kick[i] = true;
-  if (rng() < 0.3) kick[14] = true;
+  if (st.kickMode === 'breaks') { kick[0] = true; kick[7] = true; kick[10] = true; if (rng() < 0.4) kick[14] = true; }
+  else if (st.kickMode === 'half') { kick[0] = true; kick[8] = true; if (rng() < 0.3) kick[14] = true; }
+  else { for (let i = 0; i < 16; i += 4) kick[i] = true; if (rng() < 0.3) kick[14] = true; }
   const hats = Array(16).fill(false);
   for (let i = 2; i < 16; i += 4) hats[i] = true;
   if (rng() < st.hatBusy) hats[7] = true;
