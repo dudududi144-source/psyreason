@@ -363,7 +363,7 @@ export class Engine {
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 1.5;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    for (let i = 0; i < 3; i++) { g.gain.setValueAtTime(0.4, t + i * 0.012); g.gain.exponentialRampToValueAtTime(0.05, t + i * 0.012 + 0.01); }
+    for (let i = 0; i < 3; i++) { g.gain.setValueAtTime(0.28, t + i * 0.012); g.gain.exponentialRampToValueAtTime(0.04, t + i * 0.012 + 0.01); }
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
     n.connect(bp); bp.connect(g); g.connect(this.channels.kick.bus);
     n.start(t); n.stop(t + 0.2);
