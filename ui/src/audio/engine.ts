@@ -93,7 +93,7 @@ export class Engine {
     hats: { tone: 7500, metal: 0.5, decay: 0.5 },
     open: { tone: 6500, metal: 0.4, decay: 0.5 },
     lead: { cutoff: 4200, res: 5, decay: 0.3, dSend: 0.35, rSend: 0.2, voices: 2, detune: 8, sus: 0.3 },
-    pad: { cutoff: 1400, rSend: 0.5, dSend: 0, wave: 'sawtooth', det: 8, bright: 0.9, width: 0.6 },
+    pad: { cutoff: 1500, rSend: 0.5, dSend: 0, wave: 'sawtooth', det: 9, bright: 0.95, width: 0.65 },
   };
 
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
@@ -249,7 +249,7 @@ export class Engine {
     for (const t of TRACKS) {
       const bus = ctx.createGain();
       const duck = ctx.createGain();
-      const LV: Record<string, number> = { kick: 0.93, bass: 0.88, hats: 0.42, open: 0.44, lead: 0.66, pad: 0.5 };
+      const LV: Record<string, number> = { kick: 0.93, bass: 0.88, hats: 0.42, open: 0.44, lead: 0.66, pad: 0.62 };
       const fader = ctx.createGain(); fader.gain.value = LV[t.id] ?? 0.8;
       const pan = ctx.createStereoPanner();
       const an = ctx.createAnalyser(); an.fftSize = 256;
@@ -466,7 +466,7 @@ export class Engine {
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff * ((p as any).bright ?? 1); lp.Q.value = 0.3;
       const plf = ctx.createOscillator(); plf.frequency.value = 0.08; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.1; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.8);
       const g = ctx.createGain();
-      const lvl = 0.038, atk = 0.45, rel = 0.7;
+      const lvl = 0.075, atk = 0.4, rel = 0.7;
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + atk);
       g.gain.setValueAtTime(lvl, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
       o.connect(lp); lp.connect(g);
