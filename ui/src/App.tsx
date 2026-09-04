@@ -291,6 +291,8 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [bpm, setBpm] = useState(145);
   const [pos, setPos] = useState({ bar: -1, step: -1 });
+  const [audioState, setAudioState] = useState('off');
+  useEffect(() => { const iv = setInterval(() => setAudioState(engine.audioState()), 400); return () => clearInterval(iv); }, []);
   const [, force] = useState(0);
   const [family, setFamily] = useState('PSY MAIN');
   const [styleId, setStyleId] = useState('fullon');
@@ -299,7 +301,6 @@ export default function App() {
   useEffect(() => {
     engine.onTick = (bar, step) => setPos({ bar, step });
     engine.loadSession('fullon', 'classic', 1);
-    engine.init();
     setBpm(engine.bpm);
     force((x) => x + 1);
     return () => { engine.onTick = null; };
@@ -369,7 +370,7 @@ export default function App() {
       </main>
       <footer className="foot">
         <span>PsyReason v4 — one coherent engine: scheduler → voices → channel mixer → FX sends → master chain</span>
-        <span>{playing ? 'RUNNING' : 'IDLE'} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
+        <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
   );
