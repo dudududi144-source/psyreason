@@ -189,7 +189,8 @@ export class Engine {
     for (const t of TRACKS) {
       const bus = ctx.createGain();
       const duck = ctx.createGain();
-      const fader = ctx.createGain(); fader.gain.value = 0.9;
+      const LV: Record<string, number> = { kick: 1.0, bass: 0.85, hats: 0.5, open: 0.5, lead: 0.7, pad: 0.5 };
+      const fader = ctx.createGain(); fader.gain.value = LV[t.id] ?? 0.8;
       const pan = ctx.createStereoPanner();
       const an = ctx.createAnalyser(); an.fftSize = 256;
       const dSend = ctx.createGain(); dSend.gain.value = 0;
@@ -348,13 +349,13 @@ export class Engine {
     const o = ctx.createOscillator(); o.type = (p.wave as OscillatorType) || 'sawtooth';
     return o;
   }
-  vLead(t: number, midi: number, dur: number) {
+  vLead(t: number, midi: number, dur: number, vel = 1) {
     const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
     const f = mtof(midi);
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
     lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * vel, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     const voicesN = Math.max(1, (p as any).voices ?? 2);
     const detAmt = (p as any).detune ?? 8;
     const glide = (p as any).glide ?? 0;
@@ -413,7 +414,7 @@ export class Engine {
     const on = (id: TrackId) => section.active.includes(id);
     const s = this.song as any; const stepDur = 60 / this.bpm / 4;
     t = t + (step % 2 === 1 ? this.swing * stepDur * 0.35 : 0) + (this.humanize > 0 ? (((bar * 31 + step * 7) % 5) - 2) * 0.002 * this.humanize : 0);
-    const useB = barIn % 4 >= 2; // A/B pattern variation every 2 bars
+    const useB = barIn % 4 >= 2 || section.name === 'DROP 2'; // A/B variation; DROP 2 always B
     const lastBar = barIn === section.bars - 1;
     // filter sweep automation: BUILD opens up, others reset
     if (step === 0 && barIn === 0) {
@@ -425,15 +426,17 @@ export class Engine {
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
     if (lastBar && (on('kick') || section.name === 'BREAK') && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); } // clean noise snare roll
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
+    if (section.name === 'BREAK' && barIn >= 4 && step % 2 === 1) this.vShaker(t); // break builds percussion
+    if (section.name === 'DROP 2' && step % 2 === 1) this.vShaker(t); // drop 2 extra drive
     if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[bar % chordsG.length][0];
     const rootShift = chordRoot - 24 - this.bassRoot;
     const phraseLast = bar % 4 === 3;
-    if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
-    if (on('hats') && s.hats[step]) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7); }
+    if (on('bass') && !(section.name === 'OUTRO' && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
+    if (on('hats') && s.hats[step] && !(section.name === 'OUTRO' && barIn >= 6)) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7); }
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
+    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK') this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, section.name === 'BREAK' ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
