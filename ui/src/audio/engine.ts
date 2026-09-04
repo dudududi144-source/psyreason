@@ -96,7 +96,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false;
+  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -240,13 +240,13 @@ export class Engine {
     n.connect(hp); hp.connect(ng); ng.connect(out);
     n.start(t); n.stop(t + 0.02);
   }
-  vBass(t: number, semi: number, dur: number) {
+  vBass(t: number, semi: number, dur: number, accent = 1) {
     const ctx = this.ctx!; const p = this.params.bass; const out = this.channels.bass.bus;
     const f = mtof(33 + semi);
     const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f;
     const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
-    const pl = (p as any).pluck ?? 0.6; lp.frequency.setValueAtTime(p.cutoff * (1 + 2.5 * pl) * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * (1 - 0.6 * pl) * this.sweep), t + dur);
+    const pl = (p as any).pluck ?? 0.6; lp.frequency.setValueAtTime(p.cutoff * (1 + 2.5 * pl) * this.sweep * accent, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * (1 - 0.6 * pl) * this.sweep), t + dur);
     const dr = ctx.createWaveShaper(); dr.curve = this.driveCurve(p.drive);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.005);
@@ -338,6 +338,7 @@ export class Engine {
       else o.frequency.value = f;
       o.detune.value = det;
       const mod = (o as any)._mod as OscillatorNode | undefined;
+      if ((p as any).vib) { const vl = ctx.createOscillator(); vl.frequency.value = 5.2; const vg = ctx.createGain(); vg.gain.value = (p as any).vib * 9; vl.connect(vg); vg.connect(o.detune); vl.start(t); vl.stop(t + dur + 0.05); }
       o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
       if (mod) { mod.start(t); mod.stop(t + dur + 0.05); }
     }
@@ -348,6 +349,7 @@ export class Engine {
     for (const m of chord) for (const det of [-6, 6]) {
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det;
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff; lp.Q.value = 0.4;
+      const plf = ctx.createOscillator(); plf.frequency.value = 0.12; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.35; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.1);
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045, t + 0.5);
       g.gain.setValueAtTime(0.045, t + Math.max(0.6, dur - 0.6)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
@@ -395,6 +397,7 @@ export class Engine {
     const barIn = bar - startBar;
     const on = (id: TrackId) => section.active.includes(id);
     const s = this.song as any; const stepDur = 60 / this.bpm / 4;
+    t = t + (step % 2 === 1 ? this.swing * stepDur * 0.35 : 0) + (this.humanize > 0 ? (((bar * 31 + step * 7) % 5) - 2) * 0.002 * this.humanize : 0);
     const useB = barIn % 4 >= 2; // A/B pattern variation every 2 bars
     const lastBar = barIn === section.bars - 1;
     // filter sweep automation: BUILD opens up, others reset
@@ -408,7 +411,7 @@ export class Engine {
     if (lastBar && on('kick') && step >= 12) { this.vKick(t); this.vHat(t, false); this.vSnare(t, 0.25 + 0.18 * (step - 12)); } // snare roll fill
     if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2') && this.crashOn) this.vCrash(t); // impact
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
-    if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92); }
+    if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); }
     if (on('hats') && s.hats[step]) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7);
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
@@ -449,6 +452,17 @@ export class Engine {
     }
     if (cat === 'chords') {
       if (p.chords) { (this.song as any).chords = p.chords; (this.song as any).padChord = p.chords[0]; }
+      return;
+    }
+    if (cat === 'grooves') {
+      if (p.swing !== undefined) this.swing = p.swing;
+      if (p.humanize !== undefined) this.humanize = p.humanize;
+      if (p.shaker !== undefined) this.shakerOn = p.shaker;
+      return;
+    }
+    if (cat === 'master') {
+      if (this.eqLow && p.low !== undefined) { this.eqLow.gain.value = p.low; if (this.eqMid) this.eqMid.gain.value = p.mid; if (this.eqHigh) this.eqHigh.gain.value = p.high; }
+      if (this.comp && p.thresh !== undefined) { this.comp.threshold.value = p.thresh; this.comp.ratio.value = p.ratio; }
       return;
     }
     const target = (this.params as any)[cat];
