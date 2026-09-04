@@ -201,7 +201,7 @@ export class Engine {
     this.params.lead.res = Math.min(this.params.lead.res ?? 6, 9);
     this.params.lead.cutoff = Math.min(this.params.lead.cutoff ?? 4000, 5500);
     this.params.bass.res = Math.min(this.params.bass.res ?? 6, 9);
-    this.params.bass.drive = Math.min(this.params.bass.drive ?? 0.4, 0.55);
+    this.params.bass.drive = Math.min(this.params.bass.drive ?? 0.3, 0.4);
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
   }
@@ -248,7 +248,7 @@ export class Engine {
     for (const t of TRACKS) {
       const bus = ctx.createGain();
       const duck = ctx.createGain();
-      const LV: Record<string, number> = { kick: 0.92, bass: 0.82, hats: 0.46, open: 0.46, lead: 0.66, pad: 0.58 };
+      const LV: Record<string, number> = { kick: 0.96, bass: 0.9, hats: 0.4, open: 0.42, lead: 0.58, pad: 0.5 };
       const fader = ctx.createGain(); fader.gain.value = LV[t.id] ?? 0.8;
       const pan = ctx.createStereoPanner();
       const an = ctx.createAnalyser(); an.fftSize = 256;
@@ -324,7 +324,7 @@ export class Engine {
     const ctx = this.ctx!; const p = this.params.bass; const out = this.channels.bass.bus;
     const f = mtof(this.bassRoot + semi);
     const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f;
-    const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
+    const sub = ctx.createOscillator(); sub.type = 'sine'; sub.frequency.value = f / 2;
     const lp = ctx.createBiquadFilter(); lp.type = ((p as any).ftype === 'bp' ? 'bandpass' : 'lowpass'); lp.Q.value = (p as any).ftype === 'bp' ? Math.max(p.res, 10) : p.res;
     const pl = (p as any).pluck ?? 0.6; lp.frequency.setValueAtTime(p.cutoff * (1 + 2.5 * pl) * this.sweep * accent, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * (1 - 0.6 * pl) * this.sweep), t + dur);
     const dr = ctx.createWaveShaper(); dr.curve = this.driveCurve(p.drive);
