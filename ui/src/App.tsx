@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from './audio/engine';
 import { STYLES, SESSIONS_PER_SUB, subById, libraryStats } from './audio/generator';
+import { SOUND_LIB, soundCount } from './audio/sounds';
 
-type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library';
+type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library' | 'sounds';
 
 // ---------- shared ----------
 function useMeter(id: TrackId | 'master', playing: boolean) {
@@ -242,6 +243,31 @@ function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => vo
   );
 }
 
+
+function Sounds() {
+  const [, force] = useState(0);
+  const cats = Object.keys(SOUND_LIB);
+  return (
+    <div className="view library">
+      <div className="lib-head">SOUND LIBRARY — {soundCount()} timbre presets, applied live to the engines</div>
+      {cats.map((c) => (
+        <div key={c} className="lib-style">
+          <div className="lib-style-head">{c.toUpperCase()}</div>
+          <div className="lib-sessions" style={{ flexWrap: 'wrap' }}>
+            {SOUND_LIB[c].map((pr) => (
+              <button key={pr.name} className="lib-session" style={{ borderColor: '#00ff88', color: '#00ff88' }}
+                onClick={() => { engine.applySound(c, pr.p); force((x) => x + 1); }}>
+                {pr.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="hint">Click a preset to re-voice that engine instantly; then PLAY or GENERATE to hear it in context.</div>
+    </div>
+  );
+}
+
 // ---------- APP ----------
 export default function App() {
   const [view, setView] = useState<View>('arrange');
@@ -267,7 +293,7 @@ export default function App() {
       <header className="top">
         <div className="brand"><h1>PSYREASON</h1><span>WEB DAW — psytrance production system</span></div>
         <nav className="tabs">
-          {(['arrange', 'mixer', 'pianoroll', 'rack', 'library'] as View[]).map((v) => (
+          {(['arrange', 'mixer', 'pianoroll', 'rack', 'library', 'sounds'] as View[]).map((v) => (
             <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{v === 'pianoroll' ? 'PIANO ROLL' : v.toUpperCase()}</button>
           ))}
         </nav>
@@ -310,6 +336,7 @@ export default function App() {
         {view === 'mixer' && <Mixer playing={playing} />}
         {view === 'pianoroll' && <PianoRoll pos={pos} playing={playing} />}
         {view === 'rack' && <Rack />}
+        {view === 'sounds' && <Sounds />}
         {view === 'library' && <Library onPick={(st, sb, s) => { setStyleId(st); setSubId(sb); engine.loadSession(st, sb, s); setBpm(engine.bpm); force((x) => x + 1); setView('arrange'); }} />}
       </main>
       <footer className="foot">
