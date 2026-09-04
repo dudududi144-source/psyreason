@@ -493,12 +493,20 @@ export class Engine {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
     const barIn = bar - startBar;
+    const roleNow = ((section as any).role || '');
     const on = (id: TrackId) => {
       if (!section.active.includes(id)) return false;
-      if (((section as any).role || '') === 'dropin') {
+      if (roleNow === 'dropin') {
         if (id === 'bass') return barIn >= 1;
         if (id === 'hats' || id === 'open') return barIn >= 2;
         if (id === 'lead' || id === 'pad') return barIn >= 4;
+      }
+      if (roleNow === 'intro') {
+        const frac = barIn / Math.max(1, section.bars);
+        if (id === 'pad') return true;
+        if (id === 'bass') return frac >= 0.3;
+        if (id === 'kick' || id === 'hats' || id === 'open') return frac >= 0.55;
+        if (id === 'lead') return frac >= 0.8;
       }
       return true;
     };
@@ -541,6 +549,7 @@ export class Engine {
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
+    if (roleNow === 'intro' && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars); // intro atmosphere
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (isBreak && step === 0 && barIn >= 2 && barIn % 2 === 0) this.vKick(t, 0.32);
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
