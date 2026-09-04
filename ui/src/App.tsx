@@ -405,7 +405,7 @@ export default function App() {
         {view === 'library' && <Library onPick={(st, sb, s) => { setStyleId(st); setSubId(sb); engine.loadSession(st, sb, s); setBpm(engine.bpm); force((x) => x + 1); setView('arrange'); }} />}
       </main>
       <footer className="foot">
-        <span>PsyReason v4 — one coherent engine: scheduler → voices → channel mixer → FX sends → master chain</span>
+        <span>PsyReason v5 — engine: scheduler→voices→per-channel tone/drive→mixer→FX→master | FORM library + tension automations</span>
         <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
