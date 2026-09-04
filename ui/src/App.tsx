@@ -458,7 +458,7 @@ export default function App() {
       </main>
       <Keyboard />
       <footer className="foot">
-        <span>PsyReason v5 — engine: scheduler→voices→per-channel tone/drive→mixer→FX→master | FORM library + tension automations</span>
+        <span>PsyReason v6 — harmony flow + bass variety per family + layered intros | build 2024-h6</span>
         <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
