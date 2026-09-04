@@ -264,7 +264,7 @@ export class Engine {
     const f = mtof(this.bassRoot + semi);
     const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f;
     const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
+    const lp = ctx.createBiquadFilter(); lp.type = ((p as any).ftype === 'bp' ? 'bandpass' : 'lowpass'); lp.Q.value = (p as any).ftype === 'bp' ? Math.max(p.res, 10) : p.res;
     const pl = (p as any).pluck ?? 0.6; lp.frequency.setValueAtTime(p.cutoff * (1 + 2.5 * pl) * this.sweep * accent, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * (1 - 0.6 * pl) * this.sweep), t + dur);
     const dr = ctx.createWaveShaper(); dr.curve = this.driveCurve(p.drive);
     const g = ctx.createGain();
@@ -285,7 +285,7 @@ export class Engine {
     const ctx = this.ctx!; const p = this.params.hats as any;
     const out = open ? this.channels.open.bus : this.channels.hats.bus;
     const tone = p.tone ?? 7500;
-    const dur = open ? 0.26 : 0.05;
+    const dur = open ? 0.26 : 0.03 + 0.06 * ((p as any).decay ?? 0.5);
     const n = ctx.createBufferSource(); n.buffer = this.noise();
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = tone * 0.9; hp.Q.value = 0.7;
     const g = ctx.createGain();
@@ -356,10 +356,13 @@ export class Engine {
   vLead(t: number, midi: number, dur: number, vel = 1) {
     const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
     const f = mtof(midi);
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
+    const lp = ctx.createBiquadFilter(); lp.type = ((p as any).ftype === 1 ? 'bandpass' : ((p as any).ftype === 2 ? 'peaking' : 'lowpass')); lp.Q.value = p.res;
     lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * vel, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const sus = (p as any).sus ?? 0;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * vel, t + 0.006);
+    if (sus > 0.3) g.gain.setValueAtTime(0.22 * vel * (0.4 + 0.5 * sus), t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     const voicesN = Math.max(1, (p as any).voices ?? 2);
     const detAmt = (p as any).detune ?? 8;
     const glide = (p as any).glide ?? 0;
@@ -385,7 +388,10 @@ export class Engine {
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045, t + 0.08);
       g.gain.setValueAtTime(0.045, t + Math.max(0.1, dur - 0.08)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-      o.connect(lp); lp.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.1);
+      o.connect(lp); lp.connect(g);
+      const pn = ctx.createStereoPanner(); pn.pan.value = (det < 0 ? -1 : 1) * (0.25 + 0.5 * ((p as any).width ?? 0.5));
+      g.connect(pn); pn.connect(out);
+      o.start(t); o.stop(t + dur + 0.1);
     }
   }
   vClap(t: number) {
