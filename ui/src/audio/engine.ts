@@ -72,6 +72,7 @@ interface Channel {
 export class Engine {
   ctx: AudioContext | null = null;
   master: GainNode | null = null;
+  formGain: GainNode | null = null;
   eqLow: BiquadFilterNode | null = null; eqMid: BiquadFilterNode | null = null; eqHigh: BiquadFilterNode | null = null;
   comp: DynamicsCompressorNode | null = null; limiter: DynamicsCompressorNode | null = null;
   masterAn: AnalyserNode | null = null;
@@ -200,7 +201,8 @@ export class Engine {
     this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = -16; this.comp.ratio.value = 3; this.comp.attack.value = 0.01; this.comp.release.value = 0.2;
     this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -3; this.limiter.ratio.value = 20; this.limiter.attack.value = 0.002; this.limiter.release.value = 0.1;
     this.masterAn = ctx.createAnalyser(); this.masterAn.fftSize = 512;
-    this.master.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
+    this.formGain = ctx.createGain(); this.formGain.gain.value = 1;
+    this.master.connect(this.formGain); this.formGain.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
     this.eqHigh.connect(this.comp); this.comp.connect(this.limiter); this.limiter.connect(this.masterAn); this.masterAn.connect(ctx.destination);
 
     // FX buses
@@ -478,6 +480,9 @@ export class Engine {
     const isBreak = rn === 'break' || rn === 'ambient' || rn === 'acid' || rn === 'half' || section.name === 'BREAK';
     const isPerc = rn === 'perc';
     const isOutro = rn === 'outro' || section.name === 'OUTRO';
+    const en = (section as any).energy ?? (isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
+    if (step === 0 && barIn === 0 && this.formGain) this.formGain.gain.setTargetAtTime(0.78 + 0.28 * en, t, 0.3); // macro energy arc
+    if (isDrop && bar % 8 === 7 && step === 14) this.vHat(t, true, 0.4); // 8-bar ear candy
     const useB = barIn % 4 >= 2 || isDrop2;
     const lastBar = barIn === section.bars - 1;
     if (step === 0 && barIn === 0) { if (isBuild) this.sweep = 0.15; else this.sweep = 1; }
