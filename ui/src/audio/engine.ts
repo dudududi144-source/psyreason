@@ -278,6 +278,10 @@ export class Engine {
       dg.cancelScheduledValues(t);
       dg.setValueAtTime(1 - this.pumpDepth * this.params.bass.sidechain, t);
       dg.setTargetAtTime(1, t + 0.03, 0.1);
+      const ld = this.channels.lead.duck.gain;
+      ld.cancelScheduledValues(t);
+      ld.setValueAtTime(1 - 0.2 * this.params.bass.sidechain, t);
+      ld.setTargetAtTime(1, t + 0.03, 0.08);
     }
   }
   vBass(t: number, semi: number, dur: number, accent = 1) {
@@ -296,9 +300,14 @@ export class Engine {
     g.connect(out); sg.connect(out);
     o.start(t); o.stop(t + dur + 0.05); sub.start(t); sub.stop(t + dur + 0.05);
   }
+  private curveCache = new Map<number, Float32Array>();
   driveCurve(amount: number): Float32Array {
+    const key = Math.round(amount * 50) / 50;
+    const hit = this.curveCache.get(key); if (hit) return hit;
     const n = 256; const curve = new Float32Array(n); const k = 1 + amount * 8;
     for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(x * k) / Math.tanh(k); }
+    if (this.curveCache.size > 60) this.curveCache.clear();
+    this.curveCache.set(key, curve);
     return curve;
   }
   vHat(t: number, open: boolean, vel = 1) {
@@ -461,6 +470,7 @@ export class Engine {
     if (section.name === 'BREAK' && barIn >= 4 && step % 2 === 1) this.vShaker(t); // break builds percussion
     if (section.name === 'DROP 2' && step % 2 === 1) this.vShaker(t); // drop 2 extra drive
     if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
+    if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vBass(t, -12, stepDur * 2, 1); // sub drop impact
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[bar % chordsG.length][0];
     const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
