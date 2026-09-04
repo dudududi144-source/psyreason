@@ -73,6 +73,7 @@ export class Engine {
   ctx: AudioContext | null = null;
   master: GainNode | null = null;
   formGain: GainNode | null = null;
+  msat: WaveShaperNode | null = null;
   eqLow: BiquadFilterNode | null = null; eqMid: BiquadFilterNode | null = null; eqHigh: BiquadFilterNode | null = null;
   comp: DynamicsCompressorNode | null = null; limiter: DynamicsCompressorNode | null = null;
   masterAn: AnalyserNode | null = null;
