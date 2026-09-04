@@ -24,7 +24,7 @@ export interface SubStyle {
   desc: string;
 }
 export interface StyleDef { id: string; name: string; color: string; desc: string; family: string; subs: SubStyle[]; }
-export const FAMILIES = ['PSY MAIN', 'DARK', 'CHILL', 'TRANCE', 'TECH', 'WILD'];
+export const FAMILIES = ['PSY MAIN', 'GOA & CLASSICS', 'DARK', 'HYPNOTIC', 'CHILL', 'TRANCE', 'TECH', 'WILD'];
 
 const PHR = [0, 1, 3, 5, 7, 8, 10];
 const MIN = [0, 2, 3, 5, 7, 8, 10];
@@ -45,7 +45,7 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'night', name: 'Night Full-On', bpm: 148, bassChar: 'growl', leadChar: 'twist', bassCut: 700, bassDrive: 0.6, leadRes: 8, leadDensity: 0.6, padProb: 0.4, desc: 'darker edge, harder drive' }),
     sub({ id: 'melodic', name: 'Melodic Full-On', bpm: 143, scale: MIN, bassChar: 'flat', leadChar: 'super', drumChar: 'round', leadDensity: 0.8, leadLeap: 0.4, padProb: 0.9, leadCut: 5200, desc: 'big melodic hooks + pads' }),
   ]},
-  { id: 'goa', name: 'GOA', color: '#ff8800', family: 'PSY MAIN', desc: 'acid psychedelic roots', subs: [
+  { id: 'goa', name: 'GOA', color: '#ff8800', family: 'GOA & CLASSICS', desc: 'acid psychedelic roots', subs: [
     sub({ id: 'classic', name: 'Classic Goa', bpm: 140, scale: HARM, bassChar: 'acid', leadChar: 'acid', drumChar: 'round', leadRes: 9, leadCut: 3800, leadLeap: 0.45, desc: '303 acid lines, harmonic scale' }),
     sub({ id: 'morning', name: 'Morning Goa', bpm: 144, scale: MAJ, leadChar: 'super', leadDensity: 0.7, padProb: 0.8, leadWave: 'square', desc: 'uplifting major morning energy' }),
     sub({ id: 'acid', name: 'Acid Goa', bpm: 138, scale: HARM, bassChar: 'acid', leadChar: 'acid', leadRes: 14, leadCut: 3000, bassRes: 10, bassDrive: 0.7, desc: 'screaming resonance acid' }),
@@ -67,7 +67,7 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'forest', name: 'Forest', bpm: 152, scale: DOR, bassChar: 'growl', leadChar: 'twist', bassStyle: 'kbb', leadDensity: 0.45, padProb: 0.4, desc: 'echoing forest motifs' }),
     sub({ id: 'darkforest', name: 'Dark Forest', bpm: 158, scale: PHR, bassChar: 'sub', leadChar: 'twist', drumChar: 'hard', bassCut: 650, leadRes: 9, padProb: 0.3, desc: 'deeper, harder forest' }),
   ]},
-  { id: 'zenone', name: 'ZENONE', color: '#7788ff', family: 'DARK', desc: 'mid-tempo dark 128-132', subs: [
+  { id: 'zenone', name: 'ZENONE', color: '#7788ff', family: 'HYPNOTIC', desc: 'mid-tempo dark 128-132', subs: [
     sub({ id: 'zenone', name: 'Zenone', bpm: 132, bassChar: 'growl', leadChar: 'twist', drumChar: 'round', bassStyle: 'hypnotic', bassCut: 700, bassRes: 8, leadDensity: 0.4, padProb: 0.5, desc: 'dark mid-tempo pulse' }),
     sub({ id: 'darkprog', name: 'Dark Prog', bpm: 128, bassChar: 'flat', leadChar: 'air', drumChar: 'soft', bassStyle: 'offbeat', leadDensity: 0.25, padProb: 0.6, bassCut: 650, desc: 'slow burning darkness' }),
   ]},
@@ -80,11 +80,11 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'uplifting', name: 'Uplifting Trance', bpm: 138, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.7, padProb: 1, leadCut: 5600, desc: 'soaring supersaws' }),
     sub({ id: 'anthem', name: 'Anthem', bpm: 140, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.8, leadLeap: 0.4, padProb: 1, leadWave: 'square', desc: 'festival anthem energy' }),
   ]},
-  { id: 'classictrance', name: 'CLASSIC TRANCE', color: '#99ccff', family: 'TRANCE', desc: '90s trance 136-142', subs: [
+  { id: 'classictrance', name: 'CLASSIC TRANCE', color: '#99ccff', family: 'GOA & CLASSICS', desc: '90s trance 136-142', subs: [
     sub({ id: 'classic', name: 'Classic Trance', bpm: 136, scale: MAJ, bassChar: 'flat', leadChar: 'air', drumChar: 'round', leadWave: 'triangle', padProb: 1, leadDensity: 0.6, desc: '90s emotional lines' }),
     sub({ id: 'euro', name: 'Euro Trance', bpm: 142, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.75, leadCut: 5200, padProb: 0.9, desc: 'euro dance energy' }),
   ]},
-  { id: 'psytech', name: 'PSY-TECH', color: '#aaaacc', family: 'TECH', desc: 'techy groove 130s', subs: [
+  { id: 'psytech', name: 'PSY-TECH', color: '#aaaacc', family: 'HYPNOTIC', desc: 'techy groove 130s', subs: [
     sub({ id: 'psytech', name: 'Psy-Tech', bpm: 136, scale: MIN, bassChar: 'flat', leadChar: 'pluck', bassStyle: 'offbeat', leadDensity: 0.3, bassWave: 'square', bassCut: 800, hatBusy: 0.6, desc: 'minimal tech groove' }),
     sub({ id: 'minimaltech', name: 'Minimal Tech', bpm: 130, bassChar: 'flat', leadChar: 'pluck', drumChar: 'soft', bassStyle: 'hypnotic', leadDensity: 0.2, hatBusy: 0.4, padProb: 0.4, bassCut: 700, desc: 'hypnotic 16th pulse' }),
   ]},
@@ -106,7 +106,7 @@ export const STYLES: StyleDef[] = [
   ]},
 ];
 
-export const SESSIONS_PER_SUB = 6;
+export const SESSIONS_PER_SUB = 8;
 
 export function styleById(id: string): StyleDef { return STYLES.find((s) => s.id === id) || STYLES[0]; }
 export function subById(styleId: string, subId: string): SubStyle {
