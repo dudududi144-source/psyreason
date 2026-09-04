@@ -315,12 +315,12 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
   const b1 = pick(rng, [4, 4, 8]); const d1 = pick(rng, [8, 8, 16]); const br = pick(rng, [4, 8]); const d2 = pick(rng, [8, 16]);
   const outro: TrackId[] = ['kick', 'bass', 'hats'];
   return [
-    { name: 'INTRO', bars: b1, active: intro },
+    { name: 'INTRO', bars: Math.max(8, b1), active: intro },
     { name: 'BUILD', bars: 4, active: build },
-    { name: 'DROP', bars: Math.max(16, d1), active: all },
+    { name: 'DROP', bars: Math.max(24, d1), active: all },
     { name: 'BREAK', bars: 16, active: breakSec },
     { name: 'BUILD 2', bars: 4, active: build },
-    { name: 'DROP 2', bars: Math.max(16, d2), active: all },
+    { name: 'DROP 2', bars: Math.max(24, d2), active: all },
     { name: 'OUTRO', bars: 8, active: outro },
   ];
 }
