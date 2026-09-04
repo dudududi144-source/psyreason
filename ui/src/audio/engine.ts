@@ -544,7 +544,12 @@ export class Engine {
     if (isBuild) this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
-    if (lastBar && (on('kick') || isBreak) && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); }
+    if (on('kick') || isBreak) {
+      const secondLast = barIn === section.bars - 2;
+      if (secondLast && step % 4 === 0) this.vSnare(t, 0.16);
+      if (lastBar && step < 16 - this.rollLen && step % 2 === 0) this.vSnare(t, 0.22);
+      if (lastBar && step >= 16 - this.rollLen) this.vSnare(t, (0.2 + 0.18 * (step - (16 - this.rollLen))) * this.rollVel);
+    }
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t);
     if (isBreak && barIn >= 4 && step % 2 === 1) this.vShaker(t);
     if (isDrop2 && step % 2 === 1) this.vShaker(t);
