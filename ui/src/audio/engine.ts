@@ -127,8 +127,8 @@ export class Engine {
     this.params.lead.res = Math.max(0, sb.leadRes + lc.resBoost);
     Object.assign(this.params.kick, DC[sb.drumChar] || DC.punch);
     this.params.hats.metal = (DC[sb.drumChar] || DC.punch).metal;
-    const flavors = ['std', 'bright', 'dark', 'wide', 'tight', 'acid', 'soft', 'hard'];
-    const fl = flavors[session % 8];
+    const flavors = ['std', 'bright', 'dark', 'wide', 'tight', 'acid', 'soft', 'hard', 'wider', 'deeper'];
+    const fl = flavors[session % 10];
     if (fl === 'bright') { this.params.lead.cutoff *= 1.2; this.params.hats.tone *= 1.1; }
     if (fl === 'dark') { this.params.lead.cutoff *= 0.8; this.params.bass.cutoff *= 0.85; }
     if (fl === 'wide') { this.params.lead.detune = Math.max(8, (this.params.lead.detune ?? 8) + 6); this.params.lead.voices = 3; }
@@ -136,6 +136,8 @@ export class Engine {
     if (fl === 'acid') { this.params.bass.pluck = 0.9; this.params.bass.res = Math.min(18, this.params.bass.res + 4); }
     if (fl === 'soft') { this.params.kick.punch *= 0.8; this.params.lead.res = Math.max(1, this.params.lead.res - 2); }
     if (fl === 'hard') { this.params.kick.punch = Math.min(1, this.params.kick.punch + 0.2); this.params.bass.drive = Math.min(1, this.params.bass.drive + 0.2); }
+    if (fl === 'wider') { this.params.lead.voices = 3; this.params.lead.detune = 18; this.params.pad.rSend = Math.min(1, (this.params.pad.rSend ?? 0.5) + 0.2); }
+    if (fl === 'deeper') { this.params.bass.sub = Math.min(1, (this.params.bass.sub ?? 0.4) + 0.3); this.params.kick.decay = Math.min(0.5, this.params.kick.decay + 0.06); }
     this.clapOn = !!sb.clap;
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
