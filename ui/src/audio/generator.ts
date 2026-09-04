@@ -315,13 +315,13 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
   const b1 = pick(rng, [4, 4, 8]); const d1 = pick(rng, [8, 8, 16]); const br = pick(rng, [4, 8]); const d2 = pick(rng, [8, 16]);
   const outro: TrackId[] = ['kick', 'bass', 'hats'];
   return [
-    { name: 'INTRO', bars: Math.max(8, b1), active: intro },
-    { name: 'BUILD', bars: 4, active: build },
-    { name: 'DROP', bars: Math.max(24, d1), active: all },
-    { name: 'BREAK', bars: 16, active: breakSec },
-    { name: 'BUILD 2', bars: 4, active: build },
-    { name: 'DROP 2', bars: Math.max(24, d2), active: all },
-    { name: 'OUTRO', bars: 8, active: outro },
+    { name: 'INTRO', bars: Math.max(8, b1), active: intro, role: 'intro' },
+    { name: 'BUILD', bars: 4, active: build, role: 'build' },
+    { name: 'DROP', bars: Math.max(24, d1), active: all, role: 'drop' },
+    { name: 'BREAK', bars: 16, active: breakSec, role: 'break' },
+    { name: 'BUILD 2', bars: 4, active: build, role: 'build' },
+    { name: 'DROP 2', bars: Math.max(24, d2), active: all, role: 'drop2' },
+    { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
   ];
 }
 
@@ -343,4 +343,39 @@ export function generateTrack(id: TrackId, seed: number, current: SongData): Son
 export function libraryStats() {
   const subs = STYLES.reduce((a, s) => a + s.subs.length, 0);
   return { styles: STYLES.length, subs, sessions: subs * SESSIONS_PER_SUB };
+}function buildForms(): SoundPreset[] {
+  const FULL = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
+  const GROOVE = ['kick', 'bass', 'hats'];
+  const AIR = ['lead', 'pad'];
+  const MIN = ['kick', 'hats'];
+  const BUILD = ['kick', 'bass', 'hats', 'open', 'lead'];
+  const PERC = ['kick', 'hats', 'open'];
+  const ACID = ['bass', 'lead'];
+  const HALF = ['kick', 'bass', 'pad'];
+  const FS = (name: string, bars: number, active: string[], role: string) => ({ name, bars, active, role });
+  const T: [string, any[]][] = [
+    ['Classic Full-On', [FS('INTRO',8,GROOVE,'intro'),FS('TEASER',8,[...GROOVE,'lead'],'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',24,FULL,'drop'),FS('BREAK',16,AIR,'break'),FS('BUILD 2',4,BUILD,'build'),FS('DROP 2',24,FULL,'drop2'),FS('CLIMAX',8,FULL,'climax'),FS('OUTRO',8,MIN,'outro')]],
+    ['Peak Time Club', [FS('DROP',32,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('DROP 2',32,FULL,'drop2'),FS('CLIMAX',8,FULL,'climax'),FS('DJ OUTRO',8,MIN,'outro')]],
+    ['Progressive Journey', [FS('AMBIENT TEXTURE',8,['pad'],'ambient'),FS('INTRO',16,GROOVE,'intro'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('ACID BREAK',16,ACID,'acid'),FS('BUILD 2',8,BUILD,'build'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',16,MIN,'outro')]],
+    ['Morning Uplift', [FS('AMBIENT TEXTURE',8,['pad'],'ambient'),FS('TEASER',8,[...GROOVE,'lead'],'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',24,FULL,'drop'),FS('HALF-TIME',8,HALF,'half'),FS('BUILD 2',4,BUILD,'build'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',8,AIR,'outro')]],
+    ['Dark Hypnotic', [FS('INTRO',16,GROOVE,'intro'),FS('DROP',48,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('ACID BREAK',8,ACID,'acid'),FS('DROP 2',48,FULL,'drop2'),FS('OUTRO',8,MIN,'outro')]],
+    ['Radio Edit', [FS('TEASER',4,[...GROOVE,'lead'],'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',16,FULL,'drop'),FS('BREAK',8,AIR,'break'),FS('DROP 2',16,FULL,'drop2'),FS('OUTRO',4,MIN,'outro')]],
+    ['Afterhours Deep', [FS('AMBIENT TEXTURE',16,['pad'],'ambient'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('HALF-TIME',8,HALF,'half'),FS('ACID BREAK',8,ACID,'acid'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',16,AIR,'outro')]],
+    ['Double Drop', [FS('INTRO',8,GROOVE,'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',16,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('DROP 2',16,FULL,'drop2'),FS('BREAK',16,AIR,'break'),FS('CLIMAX',24,FULL,'climax'),FS('OUTRO',8,MIN,'outro')]],
+    ['Minimal Tool', [FS('INTRO',16,MIN,'intro'),FS('DROP',32,GROOVE,'drop'),FS('PERC TRIBAL',16,PERC,'perc'),FS('DROP 2',32,GROOVE,'drop2'),FS('DJ OUTRO',16,MIN,'outro')]],
+    ['Uplifting Anthem', [FS('AMBIENT TEXTURE',8,['pad'],'ambient'),FS('TEASER',8,[...GROOVE,'lead'],'intro'),FS('BUILD',8,BUILD,'build'),FS('DROP',24,FULL,'drop'),FS('BREAK',24,AIR,'break'),FS('BUILD 2',8,BUILD,'build'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',8,AIR,'outro')]],
+    ['Forest Ritual', [FS('PERC TRIBAL',16,PERC,'perc'),FS('INTRO',16,GROOVE,'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('ACID BREAK',16,ACID,'acid'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',16,MIN,'outro')]],
+    ['Goa Ceremony', [FS('AMBIENT TEXTURE',16,['pad'],'ambient'),FS('ACID BREAK',16,ACID,'acid'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('HALF-TIME',8,HALF,'half'),FS('BUILD 2',8,BUILD,'build'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',16,AIR,'outro')]],
+    ['Psycore Blast', [FS('INTRO',4,GROOVE,'intro'),FS('DROP',24,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('DROP 2',24,FULL,'drop2'),FS('ACID BREAK',8,ACID,'acid'),FS('CLIMAX',24,FULL,'climax'),FS('OUTRO',4,MIN,'outro')]],
+    ['Chill Descent', [FS('AMBIENT TEXTURE',16,['pad'],'ambient'),FS('HALF-TIME',16,HALF,'half'),FS('BUILD',8,BUILD,'build'),FS('DROP',24,FULL,'drop'),FS('BREAK',24,AIR,'break'),FS('OUTRO',16,AIR,'outro')]],
+    ['Sunrise Set', [FS('AMBIENT TEXTURE',16,['pad'],'ambient'),FS('TEASER',8,[...GROOVE,'lead'],'intro'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('BREAK',16,AIR,'break'),FS('BUILD 2',8,BUILD,'build'),FS('CLIMAX',40,FULL,'climax'),FS('OUTRO',16,AIR,'outro')]],
+    ['Warehouse Loop', [FS('DROP',48,GROOVE,'drop'),FS('PERC TRIBAL',16,PERC,'perc'),FS('ACID BREAK',8,ACID,'acid'),FS('DROP 2',48,GROOVE,'drop2'),FS('DJ OUTRO',8,MIN,'outro')]],
+    ['Tribal Opening', [FS('PERC TRIBAL',16,PERC,'perc'),FS('ACID BREAK',16,ACID,'acid'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('HALF-TIME',8,HALF,'half'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',8,MIN,'outro')]],
+    ['Acid Odyssey', [FS('ACID BREAK',16,ACID,'acid'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('ACID BREAK',8,ACID,'acid'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',8,MIN,'outro')]],
+    ['Epic Climax', [FS('INTRO',8,GROOVE,'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',24,FULL,'drop'),FS('BREAK',16,AIR,'break'),FS('BUILD 2',4,BUILD,'build'),FS('DROP 2',24,FULL,'drop2'),FS('PERC TRIBAL',8,PERC,'perc'),FS('CLIMAX',24,FULL,'climax'),FS('OUTRO',8,MIN,'outro')]],
+    ['Deep Space', [FS('AMBIENT TEXTURE',24,['pad'],'ambient'),FS('HALF-TIME',16,HALF,'half'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('AMBIENT TEXTURE',8,['pad'],'ambient'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',16,AIR,'outro')]],
+    ['Festival Closer', [FS('TEASER',8,[...GROOVE,'lead'],'intro'),FS('BUILD',8,BUILD,'build'),FS('DROP',32,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('BREAK',16,AIR,'break'),FS('BUILD 2',8,BUILD,'build'),FS('CLIMAX',40,FULL,'climax'),FS('DJ OUTRO',16,MIN,'outro')]],
+  ];
+  return T.map(([name, form]) => ({ name: 'FORM • ' + name, p: { form } }));
 }
+
