@@ -19,7 +19,7 @@ const HW = ['Classic', 'Tight', 'Loose', 'Metal', 'Soft', 'Busy'];
 function buildBass(): SoundPreset[] {
   const out: SoundPreset[] = [];
   const waves = ['sawtooth', 'square'];
-  for (let i = 0; i < 240; i++) {
+  for (let i = 0; i < 300; i++) {
     const r = rng(1000 + i);
     const ch = pick(r, ['pluck', 'flat', 'acid', 'sub', 'growl']);
     const base: any = { pluck: { pluck: 1, sub: 0.3 }, flat: { pluck: 0.25, sub: 0.5 }, acid: { pluck: 0.85, sub: 0.2 }, sub: { pluck: 0.3, sub: 0.95 }, growl: { pluck: 0.6, sub: 0.6 } }[ch];
@@ -33,7 +33,7 @@ function buildBass(): SoundPreset[] {
 
 function buildLead(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 240; i++) {
+  for (let i = 0; i < 300; i++) {
     const r = rng(5000 + i);
     const engine = pick(r, ['analog', 'analog', 'fm', 'wave']);
     const p: any = {
