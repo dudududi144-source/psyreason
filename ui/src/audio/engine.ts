@@ -168,6 +168,10 @@ export class Engine {
       'PSY MAIN': { width: 0.6, bright: 1.1 }, 'TECH': { width: 0.4, bright: 0.9 },
     };
     const pt = padTaste[fam]; if (pt) Object.assign(this.params.pad, pt);
+    // commercial polish: tame harshness so everything sits musically
+    this.params.lead.res = Math.min(this.params.lead.res ?? 6, 12);
+    this.params.lead.cutoff = Math.min(this.params.lead.cutoff ?? 4000, 6000);
+    this.params.bass.res = Math.min(this.params.bass.res ?? 6, 10);
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
   }
@@ -390,7 +394,7 @@ export class Engine {
     lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
     const g = ctx.createGain();
     const sus = (p as any).sus ?? 0;
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * vel, t + 0.006);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.2 * vel, t + 0.012);
     if (sus > 0.3) g.gain.setValueAtTime(0.22 * vel * (0.4 + 0.5 * sus), t + dur * 0.6);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     const voicesN = Math.max(1, (p as any).voices ?? 2);
@@ -640,7 +644,11 @@ export class Engine {
       return;
     }
     const target = (this.params as any)[cat];
-    if (target) Object.assign(target, p);
+    if (target) {
+      Object.assign(target, p);
+      if (cat === 'lead') { target.res = Math.min(target.res ?? 6, 13); target.cutoff = Math.min(target.cutoff ?? 4000, 6500); }
+      if (cat === 'bass') { target.res = Math.min(target.res ?? 6, 11); }
+    }
   }
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
 
