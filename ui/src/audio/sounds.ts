@@ -109,6 +109,31 @@ function buildChords(): SoundPreset[] {
   }
   return out;
 }
+
+const GW = ['Straight', 'Swing 16', 'Shuffle', 'Lazy', 'Push', 'Shaker', 'Tight', 'Loose'];
+function buildGrooves(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 36; i++) {
+    const r = rng(29000 + i);
+    out.push({
+      name: GW[i % GW.length] + ' Groove ' + String(i + 1).padStart(2, '0'),
+      p: { swing: +r2(r, 0, 0.6).toFixed(2), humanize: +r2(r, 0, 1).toFixed(2), shaker: r() > 0.5 },
+    });
+  }
+  return out;
+}
+const MW = ['Club Loud', 'Warm', 'Bright', 'Radio', 'Dark Room', 'Festival', 'Punchy', 'Smooth'];
+function buildMaster(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 24; i++) {
+    const r = rng(33000 + i);
+    out.push({
+      name: MW[i % MW.length] + ' ' + String(i + 1).padStart(2, '0'),
+      p: { low: +r2(r, -2, 4).toFixed(1), mid: +r2(r, -2, 2).toFixed(1), high: +r2(r, -1, 3).toFixed(1), thresh: Math.round(r2(r, -20, -8)), ratio: +r2(r, 1.5, 4).toFixed(1) },
+    });
+  }
+  return out;
+}
 export const SOUND_LIB: Record<string, SoundPreset[]> = {
   bass: buildBass(),
   lead: buildLead(),
@@ -117,6 +142,8 @@ export const SOUND_LIB: Record<string, SoundPreset[]> = {
   hats: buildHats(),
   fx: buildFx(),
   chords: buildChords(),
+  grooves: buildGrooves(),
+  master: buildMaster(),
 };
 
 export function soundCount(): number {
