@@ -470,39 +470,44 @@ export class Engine {
     const on = (id: TrackId) => section.active.includes(id);
     const s = this.song as any; const stepDur = 60 / this.bpm / 4;
     t = t + (step % 2 === 1 ? this.swing * stepDur * 0.35 : 0) + (this.humanize > 0 ? (((bar * 31 + step * 7) % 5) - 2) * 0.002 * this.humanize : 0);
-    const useB = barIn % 4 >= 2 || section.name === 'DROP 2'; // A/B variation; DROP 2 always B
+    // role-based section detection (smart: new section types plug in without breaking old names)
+    const rn = (section as any).role || '';
+    const isDrop = rn === 'drop' || rn === 'drop2' || rn === 'climax' || section.name.startsWith('DROP');
+    const isDrop2 = rn === 'drop2' || rn === 'climax' || section.name === 'DROP 2';
+    const isBuild = rn === 'build' || section.name.startsWith('BUILD');
+    const isBreak = rn === 'break' || rn === 'ambient' || rn === 'acid' || rn === 'half' || section.name === 'BREAK';
+    const isPerc = rn === 'perc';
+    const isOutro = rn === 'outro' || section.name === 'OUTRO';
+    const useB = barIn % 4 >= 2 || isDrop2;
     const lastBar = barIn === section.bars - 1;
-    // filter sweep automation: BUILD opens up, others reset
-    if (step === 0 && barIn === 0) {
-      if (section.name === 'BUILD') { this.sweep = 0.15; }
-      else this.sweep = 1;
-    }
-    if (section.name === 'BUILD') this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
+    if (step === 0 && barIn === 0) { if (isBuild) this.sweep = 0.15; else this.sweep = 1; }
+    if (isBuild) this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
-    if (lastBar && (on('kick') || section.name === 'BREAK') && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); } // clean noise snare roll
-    if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
-    if (section.name === 'BREAK' && barIn >= 4 && step % 2 === 1) this.vShaker(t); // break builds percussion
-    if (section.name === 'DROP 2' && step % 2 === 1) this.vShaker(t); // drop 2 extra drive
-    if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
-    if (section.name === 'BUILD 2' && lastBar && step === 12) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.72, t, 0.08); } // tension dip
-    if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); }
-    if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vBass(t, -12, stepDur * 2, 1); // sub drop impact
+    if (lastBar && (on('kick') || isBreak) && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); }
+    if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t);
+    if (isBreak && barIn >= 4 && step % 2 === 1) this.vShaker(t);
+    if (isDrop2 && step % 2 === 1) this.vShaker(t);
+    if (isPerc && step % 2 === 1) this.vShaker(t);
+    if (isPerc && step % 4 === 2) this.vHat(t, false, 0.8);
+    if (this.openIntoDrop && step === 0 && barIn === 0 && isDrop) this.vHat(t, true, 0.8);
+    if (isBuild && lastBar && step === 12) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.72, t, 0.08); }
+    if (step === 0 && barIn === 0 && isDrop) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); }
+    if (step === 0 && barIn === 0 && isDrop) this.vBass(t, -12, stepDur * 2, 1);
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[bar % chordsG.length][0];
     const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
     const phraseLast = bar % 4 === 3;
-    if (on('bass') && !(section.name === 'OUTRO' && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
-    if (on('hats') && s.hats[step] && !(section.name === 'OUTRO' && barIn >= 6)) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
+    if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
+    if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK' && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
-    if (section.name === 'BREAK' && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; } // darken then build2 reopens
-    if ((section.name === 'BUILD 2' || section.name === 'DROP 2') && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
+    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
+    if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
-    if (section.name === 'BREAK' && step === 0 && barIn >= 2 && barIn % 2 === 0) this.vKick(t, 0.32); // gentle heartbeat only after clean open
-    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, section.name === 'BREAK' ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
+    if (isBreak && step === 0 && barIn >= 2 && barIn % 2 === 0) this.vKick(t, 0.32);
+    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
   }
-
   async start() {
     await this.init();
     if (this.ctx && this.ctx.state !== 'running') {
