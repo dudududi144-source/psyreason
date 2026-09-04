@@ -225,12 +225,13 @@ export class Engine {
     this.eqLow = ctx.createBiquadFilter(); this.eqLow.type = 'lowshelf'; this.eqLow.frequency.value = 120; this.eqLow.gain.value = 2;
     this.eqMid = ctx.createBiquadFilter(); this.eqMid.type = 'peaking'; this.eqMid.frequency.value = 1800; this.eqMid.gain.value = 1; this.eqMid.Q.value = 0.8;
     this.eqHigh = ctx.createBiquadFilter(); this.eqHigh.type = 'highshelf'; this.eqHigh.frequency.value = 9000; this.eqHigh.gain.value = 1.5;
-    this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = -14; this.comp.ratio.value = 2.5; this.comp.attack.value = 0.012; this.comp.release.value = 0.22;
+    this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = -16; this.comp.ratio.value = 3; this.comp.attack.value = 0.008; this.comp.release.value = 0.18;
     this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -1.5; this.limiter.ratio.value = 20; this.limiter.attack.value = 0.002; this.limiter.release.value = 0.12;
     this.masterAn = ctx.createAnalyser(); this.masterAn.fftSize = 512;
     this.formGain = ctx.createGain(); this.formGain.gain.value = 1;
     this.master.connect(this.formGain); this.formGain.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
-    this.eqHigh.connect(this.comp); this.comp.connect(this.limiter); this.limiter.connect(this.masterAn); this.masterAn.connect(ctx.destination);
+    this.msat = ctx.createWaveShaper(); this.msat.curve = this.driveCurve(0.35); this.msat.oversample = '2x';
+    this.eqHigh.connect(this.msat); this.msat.connect(this.comp); this.comp.connect(this.limiter); this.limiter.connect(this.masterAn); this.masterAn.connect(ctx.destination);
 
     // FX buses
     const dIn = ctx.createGain(); const dNode = ctx.createDelay(2); dNode.delayTime.value = (60 / this.bpm) * 0.75;
