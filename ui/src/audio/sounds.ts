@@ -43,7 +43,7 @@ function buildLead(): SoundPreset[] {
       engine,
     };
     if (engine === 'fm') { p.fmRatio = pick(r, [1.5, 2, 2.5, 3]); p.fmAmt = +r2(r, 0.8, 3).toFixed(2); }
-    if (engine === 'wave') { p.wt = +r.toFixed(2); }
+    if (engine === 'wave') { p.wt = +r().toFixed(2); }
     if (engine === 'analog') { p.wave = pick(r, ['sawtooth', 'square', 'triangle']); }
     out.push({ name: LW[i % LW.length] + ' ' + (engine === 'fm' ? 'FM' : engine === 'wave' ? 'WT' : 'AN') + ' ' + String(i + 1).padStart(3, '0'), p });
   }
