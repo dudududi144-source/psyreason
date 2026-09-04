@@ -400,7 +400,7 @@ export function composeForm(seed: number) {
   const HALF = ['kick', 'bass', 'pad'];
   const FS = (name: string, bars: number, active: string[], role: string) => ({ name, bars, active, role });
   const f: any[] = [];
-  f.push(FS('INTRO', 16, FULL, 'intro')); // layered build
+  f.push(FS('INTRO', 16, FULL, pk(['intro', 'intro_drum']))); // layered build, 2 approaches
   if (r() > 0.5) f.push(FS('TEASER', 8, [...GROOVE, 'lead'], 'intro'));
   f.push(FS('BUILD', pk([4, 8]), BUILD, 'build'));
   f.push(FS('DROP', pk([16, 24, 32]), FULL, 'drop'));
