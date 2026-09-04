@@ -302,6 +302,11 @@ export class Engine {
     const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, t); sg.gain.linearRampToValueAtTime(0.15 + 0.45 * ((p as any).sub ?? 0.35), t + 0.005); sg.gain.exponentialRampToValueAtTime(0.001, t + dur);
     o.connect(lp); lp.connect(dr); dr.connect(g); sub.connect(sg);
     g.connect(out); sg.connect(out);
+    const ck = ctx.createBufferSource(); ck.buffer = this.noise();
+    const chp = ctx.createBiquadFilter(); chp.type = 'highpass'; chp.frequency.value = 2500;
+    const cg = ctx.createGain(); cg.gain.setValueAtTime(0.12 * accent, t); cg.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    ck.connect(chp); chp.connect(cg); cg.connect(out);
+    ck.start(t); ck.stop(t + 0.03);
     o.start(t); o.stop(t + dur + 0.05); sub.start(t); sub.stop(t + dur + 0.05);
   }
   private curveCache = new Map<number, Float32Array>();
@@ -411,7 +416,13 @@ export class Engine {
       o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
       if (mod) { mod.start(t); mod.stop(t + dur + 0.05); }
     }
-    lp.connect(g); g.connect(out);
+    const sh = ctx.createOscillator(); sh.type = 'sine'; sh.frequency.value = f * 2;
+    const shg = ctx.createGain(); shg.gain.value = 0.06; sh.connect(shg); shg.connect(lp);
+    sh.start(t); sh.stop(t + dur + 0.05);
+    const ap = ctx.createStereoPanner();
+    const al = ctx.createOscillator(); al.frequency.value = 0.4; const alg = ctx.createGain(); alg.gain.value = 0.35; al.connect(alg); alg.connect(ap.pan);
+    al.start(t); al.stop(t + dur + 0.05);
+    lp.connect(g); g.connect(ap); ap.connect(out);
   }
   vPad(t: number, chord: number[], dur: number) {
     const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
@@ -480,7 +491,7 @@ export class Engine {
     const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
     const phraseLast = bar % 4 === 3;
     if (on('bass') && !(section.name === 'OUTRO' && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
-    if (on('hats') && s.hats[step] && !(section.name === 'OUTRO' && barIn >= 6)) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7); }
+    if (on('hats') && s.hats[step] && !(section.name === 'OUTRO' && barIn >= 6)) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK' && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
