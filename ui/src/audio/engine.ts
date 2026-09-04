@@ -96,7 +96,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33;
+  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33; droneOn = false; droneLevel = 0.05; droneRatio = 1; pumpDepth = 0.8;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -338,6 +338,7 @@ export class Engine {
     if (on('hats') && s.hats[step]) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7);
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
+    if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; this.vPad(t, chords[barIn % chords.length], stepDur * 16); }
   }
 
@@ -428,6 +429,17 @@ export class Engine {
       this.song.lead = out;
       return;
     }
+    if (cat === 'sidechain') {
+      this.params.bass.sidechain = 1;
+      if (p.depth !== undefined) this.pumpDepth = p.depth;
+      return;
+    }
+    if (cat === 'atmos') {
+      this.droneOn = true;
+      if (p.level !== undefined) this.droneLevel = p.level;
+      if (p.ratio !== undefined) this.droneRatio = p.ratio;
+      return;
+    }
     const target = (this.params as any)[cat];
     if (target) Object.assign(target, p);
   }
@@ -439,6 +451,20 @@ export class Engine {
     const arr = new Uint8Array(an.frequencyBinCount); an.getByteTimeDomainData(arr);
     let peak = 0; for (let i = 0; i < arr.length; i++) { const v = Math.abs(arr[i] - 128) / 128; if (v > peak) peak = v; }
     return peak;
+  }
+  vDrone(t: number, rootMidi: number, dur: number) {
+    const ctx = this.ctx!; const out = this.channels.pad.bus;
+    const f = mtof(rootMidi - 12) * this.droneRatio;
+    for (const det of [-4, 4]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300; lp.Q.value = 0.5;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 120; lfo.connect(lg); lg.connect(lp.frequency);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(this.droneLevel, t + 0.8);
+      g.gain.setValueAtTime(this.droneLevel, t + Math.max(1, dur - 1)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      o.connect(lp); lp.connect(g); g.connect(out);
+      o.start(t); o.stop(t + dur + 0.1); lfo.start(t); lfo.stop(t + dur + 0.1);
+    }
   }
   async previewSound(cat: string, p: any) {
     await this.init();
@@ -456,6 +482,8 @@ export class Engine {
     else if (cat === 'grooves') { for (let i = 0; i < 8; i++) { if (i % 4 === 0) this.vKick(t0 + i * sd * 2); this.vBass(t0 + i * sd * 2 + (i % 2 === 1 ? this.swing * sd * 0.35 : 0), 0, sd * 0.9); } }
     else if (cat === 'master') { this.vKick(t0); this.vKick(t0 + sd * 4); for (let i = 0; i < 8; i++) this.vBass(t0 + i * sd, 0, sd * 0.9); }
     else if (cat === 'keys') { const sh = p.shift ?? 0; this.vLead(t0, 69 + sh, sd * 4); this.vBass(t0, sh, sd * 6); }
+    else if (cat === 'sidechain') { this.vKick(t0); this.vKick(t0 + sd * 4); for (let i = 0; i < 8; i++) this.vBass(t0 + i * sd, 0, sd * 0.95); }
+    else if (cat === 'atmos') { this.vDrone(t0, 33, 3.0); this.vPad(t0, [57, 60, 64], 3.0); }
   }
   async preview(id: TrackId) {
     await this.init(); const t = this.ctx!.currentTime + 0.05;
