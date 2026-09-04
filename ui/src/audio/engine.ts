@@ -591,6 +591,7 @@ export class Engine {
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (isBreak && step === 0 && barIn >= 2 && barIn % 2 === 0) this.vKick(t, 0.32);
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
+    if (on('atmos') && step === 0 && barIn === 0) this.vAtmos(t, stepDur * 16 * section.bars);
   }
   async start() {
     await this.init();
