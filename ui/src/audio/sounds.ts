@@ -52,7 +52,7 @@ function buildLead(): SoundPreset[] {
 
 function buildPad(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 160; i++) {
     const r = rng(9000 + i);
     out.push({ name: PW[i % PW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { cutoff: Math.round(r2(r, 500, 2600)), rSend: +r2(r, 0.4, 0.85).toFixed(2) } });
   }
@@ -61,7 +61,7 @@ function buildPad(): SoundPreset[] {
 
 function buildKick(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 160; i++) {
     const r = rng(13000 + i);
     out.push({ name: KW[i % KW.length] + ' Kick ' + String(i + 1).padStart(2, '0'), p: { decay: +r2(r, 0.18, 0.42).toFixed(2), punch: +r2(r, 0.25, 0.9).toFixed(2), body: +r2(r, 0.2, 0.8).toFixed(2), subk: +r2(r, 0.3, 0.8).toFixed(2) } });
   }
@@ -70,7 +70,7 @@ function buildKick(): SoundPreset[] {
 
 function buildHats(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 140; i++) {
     const r = rng(17000 + i);
     out.push({ name: HW[i % HW.length] + ' Hat ' + String(i + 1).padStart(2, '0'), p: { tone: Math.round(r2(r, 5500, 9500)), metal: +r2(r, 0.2, 0.9).toFixed(2) } });
   }
@@ -81,7 +81,7 @@ function buildHats(): SoundPreset[] {
 const FW = ['Riser', 'Impact', 'Downlift', 'EchoThrow', 'SpaceWash', 'Tunnel', 'Shimmer', 'Void'];
 function buildFx(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 72; i++) {
+  for (let i = 0; i < 96; i++) {
     const r = rng(21000 + i);
     out.push({ name: FW[i % FW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { delayFb: +r2(r, 0.2, 0.62).toFixed(2), delayTone: Math.round(r2(r, 1500, 6000)), space: +r2(r, 0.5, 1.4).toFixed(2) } });
   }
@@ -100,7 +100,7 @@ function buildChords(): SoundPreset[] {
     [0, 5, 3, 4], [0, 3, 0, 4], [0, 0, 3, 4], [0, 5, 0, 6], [0, 2, 3, 4], [0, 6, 5, 4], [0, 3, 5, 4], [0, 1, 3, 4],
   ];
   const scales = [MIN, PHR, MAJ, DOR];
-  for (let i = 0; i < 72; i++) {
+  for (let i = 0; i < 96; i++) {
     const r = rng(25000 + i);
     const scale = pick(r, scales);
     const prog = pick(r, progs);
@@ -113,7 +113,7 @@ function buildChords(): SoundPreset[] {
 const GW = ['Straight', 'Swing 16', 'Shuffle', 'Lazy', 'Push', 'Shaker', 'Tight', 'Loose'];
 function buildGrooves(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 72; i++) {
     const r = rng(29000 + i);
     out.push({
       name: GW[i % GW.length] + ' Groove ' + String(i + 1).padStart(2, '0'),
@@ -125,7 +125,7 @@ function buildGrooves(): SoundPreset[] {
 const MW = ['Club Loud', 'Warm', 'Bright', 'Radio', 'Dark Room', 'Festival', 'Punchy', 'Smooth'];
 function buildMaster(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 48; i++) {
     const r = rng(33000 + i);
     out.push({
       name: MW[i % MW.length] + ' ' + String(i + 1).padStart(2, '0'),
@@ -138,7 +138,7 @@ function buildMaster(): SoundPreset[] {
 const KW2 = ['Full Kit', 'Tight Kit', 'Round Kit', 'Hard Kit', 'Soft Kit', 'Club Kit', 'Forest Kit', 'Goa Kit'];
 function buildKits(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < 48; i++) {
     const r = rng(37000 + i);
     out.push({
       name: KW2[i % KW2.length] + ' ' + String(i + 1).padStart(2, '0'),
@@ -155,7 +155,7 @@ const KN = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
 function buildKeys(): SoundPreset[] {
   const out: SoundPreset[] = [];
   const modes = ['Minor', 'Phrygian', 'Harmonic', 'Dorian', 'Major'];
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < 48; i++) {
     const shift = (i % 12) - 0;
     out.push({ name: KN[i % 12] + ' ' + modes[Math.floor(i / 12) % modes.length], p: { shift: shift > 5 ? shift - 12 : shift } });
   }
@@ -166,12 +166,31 @@ const AW = ['Up Runner', 'Down Fall', 'Up-Down Wave', 'Random Spark', 'Pump 16',
 function buildArp(): SoundPreset[] {
   const out: SoundPreset[] = [];
   const modes = ['up', 'down', 'updown', 'random'];
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < 48; i++) {
     const r = rng(41000 + i);
     out.push({
       name: AW[i % AW.length] + ' ' + String(i + 1).padStart(2, '0'),
       p: { mode: modes[Math.floor(r() * modes.length)], rate: r() > 0.5 ? 0.25 : 0.5 },
     });
+  }
+  return out;
+}
+
+const SW = ['Pump Light', 'Pump Heavy', 'Tight Duck', 'Deep Suck', 'Groove Pump', 'Sub Duck'];
+function buildSidechain(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 24; i++) {
+    const r = rng(45000 + i);
+    out.push({ name: SW[i % SW.length] + ' ' + String(i + 1).padStart(2, '0'), p: { depth: +r2(r, 0.4, 0.95).toFixed(2) } });
+  }
+  return out;
+}
+const AW2 = ['Deep Space', 'Temple Wind', 'Sub Air', 'Night Drone', 'Cave Echo', 'Aurora'];
+function buildAtmos(): SoundPreset[] {
+  const out: SoundPreset[] = [];
+  for (let i = 0; i < 24; i++) {
+    const r = rng(49000 + i);
+    out.push({ name: AW2[i % AW2.length] + ' ' + String(i + 1).padStart(2, '0'), p: { level: +r2(r, 0.03, 0.09).toFixed(3), ratio: pick(r, [0.5, 1, 1.5, 2]) } });
   }
   return out;
 }
@@ -188,6 +207,8 @@ export const SOUND_LIB: Record<string, SoundPreset[]> = {
   kits: buildKits(),
   keys: buildKeys(),
   arp: buildArp(),
+  sidechain: buildSidechain(),
+  atmos: buildAtmos(),
 };
 
 export function soundCount(): number {
