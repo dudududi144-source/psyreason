@@ -570,7 +570,6 @@ export class Engine {
     }
     if (this.pendingSession && step >= 16 - this.rollLen) this.vSnare(t, 0.2 + 0.18 * (step - (16 - this.rollLen)));
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t);
-    if (isBreak && barIn >= 4 && step % 2 === 1) this.vShaker(t);
     if (isDrop2 && step % 2 === 1) this.vShaker(t);
     if (isPerc && step % 2 === 1) this.vShaker(t);
     if (isPerc && step % 4 === 2) this.vHat(t, false, 0.8);
@@ -588,9 +587,7 @@ export class Engine {
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
-    if (roleNow === 'intro' && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars); // intro atmosphere
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
-    if (isBreak && step === 0 && barIn >= 2 && barIn % 2 === 0) this.vKick(t, 0.32);
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
     if (on('atmos') && step === 0 && barIn === 0) this.vAtmos(t, stepDur * 16 * section.bars);
   }
