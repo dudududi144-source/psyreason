@@ -96,7 +96,7 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33; droneOn = false; droneLevel = 0.05; droneRatio = 1; pumpDepth = 0.8;
+  styleId = 'fullon'; subId = 'classic'; clapOn = false; crashOn = true; shakerOn = false; swing = 0; humanize = 0; bassRoot = 33; droneOn = false; droneLevel = 0.05; droneRatio = 1; pumpDepth = 0.8; rollLen = 4; openIntoDrop = false; rollVel = 1;
   loadSession(styleId: string, subId: string, session: number) {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
@@ -338,8 +338,9 @@ export class Engine {
     if (section.name === 'BUILD') this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (on('kick') && s.kick[step]) this.vKick(t);
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
-    if (lastBar && on('kick') && step >= 12) { this.vSnare(t, 0.2 + 0.15 * (step - 12)); } // clean noise snare roll only
+    if (lastBar && on('kick') && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); } // clean noise snare roll
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
+    if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
     if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); }
     if (on('hats') && s.hats[step]) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7);
     if (on('open') && s.open[step]) this.vHat(t, true);
@@ -446,6 +447,54 @@ export class Engine {
       if (p.ratio !== undefined) this.droneRatio = p.ratio;
       return;
     }
+    if (cat === 'basspat') {
+      const st = p.style ?? 'rolling'; const dens = p.density ?? 0.9;
+      const bass: { on: boolean; semi: number }[] = [];
+      for (let i = 0; i < 16; i++) {
+        const isKick = i % 4 === 0; let on = false;
+        if (st === 'rolling') on = !isKick;
+        if (st === 'offbeat') on = i % 4 === 2 || (i % 2 === 1 && Math.random() < 0.3);
+        if (st === 'kbb') on = i % 4 === 2 || i % 4 === 3;
+        if (st === 'hypnotic') on = true;
+        if (st === 'driving') on = i % 2 === 0;
+        if (Math.random() > dens) on = false;
+        const semi = i >= 12 && Math.random() < 0.5 ? [0, 1, 3, 5, 7][Math.floor(Math.random() * 5)] : 0;
+        bass.push({ on, semi });
+      }
+      this.song.bass = bass; this.song.bassB = bass.map((b) => ({ ...b }));
+      return;
+    }
+    if (cat === 'drumpat') {
+      const hs = p.hatStyle ?? 'offbeat';
+      const hats = Array(16).fill(false);
+      if (hs === 'offbeat') for (let i = 2; i < 16; i += 4) hats[i] = true;
+      if (hs === 'busy') { for (let i = 2; i < 16; i += 4) hats[i] = true; hats[3] = true; hats[7] = true; hats[15] = true; }
+      if (hs === 'sparse') { hats[2] = true; hats[10] = true; }
+      if (hs === 'shuffle') { for (let i = 2; i < 16; i += 4) hats[i] = true; hats[6] = true; hats[14] = true; }
+      const open = Array(16).fill(false); open[p.openPos ?? 14] = true;
+      this.song.hats = hats; this.song.open = open;
+      return;
+    }
+    if (cat === 'hooks') {
+      const m = p.motif ?? 'rising'; const base = 69;
+      const shapes: Record<string, (number | null)[]> = {
+        rising: [0, null, null, 3, null, null, 7, null, 12, null, null, 7, null, null, 3, null],
+        falling: [12, null, null, 7, null, null, 3, null, 0, null, null, 3, null, null, 7, null],
+        wave: [0, null, 3, null, 7, null, 3, null, 0, null, 3, null, 7, null, 12, null],
+        jump: [0, null, 12, null, 7, null, 15, null, 12, null, 7, null, 3, null, 0, null],
+        anthem: [0, 0, null, 3, null, 7, null, 12, 12, null, 7, null, 3, null, 0, null],
+      };
+      const sh = shapes[m] ?? shapes.rising;
+      const lead = sh.map((v) => (v === null ? null : base + v));
+      this.song.lead = lead; this.song.leadB = [...lead];
+      return;
+    }
+    if (cat === 'transitions') {
+      if (p.rollLen !== undefined) this.rollLen = p.rollLen;
+      if (p.openIntoDrop !== undefined) this.openIntoDrop = p.openIntoDrop;
+      if (p.rollVel !== undefined) this.rollVel = p.rollVel;
+      return;
+    }
     const target = (this.params as any)[cat];
     if (target) Object.assign(target, p);
   }
@@ -490,6 +539,10 @@ export class Engine {
     else if (cat === 'keys') { const sh = p.shift ?? 0; this.vLead(t0, 69 + sh, sd * 4); this.vBass(t0, sh, sd * 6); }
     else if (cat === 'sidechain') { this.vKick(t0); this.vKick(t0 + sd * 4); for (let i = 0; i < 8; i++) this.vBass(t0 + i * sd, 0, sd * 0.95); }
     else if (cat === 'atmos') { this.vDrone(t0, 33, 3.0); this.vPad(t0, [57, 60, 64], 3.0); }
+    else if (cat === 'basspat') { for (let i = 0; i < 16; i++) { const b = this.song.bass[i]; if (b.on) this.vBass(t0 + i * sd, b.semi, sd * 0.9, i % 4 === 2 ? 1.3 : 1); } this.vKick(t0); this.vKick(t0 + sd * 4); this.vKick(t0 + sd * 8); this.vKick(t0 + sd * 12); }
+    else if (cat === 'drumpat') { this.vKick(t0); this.vKick(t0 + sd * 4); this.vKick(t0 + sd * 8); this.vKick(t0 + sd * 12); for (let i = 0; i < 16; i++) { if (this.song.hats[i]) this.vHat(t0 + i * sd, false, i % 4 === 2 ? 1 : 0.7); if (this.song.open[i]) this.vHat(t0 + i * sd, true); } }
+    else if (cat === 'hooks') { for (let i = 0; i < 16; i++) { const L = this.song.lead[i]; if (L !== null) this.vLead(t0 + i * sd, L, sd * 2); } }
+    else if (cat === 'transitions') { for (let i = 16 - this.rollLen; i < 16; i++) this.vSnare(t0 + (i - (16 - this.rollLen)) * sd, (0.2 + 0.15 * (i - (16 - this.rollLen))) * this.rollVel); this.vKick(t0 + sd * 16); if (this.openIntoDrop) this.vHat(t0 + sd * 16, true, 0.8); }
   }
   async preview(id: TrackId) {
     await this.init(); const t = this.ctx!.currentTime + 0.05;
