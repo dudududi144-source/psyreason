@@ -172,3 +172,25 @@ body { background: var(--bg); color: var(--tx); font-family: 'Segoe UI', 'Helvet
 .form-name { font-size: 12px; font-weight: 800; color: var(--grn); letter-spacing: 1px; }
 .form-meta { font-size: 9px; color: var(--dim); }
 .form-seq { font-size: 8px; color: var(--dim); line-height: 1.4; }
+
+/* pro console */
+.console { gap: 10px; }
+.console-row { display: flex; gap: 8px; overflow-x: auto; padding: 10px; background: linear-gradient(180deg,#12121c,#0c0c14); border: 1px solid var(--ln); border-radius: 8px; }
+.cchan { flex: 0 0 86px; background: var(--p1); border: 1px solid; border-radius: 6px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cchan.master { background: #1a1420; }
+.cchan-name { font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+.cchan-meter { width: 10px; height: 90px; background: #0a0a11; border: 1px solid var(--ln); border-radius: 2px; overflow: hidden; display: flex; align-items: flex-end; }
+.cchan-fill { width: 100%; height: 0%; background: linear-gradient(0deg,#00ff88,#ffcc00 70%,#ff4444 92%); }
+.vfader { writing-mode: vertical-lr; direction: rtl; width: 20px; height: 90px; accent-color: var(--grn); cursor: ns-resize; }
+.cchan-ms { display: flex; gap: 4px; }
+.m-label { font-size: 7px; color: var(--dim); }
+.cchan-mini { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.cchan-mini label { display: flex; align-items: center; gap: 4px; font-size: 8px; color: var(--dim); }
+.cchan-mini input { flex: 1; height: 12px; accent-color: var(--accent3); }
+/* rack */
+.rack-group { margin-bottom: 14px; }
+.rack-group-head { font-size: 10px; letter-spacing: 3px; color: var(--dim); border-bottom: 1px solid var(--ln); padding-bottom: 4px; margin-bottom: 8px; }
+.rack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.devcard { background: var(--p1); border: 1px solid; border-radius: 8px; padding: 10px; }
+.devcard-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; }
+.devcard-knobs { display: flex; gap: 12px; flex-wrap: wrap; }
