@@ -176,7 +176,25 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'oasisc', name: 'Oasis', bpm: 96, scale: HARM, bassChar: 'sub', leadChar: 'acid', drumChar: 'soft', kickMode: 'half', leadDensity: 0.4, padProb: 0.9, desc: 'goa oasis chill' }),
     sub({ id: 'temple', name: 'Temple', bpm: 92, scale: HARM, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', kickMode: 'half', leadDensity: 0.35, padProb: 1, desc: 'temple ambience' }),
   ]},
+  { id: 'fullondark', name: 'FULL-ON DARK', color: '#6655cc', family: 'DARK', desc: 'dark full-on 147-149', subs: [
+    sub({ id: 'shadow', name: 'Shadow', bpm: 147, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', leadDensity: 0.5, padProb: 0.3, desc: 'full-on with a dark blade' }),
+    sub({ id: 'nightfall', name: 'Nightfall', bpm: 149, bassChar: 'sub', leadChar: 'twist', drumChar: 'hard', bassCut: 650, leadDensity: 0.45, desc: 'nightfall pressure' }),
+  ]},
+  { id: 'psybreakspro', name: 'PSY BREAKS PRO', color: '#ffbb77', family: 'WILD', desc: 'pro broken psy 152-155', subs: [
+    sub({ id: 'breakcore', name: 'Break Psy', bpm: 152, kickMode: 'breaks', bassChar: 'growl', leadChar: 'twist', drumChar: 'breaky', clap: true, bassStyle: 'driving', leadDensity: 0.5, desc: 'broken but psy' }),
+    sub({ id: 'halftime', name: 'Half-Time Psy', bpm: 155, kickMode: 'half', bassChar: 'sub', leadChar: 'twist', drumChar: 'hard', leadDensity: 0.4, desc: 'half-time heaviness' }),
+  ]},
+  { id: 'ambienttechno', name: 'AMBIENT TECHNO', color: '#aabbcc', family: 'TECH', desc: 'spacey techno 126-130', subs: [
+    sub({ id: 'orbit', name: 'Orbit', bpm: 127, bassChar: 'flat', leadChar: 'air', drumChar: 'soft', bassStyle: 'hypnotic', leadDensity: 0.2, padProb: 0.8, desc: 'orbital ambient techno' }),
+    sub({ id: 'station', name: 'Station', bpm: 130, bassChar: 'flat', leadChar: 'pluck', drumChar: 'soft', bassStyle: 'hypnotic', leadDensity: 0.25, padProb: 0.7, desc: 'deep space station' }),
+  ]},
+  { id: 'upliftingforest', name: 'UPLIFTING FOREST', color: '#88ddaa', family: 'HYPNOTIC', desc: 'green uplift 140-143', subs: [
+    sub({ id: 'meadow', name: 'Meadow', bpm: 141, scale: DOR, bassChar: 'flat', leadChar: 'super', drumChar: 'round', bassStyle: 'rolling', leadDensity: 0.6, padProb: 0.7, desc: 'uplifting forest meadow' }),
+    sub({ id: 'sunbeams', name: 'Sunbeams', bpm: 143, scale: MAJ, bassChar: 'pluck', leadChar: 'super', drumChar: 'round', leadDensity: 0.65, padProb: 0.8, desc: 'sunbeams through trees' }),
+  ]},
 ];
+
+
 
 
 
