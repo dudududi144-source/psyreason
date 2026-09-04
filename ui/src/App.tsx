@@ -138,14 +138,49 @@ function Strip({ id, playing }: { id: TrackId | 'master'; playing: boolean }) {
   );
 }
 
-function Mixer({ playing }: { playing: boolean }) {
-  const strips: (TrackId | 'master')[] = [...TRACKS.map((t) => t.id), 'master'];
+function ChannelStrip({ id, playing }: { id: TrackId; playing: boolean }) {
+  const [, force] = useState(0);
+  const meta = TRACKS.find((t) => t.id === id)!;
+  const ch = (engine.channels as any)[id];
+  const ref = useMeter(id, playing);
   return (
-    <div className="view cmixer">
-      <div className="cmixer-row">
-        {strips.map((id) => <Strip key={id} id={id} playing={playing} />)}
+    <div className="cchan" style={{ borderColor: meta.color + '55' }}>
+      <div className="cchan-name" style={{ color: meta.color }}>{meta.name}</div>
+      <div className="cchan-meter"><div className="cchan-fill" ref={ref} /></div>
+      <input className="vfader" type="range" min={0} max={1} step={0.01} defaultValue={0.9}
+        onChange={(e) => engine.setFader(id, Number(e.target.value))} />
+      <div className="cchan-ms">
+        <button className={'m-btn' + (ch.mute ? ' on-m' : '')} onClick={() => { engine.setMute(id, !ch.mute); force((x) => x + 1); }}>M</button>
+        <button className={'m-btn' + (ch.solo ? ' on-s' : '')} onClick={() => { engine.setSolo(id, !ch.solo); force((x) => x + 1); }}>S</button>
       </div>
-      <div className="hint">Compact mixer: per-channel Level / Mute / Solo / Tone / Drive / Delay / Reverb — shape each sound separately.</div>
+      <div className="cchan-mini">
+        <label title="Tone">T<input type="range" min={0} max={1} step={0.01} defaultValue={1} onChange={(e) => engine.setTone(id, Number(e.target.value))} /></label>
+        <label title="Drive">D<input type="range" min={0} max={1} step={0.01} defaultValue={0} onChange={(e) => engine.setDrive(id, Number(e.target.value))} /></label>
+        <label title="Delay">↦<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'lead' ? 0.35 : 0} onChange={(e) => engine.setSend(id, 'd', Number(e.target.value))} /></label>
+        <label title="Reverb">R<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'pad' ? 0.5 : id === 'lead' ? 0.2 : 0} onChange={(e) => engine.setSend(id, 'r', Number(e.target.value))} /></label>
+      </div>
+    </div>
+  );
+}
+function MasterStrip({ playing }: { playing: boolean }) {
+  const ref = useMeter('master', playing);
+  return (
+    <div className="cchan master">
+      <div className="cchan-name">MASTER</div>
+      <div className="cchan-meter"><div className="cchan-fill" ref={ref} /></div>
+      <input className="vfader" type="range" min={0} max={1} step={0.01} defaultValue={0.7} onChange={(e) => engine.setMasterLevel(Number(e.target.value))} />
+      <div className="cchan-ms"><span className="m-label">EQ→COMP→LIM</span></div>
+    </div>
+  );
+}
+function Mixer({ playing }: { playing: boolean }) {
+  return (
+    <div className="view console">
+      <div className="console-row">
+        {TRACKS.map((t) => <ChannelStrip key={t.id} id={t.id} playing={playing} />)}
+        <MasterStrip playing={playing} />
+      </div>
+      <div className="hint">Console: vertical faders • per-channel Tone/Drive/Delay/Reverb • M/S • master bus right.</div>
     </div>
   );
 }
@@ -178,55 +213,51 @@ function PianoRoll({ pos, playing }: { pos: { bar: number; step: number }; playi
 }
 
 // ---------- RACK ----------
-function Rack() {
-  const [sel, setSel] = useState<TrackId>('bass');
+const KNOB_CFG: Record<TrackId, { key: string; label: string; min: number; max: number }[]> = {
+  bass: [ { key: 'cutoff', label: 'CUTOFF', min: 100, max: 4000 }, { key: 'res', label: 'RESO', min: 0, max: 12 }, { key: 'drive', label: 'DRIVE', min: 0, max: 1 }, { key: 'sub', label: 'SUB', min: 0, max: 1 }, { key: 'sidechain', label: 'PUMP', min: 0, max: 1 } ],
+  lead: [ { key: 'cutoff', label: 'CUTOFF', min: 200, max: 6500 }, { key: 'res', label: 'RESO', min: 0, max: 13 }, { key: 'decay', label: 'DECAY', min: 0.1, max: 0.8 }, { key: 'detune', label: 'DETUNE', min: 0, max: 20 }, { key: 'dSend', label: 'DELAY', min: 0, max: 1 } ],
+  pad: [ { key: 'cutoff', label: 'CUTOFF', min: 200, max: 5000 }, { key: 'width', label: 'WIDTH', min: 0, max: 1 }, { key: 'bright', label: 'BRIGHT', min: 0.5, max: 1.6 }, { key: 'rSend', label: 'REVERB', min: 0, max: 1 } ],
+  kick: [ { key: 'decay', label: 'DECAY', min: 0.1, max: 0.6 }, { key: 'punch', label: 'PUNCH', min: 0, max: 1 }, { key: 'sat', label: 'SAT', min: 0, max: 1 }, { key: 'subk', label: 'SUB', min: 0, max: 1 } ],
+  hats: [ { key: 'tone', label: 'TONE', min: 3000, max: 12000 }, { key: 'metal', label: 'METAL', min: 0, max: 1 }, { key: 'decay', label: 'DECAY', min: 0, max: 1 } ],
+  open: [ { key: 'tone', label: 'TONE', min: 3000, max: 12000 }, { key: 'metal', label: 'METAL', min: 0, max: 1 } ],
+};
+const RACK_GROUPS: { name: string; tracks: TrackId[] }[] = [
+  { name: 'SYNTHS', tracks: ['bass', 'lead', 'pad'] },
+  { name: 'DRUMS', tracks: ['kick', 'hats', 'open'] },
+];
+function DeviceCard({ id }: { id: TrackId }) {
   const [, force] = useState(0);
-  const p = engine.params[sel];
-  const meta = TRACKS.find((t) => t.id === sel)!;
-  const knobs: { key: string; label: string; min: number; max: number }[] =
-    sel === 'bass' ? [
-      { key: 'cutoff', label: 'CUTOFF', min: 100, max: 4000 }, { key: 'res', label: 'RESO', min: 0, max: 20 },
-      { key: 'drive', label: 'DRIVE', min: 0, max: 1 }, { key: 'decay', label: 'DECAY', min: 0.05, max: 0.4 },
-      { key: 'sidechain', label: 'SIDECHN', min: 0, max: 1 }]
-    : sel === 'lead' ? [
-      { key: 'cutoff', label: 'CUTOFF', min: 200, max: 9000 }, { key: 'res', label: 'RESO', min: 0, max: 15 },
-      { key: 'decay', label: 'DECAY', min: 0.1, max: 0.8 }, { key: 'dSend', label: 'DELAY', min: 0, max: 1 }, { key: 'rSend', label: 'REVERB', min: 0, max: 1 }]
-    : sel === 'pad' ? [
-      { key: 'cutoff', label: 'CUTOFF', min: 200, max: 5000 }, { key: 'rSend', label: 'REVERB', min: 0, max: 1 }]
-    : sel === 'kick' ? [
-      { key: 'decay', label: 'DECAY', min: 0.1, max: 0.6 }, { key: 'punch', label: 'PUNCH', min: 0, max: 1 }]
-    : [{ key: 'tone', label: 'TONE', min: 3000, max: 12000 }];
+  const meta = TRACKS.find((t) => t.id === id)!;
   return (
-    <div className="view">
-      <div className="chain">
-        <span className="chain-node" style={{ borderColor: '#ff8800', color: '#ff8800' }}>KONG</span><i>→</i>
-        <span className="chain-node" style={{ borderColor: '#ff2bd6', color: '#ff2bd6' }}>THOR·BASS</span><i>→(sidechain)</i>
-        <span className="chain-node" style={{ borderColor: '#ff2bd6', color: '#ff2bd6' }}>THOR·LEAD</span><i>→</i>
-        <span className="chain-node" style={{ borderColor: '#00aaff', color: '#00aaff' }}>DDL-1</span><i>→</i>
-        <span className="chain-node" style={{ borderColor: '#00ffcc', color: '#00ffcc' }}>EUROPA</span><i>→</i>
-        <span className="chain-node" style={{ borderColor: '#aa66ff', color: '#aa66ff' }}>RV-7</span><i>→</i>
-        <span className="chain-node" style={{ borderColor: '#ffffff', color: '#ffffff' }}>MIXER → EQ → COMP → LIMIT</span>
+    <div className="devcard" style={{ borderColor: meta.color + '55' }}>
+      <div className="devcard-head" style={{ color: meta.color }}>
+        <span>{meta.name}</span>
+        <button className="prev-btn" title="preview" onClick={() => engine.preview(id)}>▶</button>
       </div>
-      <div className="rack-tabs">
-        {TRACKS.map((t) => (
-          <button key={t.id} className={'rack-tab' + (sel === t.id ? ' on' : '')} style={sel === t.id ? { borderColor: t.color, color: t.color } : undefined} onClick={() => setSel(t.id)}>{t.name}</button>
+      <div className="devcard-knobs">
+        {KNOB_CFG[id].map((k) => (
+          <Knob key={k.key} label={k.label} value={Number((engine.params[id] as any)[k.key] ?? (k.min + k.max) / 2)} min={k.min} max={k.max} color={meta.color}
+            onChange={(v: number) => { engine.setParam(id, k.key, v); force((x) => x + 1); }} />
         ))}
-      </div>
-      <div className="rack-panel" style={{ borderColor: meta.color + '55' }}>
-        <div className="rack-title" style={{ color: meta.color }}>{meta.name} — SOUND ENGINE</div>
-        <div className="rack-knobs">
-          {knobs.map((k) => (
-            <Knob key={k.key} label={k.label} value={p[k.key]} min={k.min} max={k.max} color={meta.color}
-              onChange={(v: number) => { engine.setParam(sel, k.key, v); force((x) => x + 1); }} />
-          ))}
-        </div>
-        <button className="preview-big" style={{ borderColor: meta.color, color: meta.color }} onClick={() => engine.preview(sel)}>PREVIEW {meta.name}</button>
-        <div className="hint">Parameters apply live to the scheduled voices. SIDECHN = kick ducks the bass (the psytrance pump).</div>
       </div>
     </div>
   );
 }
-
+function Rack() {
+  return (
+    <div className="view rackview">
+      {RACK_GROUPS.map((g) => (
+        <div key={g.name} className="rack-group">
+          <div className="rack-group-head">{g.name}</div>
+          <div className="rack-grid">
+            {g.tracks.map((id) => <DeviceCard key={id} id={id} />)}
+          </div>
+        </div>
+      ))}
+      <div className="hint">Every knob is live — tweak and hear instantly. ▶ previews a device.</div>
+    </div>
+  );
+}
 
 function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => void }) {
   const [q, setQ] = useState('');
