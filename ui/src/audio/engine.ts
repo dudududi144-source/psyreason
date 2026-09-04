@@ -323,6 +323,30 @@ export class Engine {
       o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.95);
     }
   }
+  private leadOsc(ctx: AudioContext, p: any, f: number, t: number): OscillatorNode {
+    if (p.engine === 'fm') {
+      const car = ctx.createOscillator(); car.type = 'sine';
+      const mod = ctx.createOscillator(); mod.type = 'sine';
+      const ratio = p.fmRatio ?? 2; const amt = p.fmAmt ?? 2;
+      mod.frequency.value = f * ratio;
+      const mg = ctx.createGain(); mg.gain.value = f * ratio * amt;
+      mod.connect(mg); mg.connect(car.frequency);
+      (car as any)._mod = mod;
+      return car;
+    }
+    if (p.engine === 'wave') {
+      const n = 16; const real = new Float32Array(n); const imag = new Float32Array(n);
+      const wt = p.wt ?? 0.5;
+      for (let h = 1; h < n; h++) {
+        imag[h] = (h % 2 === 1 ? 1 / h : 0) * (1 - wt * 0.5) + (wt > 0.5 ? (1 / (h * h)) * (wt - 0.5) * 2 : 0);
+      }
+      const wave = ctx.createPeriodicWave(real, imag);
+      const o = ctx.createOscillator(); o.setPeriodicWave(wave);
+      return o;
+    }
+    const o = ctx.createOscillator(); o.type = (p.wave as OscillatorType) || 'sawtooth';
+    return o;
+  }
   vLead(t: number, midi: number, dur: number) {
     const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
     const f = mtof(midi);
