@@ -261,83 +261,65 @@ export class Engine {
     for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(x * k) / Math.tanh(k); }
     return curve;
   }
-  vHat(t: number, open: boolean) {
+  vHat(t: number, open: boolean, vel = 1) {
+    // CLEAN metallic hat: filtered noise air + inharmonic SINE partials (no aliasing)
     const ctx = this.ctx!; const p = this.params.hats as any;
     const out = open ? this.channels.open.bus : this.channels.hats.bus;
-    const dur = open ? 0.3 : 0.055;
-    // metallic: 6 detuned squares through highpass (808-style) + noise air
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = (p.tone ?? 7500) * 0.85; hp.Q.value = (p.metal ?? 0.5) > 0.6 ? 1.1 : 0.7;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(open ? 0.3 : 0.26, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    hp.connect(g); g.connect(out);
-    const ratios = [2, 3, 4.16, 5.43, 6.79, 8.21];
-    for (const r of ratios) {
-      const o = ctx.createOscillator(); o.type = 'square';
-      o.frequency.value = 40 * r * ((p.tone ?? 7500) / 7500);
-      o.connect(hp); o.start(t); o.stop(t + dur + 0.02);
-    }
+    const tone = p.tone ?? 7500;
+    const dur = open ? 0.26 : 0.05;
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const nhp = ctx.createBiquadFilter(); nhp.type = 'highpass'; nhp.frequency.value = (p.tone ?? 7500);
-    const ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.18, t);
-    ng.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    n.connect(nhp); nhp.connect(ng); ng.connect(out);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = tone * 0.9; hp.Q.value = 0.7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime((open ? 0.2 : 0.16) * vel, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    n.connect(hp); hp.connect(g); g.connect(out);
     n.start(t); n.stop(t + dur + 0.02);
+    const base = tone * 0.72;
+    const ratios = [1.0, 1.483, 1.921, 2.547, 3.112, 3.894];
+    const bright = (p.metal ?? 0.5);
+    for (let k = 0; k < ratios.length; k++) {
+      const fr = base * ratios[k];
+      if (fr > 18000) continue;
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = fr;
+      const og = ctx.createGain();
+      const amp = (0.05 + 0.03 * bright) * vel * (1 - k * 0.12);
+      og.gain.setValueAtTime(amp, t);
+      og.gain.exponentialRampToValueAtTime(0.0005, t + (open ? dur : dur * 0.7));
+      o.connect(og); og.connect(out);
+      o.start(t); o.stop(t + dur + 0.02);
+    }
   }
   vSnare(t: number, vel = 0.5) {
     const ctx = this.ctx!; const out = this.channels.kick.bus;
     const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(200, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.1);
-    const og = ctx.createGain(); og.gain.setValueAtTime(0.5 * vel, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0.45 * vel, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
     o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.14);
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3500; bp.Q.value = 0.8;
-    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.6 * vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-    n.connect(bp); bp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.18);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 0.7;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.5 * vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    n.connect(bp); bp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.17);
   }
   vShaker(t: number) {
     const ctx = this.ctx!; const out = this.channels.hats.bus;
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 9000; bp.Q.value = 2;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 8200; bp.Q.value = 1.2;
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-    n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + 0.09);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.07, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + 0.08);
   }
   vCrash(t: number) {
+    // CLEAN crash: long filtered noise + high sine partials (no harsh squares)
     const ctx = this.ctx!; const out = this.channels.open.bus;
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5000;
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
-    hp.connect(g); g.connect(out);
-    const ratios = [2, 2.7, 3.9, 5.1, 6.6, 8.4, 9.7];
-    for (const r of ratios) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 60 * r; o.connect(hp); o.start(t); o.stop(t + 1.25); }
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.25, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
-    const nhp = ctx.createBiquadFilter(); nhp.type = 'highpass'; nhp.frequency.value = 6000;
-    n.connect(nhp); nhp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 1.15);
-  }
-  private leadOsc(ctx: AudioContext, p: any, f: number, t: number): OscillatorNode {
-    if (p.engine === 'fm') {
-      const car = ctx.createOscillator(); car.type = 'sine';
-      const mod = ctx.createOscillator(); mod.type = 'sine';
-      const ratio = p.fmRatio ?? 2; const amt = p.fmAmt ?? 2;
-      mod.frequency.value = f * ratio;
-      const mg = ctx.createGain(); mg.gain.value = f * ratio * amt;
-      mod.connect(mg); mg.connect(car.frequency);
-      (car as any)._mod = mod;
-      return car;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5500; hp.Q.value = 0.5;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+    n.connect(hp); hp.connect(g); g.connect(out); n.start(t); n.stop(t + 1.15);
+    const ratios = [1.0, 1.37, 1.81, 2.34, 2.92, 3.56, 4.27];
+    for (const r of ratios) {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 5200 * r > 19000 ? 19000 : 5200 * r;
+      const og = ctx.createGain(); og.gain.setValueAtTime(0.025, t); og.gain.exponentialRampToValueAtTime(0.0005, t + 0.9);
+      o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.95);
     }
-    if (p.engine === 'wave') {
-      const n = 16; const real = new Float32Array(n); const imag = new Float32Array(n);
-      const wt = p.wt ?? 0.5;
-      for (let h = 1; h < n; h++) {
-        imag[h] = (h % 2 === 1 ? 1 / h : 0) * (1 - wt * 0.5) + (wt > 0.5 ? 1 / (h * h) * (wt - 0.5) * 2 : 0);
-      }
-      const wave = ctx.createPeriodicWave(real, imag);
-      const o = ctx.createOscillator(); o.setPeriodicWave(wave);
-      return o;
-    }
-    const o = ctx.createOscillator(); o.type = (p.wave as OscillatorType) || 'sawtooth';
-    return o;
   }
   vLead(t: number, midi: number, dur: number) {
     const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
@@ -427,7 +409,7 @@ export class Engine {
     if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2') && this.crashOn) this.vCrash(t); // impact
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
     if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92); }
-    if (on('hats') && s.hats[step]) this.vHat(t, false);
+    if (on('hats') && s.hats[step]) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7);
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
     if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; this.vPad(t, chords[barIn % chords.length], stepDur * 16); }
