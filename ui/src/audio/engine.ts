@@ -221,8 +221,8 @@ export class Engine {
     this.eqLow = ctx.createBiquadFilter(); this.eqLow.type = 'lowshelf'; this.eqLow.frequency.value = 120; this.eqLow.gain.value = 2;
     this.eqMid = ctx.createBiquadFilter(); this.eqMid.type = 'peaking'; this.eqMid.frequency.value = 1800; this.eqMid.gain.value = 1; this.eqMid.Q.value = 0.8;
     this.eqHigh = ctx.createBiquadFilter(); this.eqHigh.type = 'highshelf'; this.eqHigh.frequency.value = 9000; this.eqHigh.gain.value = 1.5;
-    this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = -16; this.comp.ratio.value = 3; this.comp.attack.value = 0.01; this.comp.release.value = 0.2;
-    this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -3; this.limiter.ratio.value = 20; this.limiter.attack.value = 0.002; this.limiter.release.value = 0.1;
+    this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = -14; this.comp.ratio.value = 2.5; this.comp.attack.value = 0.012; this.comp.release.value = 0.22;
+    this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -1.5; this.limiter.ratio.value = 20; this.limiter.attack.value = 0.002; this.limiter.release.value = 0.12;
     this.masterAn = ctx.createAnalyser(); this.masterAn.fftSize = 512;
     this.formGain = ctx.createGain(); this.formGain.gain.value = 1;
     this.master.connect(this.formGain); this.formGain.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
@@ -241,7 +241,7 @@ export class Engine {
     for (const t of TRACKS) {
       const bus = ctx.createGain();
       const duck = ctx.createGain();
-      const LV: Record<string, number> = { kick: 1.0, bass: 0.85, hats: 0.5, open: 0.5, lead: 0.7, pad: 0.5 };
+      const LV: Record<string, number> = { kick: 0.92, bass: 0.82, hats: 0.46, open: 0.46, lead: 0.66, pad: 0.58 };
       const fader = ctx.createGain(); fader.gain.value = LV[t.id] ?? 0.8;
       const pan = ctx.createStereoPanner();
       const an = ctx.createAnalyser(); an.fftSize = 256;
@@ -529,7 +529,7 @@ export class Engine {
     const isOutro = rn === 'outro' || section.name === 'OUTRO';
     const isIntroSec = roleNow.startsWith('intro');
     const en = (section as any).energy ?? (isIntroSec ? 0.15 + 0.65 * (barIn / Math.max(1, section.bars)) : isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
-    if (step === 0 && barIn === 0 && this.formGain) this.formGain.gain.setTargetAtTime(0.78 + 0.28 * en, t, 0.3); // macro energy arc
+    if (step === 0 && barIn === 0 && this.formGain) this.formGain.gain.setTargetAtTime(0.8 + 0.22 * en, t, 0.5); // macro energy arc (smooth)
     if (isDrop && bar % 8 === 7 && step === 14) this.vHat(t, true, 0.4); // 8-bar ear candy
     const useB = barIn % 4 >= 2 || isDrop2;
     const lastBar = barIn === section.bars - 1;
