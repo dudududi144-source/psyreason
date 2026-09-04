@@ -2,7 +2,7 @@
 // lookahead scheduler (sample-accurate), channel mixer with meters,
 // FX send buses (delay/reverb), real sidechain ducking, song arrangement.
 
-export type TrackId = 'kick' | 'bass' | 'hats' | 'open' | 'lead' | 'pad';
+export type TrackId = 'kick' | 'bass' | 'hats' | 'open' | 'lead' | 'pad' | 'atmos';
 
 export const TRACKS: { id: TrackId; name: string; color: string }[] = [
   { id: 'kick', name: 'KICK', color: '#ff4444' },
@@ -11,6 +11,7 @@ export const TRACKS: { id: TrackId; name: string; color: string }[] = [
   { id: 'open', name: 'OPEN', color: '#ff8800' },
   { id: 'lead', name: 'LEAD', color: '#00aaff' },
   { id: 'pad', name: 'PAD', color: '#aa66ff' },
+  { id: 'atmos', name: 'ATMOS', color: '#66ffcc' },
 ];
 
 export interface Section { name: string; bars: number; active: TrackId[]; }
@@ -266,6 +267,7 @@ export class Engine {
     this.channels.lead.rSend.gain.value = this.params.lead.rSend;
     this.channels.pad.rSend.gain.value = this.params.pad.rSend;
     this.channels.open.rSend.gain.value = 0.15;
+    this.channels.atmos.rSend.gain.value = 0.55;
   }
 
   makeImpulse(sec: number, decay: number): AudioBuffer {
@@ -470,6 +472,21 @@ export class Engine {
       const pn = ctx.createStereoPanner(); pn.pan.value = (det < 0 ? -1 : 1) * (0.25 + 0.5 * ((p as any).width ?? 0.5));
       g.connect(pn); pn.connect(out);
       o.start(t); o.stop(t + dur + rel + 0.05);
+    }
+  }
+  vAtmos(t: number, dur: number) {
+    const ctx = this.ctx!; const out = this.channels.atmos.bus;
+    for (const det of [-8, 0, 8]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(45); o.detune.value = det;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; lp.Q.value = 0.5;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 180; lfo.connect(lg); lg.connect(lp.frequency);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.028, t + 2.5);
+      g.gain.setValueAtTime(0.028, t + Math.max(2.5, dur - 2.5)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      o.connect(lp); lp.connect(g);
+      const pn = ctx.createStereoPanner(); pn.pan.value = det < 0 ? -0.5 : (det > 0 ? 0.5 : 0);
+      g.connect(pn); pn.connect(out);
+      o.start(t); o.stop(t + dur + 0.1); lfo.start(t); lfo.stop(t + dur + 0.1);
     }
   }
   vClap(t: number) {
