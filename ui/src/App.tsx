@@ -318,7 +318,7 @@ export default function App() {
         </nav>
       </header>
       <div className="transport">
-        <button className={'play' + (playing ? ' on' : '')} onClick={toggle}>{playing ? '■ STOP' : '▶ PLAY'}</button>
+        <button className={'play' + (playing ? ' on' : '')} onClick={() => { engine.init(); toggle(); }}>{playing ? '■ STOP' : '▶ PLAY'}</button>
         <button className="gen" onClick={() => { engine.loadSession(styleId, subId, Math.floor(Math.random() * 999)); setBpm(engine.bpm); force((x) => x + 1); }} title="generate a new track in this style">⚄ GENERATE</button>
         <div className="t-block"><span>BPM</span><input type="number" value={bpm} min={90} max={200} onChange={(e) => { const v = Number(e.target.value); setBpm(v); engine.setBpm(v); }} /></div>
         <div className="t-block"><span>POS</span><b>{pos.bar >= 0 ? 'BAR ' + (pos.bar + 1) + ' . ' + (pos.step + 1) : '—'}</b></div>
