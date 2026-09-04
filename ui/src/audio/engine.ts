@@ -507,6 +507,7 @@ export class Engine {
   }
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
 
+  audioState(): string { return this.ctx ? this.ctx.state : 'off'; }
   level(id: TrackId | 'master'): number {
     const an = id === 'master' ? this.masterAn : this.channels[id] ? this.channels[id].an : null;
     if (!an) return 0;
