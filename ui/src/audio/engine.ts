@@ -61,7 +61,7 @@ export function defaultSong(): SongData {
 
 export const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
-import { generateSong, generateTrack, generateArrangement, generateSongForStyle, generateArrangementForStyle, styleById, sessionSeed } from './generator';
+import { generateSong, generateTrack, generateArrangement, generateSongForSub, generateArrangementForSub, styleById, subById, sessionSeed } from './generator';
 
 interface Channel {
   bus: GainNode; duck: GainNode; fader: GainNode; pan: StereoPannerNode; an: AnalyserNode;
@@ -95,15 +95,21 @@ export class Engine {
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
   seed = 1337;
 
-  styleId = 'fullon';
-  generateStyle(styleId: string, session: number, bpmFromStyle = true) {
-    const st = styleById(styleId);
-    this.styleId = styleId;
-    this.seed = sessionSeed(styleId, session);
-    this.song = generateSongForStyle(styleId, this.seed);
-    this.arrangement = generateArrangementForStyle(styleId, this.seed);
-    if (bpmFromStyle) this.bpm = st.bpm + (session % 2 === 1 ? 2 : 0);
+  styleId = 'fullon'; subId = 'classic';
+  loadSession(styleId: string, subId: string, session: number) {
+    const sb = subById(styleId, subId);
+    this.styleId = styleId; this.subId = subId;
+    this.seed = sessionSeed(sb.id, session);
+    this.song = generateSongForSub(sb, this.seed);
+    this.arrangement = generateArrangementForSub(sb, this.seed);
+    this.bpm = sb.bpm;
+    // sub-style SOUND: timbres applied to the synth engines
+    this.params.bass = { ...this.params.bass, cutoff: sb.bassCut, res: sb.bassRes, drive: sb.bassDrive, wave: sb.bassWave };
+    this.params.lead = { ...this.params.lead, cutoff: sb.leadCut, res: sb.leadRes, decay: sb.leadDecay, wave: sb.leadWave };
+    this.params.kick = { ...this.params.kick, decay: sb.kickDecay, punch: sb.punch };
+    this.params.hats = { ...this.params.hats, tone: sb.hatTone };
   }
+  generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
     this.seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
     this.song = generateSong(this.seed);
@@ -198,7 +204,7 @@ export class Engine {
   vBass(t: number, semi: number, dur: number) {
     const ctx = this.ctx!; const p = this.params.bass; const out = this.channels.bass.bus;
     const f = mtof(33 + semi);
-    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+    const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f;
     const sub = ctx.createOscillator(); sub.type = 'square'; sub.frequency.value = f / 2;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
     lp.frequency.setValueAtTime(p.cutoff * 2.2 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(60, p.cutoff * 0.5 * this.sweep), t + dur);
@@ -233,7 +239,7 @@ export class Engine {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     for (const det of [-8, 8]) {
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det;
+      const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = f; o.detune.value = det;
       o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
     }
     lp.connect(g); g.connect(out);
