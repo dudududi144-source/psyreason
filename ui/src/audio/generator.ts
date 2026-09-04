@@ -39,11 +39,11 @@ function sub(o: any): SubStyle {
 export const STYLES: StyleDef[] = [
   { id: 'fullon', name: 'FULL-ON', color: '#00ff88', desc: 'driving 145-ish energy', subs: [
     sub({ id: 'classic', name: 'Classic Full-On', bpm: 145, leadDensity: 0.7, desc: 'the standard rolling sound' }),
-    sub({ id: 'night', name: 'Night Full-On', bpm: 148, scale: PHR, bassCut: 700, bassDrive: 0.6, leadRes: 8, leadDensity: 0.6, padProb: 0.4, desc: 'darker edge, harder drive' }),
+    sub({ id: 'night', name: 'Night Full-On', bpm: 148, bassCut: 700, bassDrive: 0.6, leadRes: 8, leadDensity: 0.6, padProb: 0.4, desc: 'darker edge, harder drive' }),
     sub({ id: 'melodic', name: 'Melodic Full-On', bpm: 143, scale: MIN, leadDensity: 0.8, leadLeap: 0.4, padProb: 0.9, leadCut: 5200, desc: 'big melodic hooks + pads' }),
   ]},
   { id: 'goa', name: 'GOA', color: '#ff8800', desc: 'acid psychedelic roots', subs: [
-    sub({ id: 'classic', name: 'Classic Goa', bpm: 140, scale: HARM, bassStyle: 'rolling', leadRes: 9, leadCut: 3800, leadLeap: 0.45, desc: '303 acid lines, harmonic scale' }),
+    sub({ id: 'classic', name: 'Classic Goa', bpm: 140, scale: HARM, leadRes: 9, leadCut: 3800, leadLeap: 0.45, desc: '303 acid lines, harmonic scale' }),
     sub({ id: 'morning', name: 'Morning Goa', bpm: 144, scale: MAJ, leadDensity: 0.7, padProb: 0.8, leadWave: 'square', desc: 'uplifting major morning energy' }),
     sub({ id: 'acid', name: 'Acid Goa', bpm: 138, scale: HARM, leadRes: 14, leadCut: 3000, bassRes: 10, bassDrive: 0.7, desc: 'screaming resonance acid' }),
   ]},
@@ -60,6 +60,7 @@ export const STYLES: StyleDef[] = [
   { id: 'hitech', name: 'HI-TECH', color: '#ff2bd6', desc: 'frantic 165+', subs: [
     sub({ id: 'hitech', name: 'Hi-Tech', bpm: 165, leadDensity: 0.85, leadLeap: 0.6, hatBusy: 0.8, desc: 'wild fast squiggles' }),
     sub({ id: 'psycore', name: 'Psycore', bpm: 175, bassStyle: 'kbb', bassDrive: 0.9, leadDensity: 0.7, leadLeap: 0.7, kickDecay: 0.22, desc: 'extreme speed aggression' }),
+    sub({ id: 'darkhitech', name: 'Dark Hi-Tech', bpm: 170, scale: PHR, bassCut: 650, leadRes: 11, padProb: 0.2, desc: 'fast + dark' }),
   ]},
   { id: 'forest', name: 'FOREST', color: '#66cc66', desc: 'modal darkness 150s', subs: [
     sub({ id: 'forest', name: 'Forest', bpm: 152, scale: DOR, bassStyle: 'kbb', leadDensity: 0.45, padProb: 0.4, desc: 'echoing forest motifs' }),
@@ -72,12 +73,38 @@ export const STYLES: StyleDef[] = [
   { id: 'psychill', name: 'PSYCHILL', color: '#66ccff', desc: 'downtempo 85-100', subs: [
     sub({ id: 'chill', name: 'Psychill', bpm: 95, scale: MIN, bassStyle: 'offbeat', leadDensity: 0.4, leadWave: 'triangle', padProb: 1, kickDecay: 0.35, punch: 0.3, hatTone: 6000, desc: 'relaxed floating' }),
     sub({ id: 'ambient', name: 'Ambient Psy', bpm: 85, bassStyle: 'offbeat', leadDensity: 0.3, padProb: 1, hatBusy: 0.1, openProb: 0.3, desc: 'beatless-ish textures' }),
+    sub({ id: 'dubchill', name: 'Dub Chill', bpm: 90, scale: DOR, kickMode: 'half', bassStyle: 'driving', padProb: 0.9, desc: 'dubbed half-time space' }),
   ]},
   { id: 'morning', name: 'MORNING', color: '#ffee66', desc: 'euphoric sunrise', subs: [
     sub({ id: 'morningtrance', name: 'Morning Trance', bpm: 142, scale: MAJ, leadDensity: 0.75, padProb: 0.9, leadCut: 5600, desc: 'hands-up euphoria' }),
+    sub({ id: 'sunrise', name: 'Sunrise Anthem', bpm: 144, scale: MAJ, leadDensity: 0.8, leadLeap: 0.4, padProb: 1, leadWave: 'square', desc: 'peak sunrise moment' }),
   ]},
-  { id: 'psytech', name: 'PSY-TECH', color: '#aaaacc', desc: 'techy groove 136', subs: [
+  { id: 'psytech', name: 'PSY-TECH', color: '#aaaacc', desc: 'techy groove 130s', subs: [
     sub({ id: 'psytech', name: 'Psy-Tech', bpm: 136, scale: MIN, bassStyle: 'offbeat', leadDensity: 0.3, bassWave: 'square', bassCut: 800, hatBusy: 0.6, desc: 'minimal tech groove' }),
+    sub({ id: 'minimaltech', name: 'Minimal Tech', bpm: 130, bassStyle: 'hypnotic', leadDensity: 0.2, hatBusy: 0.4, padProb: 0.4, bassCut: 700, desc: 'hypnotic 16th pulse' }),
+  ]},
+  { id: 'zenone', name: 'ZENONE', color: '#7788ff', desc: 'mid-tempo dark 128-132', subs: [
+    sub({ id: 'zenone', name: 'Zenone', bpm: 132, bassStyle: 'hypnotic', bassCut: 700, bassRes: 8, leadDensity: 0.4, padProb: 0.5, desc: 'dark mid-tempo pulse' }),
+    sub({ id: 'darkprog', name: 'Dark Prog', bpm: 128, bassStyle: 'offbeat', leadDensity: 0.25, padProb: 0.6, bassCut: 650, desc: 'slow burning darkness' }),
+  ]},
+  { id: 'uplifting', name: 'UPLIFTING', color: '#ff99cc', desc: 'trance euphoria 138-140', subs: [
+    sub({ id: 'uplifting', name: 'Uplifting Trance', bpm: 138, scale: MAJ, leadDensity: 0.7, padProb: 1, leadCut: 5600, desc: 'soaring supersaws' }),
+    sub({ id: 'anthem', name: 'Anthem', bpm: 140, scale: MAJ, leadDensity: 0.8, leadLeap: 0.4, padProb: 1, leadWave: 'square', desc: 'festival anthem energy' }),
+  ]},
+  { id: 'acidtechno', name: 'ACID TECHNO', color: '#ccff00', desc: '303 warehouse 140-150', subs: [
+    sub({ id: 'acidtechno', name: 'Acid Techno', bpm: 140, leadRes: 15, leadCut: 2800, bassWave: 'square', bassDrive: 0.7, bassRes: 10, desc: 'relentless 303 squelch' }),
+    sub({ id: 'rave', name: 'Rave', bpm: 150, hatBusy: 0.8, openProb: 0.9, leadWave: 'square', leadRes: 8, desc: 'stabs + sirens energy' }),
+  ]},
+  { id: 'dubpsy', name: 'DUB PSY', color: '#88ccaa', desc: 'spaced dub echoes 140s', subs: [
+    sub({ id: 'dubpsy', name: 'Dub Psy', bpm: 140, leadDensity: 0.3, padProb: 0.6, leadWave: 'triangle', hatBusy: 0.3, desc: 'echo-heavy spacious' }),
+    sub({ id: 'dubforest', name: 'Dub Forest', bpm: 146, scale: DOR, bassStyle: 'kbb', leadDensity: 0.35, padProb: 0.4, desc: 'forest with dub space' }),
+  ]},
+  { id: 'classictrance', name: 'CLASSIC TRANCE', color: '#99ccff', desc: '90s trance 136-142', subs: [
+    sub({ id: 'classic', name: 'Classic Trance', bpm: 136, scale: MAJ, leadWave: 'triangle', padProb: 1, leadDensity: 0.6, desc: '90s emotional lines' }),
+    sub({ id: 'euro', name: 'Euro Trance', bpm: 142, scale: MAJ, leadDensity: 0.75, leadCut: 5200, padProb: 0.9, desc: 'euro dance energy' }),
+  ]},
+  { id: 'psybreaks', name: 'PSY BREAKS', color: '#ffaa88', desc: 'broken beat psy 150', subs: [
+    sub({ id: 'breaks', name: 'Psy Breaks', bpm: 150, kickMode: 'breaks', bassStyle: 'driving', leadDensity: 0.5, hatBusy: 0.6, desc: 'broken beat psychedelia' }),
   ]},
 ];
 
