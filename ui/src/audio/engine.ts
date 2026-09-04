@@ -466,7 +466,7 @@ export class Engine {
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff * ((p as any).bright ?? 1); lp.Q.value = 0.3;
       const plf = ctx.createOscillator(); plf.frequency.value = 0.08; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.1; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.8);
       const g = ctx.createGain();
-      const lvl = 0.032, atk = 0.45, rel = 0.7;
+      const lvl = 0.038, atk = 0.45, rel = 0.7;
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + atk);
       g.gain.setValueAtTime(lvl, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
       o.connect(lp); lp.connect(g);
