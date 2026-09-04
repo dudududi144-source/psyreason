@@ -67,13 +67,15 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
           const width = (sec.bars / engine.totalBars()) * 100;
           const active = pos.bar >= 0 && sectionAtBar(pos.bar).index === i;
           return (
-            <div key={sec.name} className={'tl-sec' + (active ? ' on' : '')} style={{ left: left + '%', width: width + '%' }}>
+            <div key={sec.name} className={'tl-sec' + (active ? ' on' : '')} style={{ left: left + '%', width: width + '%' }}
+              onClick={() => engine.jumpToSection(i)} title="Launch section (quantized to bar)">
               <span>{sec.name}</span><em>{sec.bars} bars</em>
             </div>
           );
         })}
         {pos.bar >= 0 && <div className="tl-play" style={{ left: ((pos.bar + (pos.step + 1) / 16) / engine.totalBars()) * 100 + '%' }} />}
       </div>
+      <div className="hint" style={{ marginBottom: 8 }}>Click any section to launch it live — jumps at the next bar, Ableton-style.</div>
       <div className="lanes">
         {rows.map((r) => {
           const meta = TRACKS.find((t) => t.id === r.id)!;
