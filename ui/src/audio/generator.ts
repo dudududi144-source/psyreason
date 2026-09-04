@@ -257,7 +257,7 @@ function genLead(rng: () => number, st: SubStyle): (number | null)[] {
 }
 
 function genBass(rng: () => number, st: SubStyle): { on: boolean; semi: number }[] {
-  const vars = st.scale === HARM ? [0, 0, 3, 8, 7] : st.scale === PHR ? [0, 0, 1, 6] : [0, 0, 0, 1, 3, 5, 7];
+  const vars = st.scale === HARM ? [0, 0, 3, 7, 12] : st.scale === PHR ? [0, 0, 1, 12] : [0, 0, 0, 7, 12];
   const bass: { on: boolean; semi: number }[] = [];
   for (let i = 0; i < 16; i++) {
     const isKick = i % 4 === 0;
@@ -294,7 +294,7 @@ function chordAt(scale: number[], root: number, deg: number): number[] {
   return [0, 2, 4].map((off) => { const d = deg + off; return root + scale[d % n] + Math.floor(d / n) * 12; });
 }
 function genChords(rng: () => number, st: SubStyle): number[][] {
-  const roots = st.scale === MAJ ? [0, 3, 4, 5] : st.scale === HARM ? [0, 3, 0, 4] : [0, 0, 3, 4];
+  const roots = st.scale === MAJ ? [0, 5, 3, 4] : st.scale === HARM ? [0, 5, 2, 6] : [0, 5, 2, 6];
   return roots.map((d) => chordAt(st.scale, 57, d));
 }
 
