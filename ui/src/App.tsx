@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from './audio/engine';
-import { STYLES } from './audio/generator';
+import { STYLES, SESSIONS_PER_SUB, subById, libraryStats } from './audio/generator';
 
-type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack';
+type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library';
 
 // ---------- shared ----------
 function useMeter(id: TrackId | 'master', playing: boolean) {
@@ -217,6 +217,31 @@ function Rack() {
   );
 }
 
+
+function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => void }) {
+  const stats = libraryStats();
+  return (
+    <div className="view library">
+      <div className="lib-head">LIBRARY — {stats.styles} styles • {stats.subs} sub-styles • {stats.sessions} curated sessions, each with its own sound</div>
+      {STYLES.map((st) => (
+        <div key={st.id} className="lib-style">
+          <div className="lib-style-head" style={{ color: st.color }}>{st.name} <em>{st.desc}</em></div>
+          {st.subs.map((sb) => (
+            <div key={sb.id} className="lib-sub">
+              <div className="lib-sub-head">{sb.name} <em>{sb.bpm} BPM • {sb.desc}</em></div>
+              <div className="lib-sessions">
+                {[1, 2, 3, 4].map((v) => (
+                  <button key={v} className="lib-session" style={{ borderColor: st.color, color: st.color }} onClick={() => onPick(st.id, sb.id, v)}>S{v}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- APP ----------
 export default function App() {
   const [view, setView] = useState<View>('arrange');
@@ -225,10 +250,11 @@ export default function App() {
   const [pos, setPos] = useState({ bar: -1, step: -1 });
   const [, force] = useState(0);
   const [styleId, setStyleId] = useState('fullon');
+  const [subId, setSubId] = useState('classic');
   const mRef = useMeter('master', playing);
   useEffect(() => {
     engine.onTick = (bar, step) => setPos({ bar, step });
-    engine.generateStyle('fullon', 1);
+    engine.loadSession('fullon', 'classic', 1);
     engine.init();
     setBpm(engine.bpm);
     force((x) => x + 1);
@@ -241,32 +267,42 @@ export default function App() {
       <header className="top">
         <div className="brand"><h1>PSYREASON</h1><span>WEB DAW — psytrance production system</span></div>
         <nav className="tabs">
-          {(['arrange', 'mixer', 'pianoroll', 'rack'] as View[]).map((v) => (
+          {(['arrange', 'mixer', 'pianoroll', 'rack', 'library'] as View[]).map((v) => (
             <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{v === 'pianoroll' ? 'PIANO ROLL' : v.toUpperCase()}</button>
           ))}
         </nav>
       </header>
       <div className="transport">
         <button className={'play' + (playing ? ' on' : '')} onClick={toggle}>{playing ? '■ STOP' : '▶ PLAY'}</button>
-        <button className="gen" onClick={() => { engine.generateStyle(styleId, Math.floor(Math.random() * 999)); setBpm(engine.bpm); force((x) => x + 1); }} title="generate a new track in this style">⚄ GENERATE</button>
+        <button className="gen" onClick={() => { engine.loadSession(styleId, subId, Math.floor(Math.random() * 999)); setBpm(engine.bpm); force((x) => x + 1); }} title="generate a new track in this style">⚄ GENERATE</button>
         <div className="t-block"><span>BPM</span><input type="number" value={bpm} min={90} max={200} onChange={(e) => { const v = Number(e.target.value); setBpm(v); engine.setBpm(v); }} /></div>
         <div className="t-block"><span>POS</span><b>{pos.bar >= 0 ? 'BAR ' + (pos.bar + 1) + ' . ' + (pos.step + 1) : '—'}</b></div>
         <div className="t-block"><span>SECTION</span><b className="sec">{secName}</b></div>
         <div className="t-meter"><span>MST</span><div className="t-meter-track"><div className="t-meter-fill" ref={mRef} /></div></div>
       </div>
       <div className="stylebar">
-        <span className="sb-label">STYLE SESSIONS</span>
+        <span className="sb-label">STYLE</span>
         {STYLES.map((st) => (
           <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')}
             style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined}
-            onClick={() => { setStyleId(st.id); engine.generateStyle(st.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
+            onClick={() => { setStyleId(st.id); const sb = st.subs[0]; setSubId(sb.id); engine.loadSession(st.id, sb.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
             {st.name}
           </button>
         ))}
-        <span className="style-desc">{(STYLES.find((s) => s.id === styleId) || STYLES[0]).desc}</span>
+      </div>
+      <div className="stylebar sub">
+        <span className="sb-label">SUB-STYLE</span>
+        {(STYLES.find((s) => s.id === styleId) || STYLES[0]).subs.map((sb) => (
+          <button key={sb.id} className={'style-chip subchip' + (subId === sb.id ? ' on' : '')}
+            style={subId === sb.id ? { borderColor: '#ffffff', color: '#ffffff' } : undefined}
+            onClick={() => { setSubId(sb.id); engine.loadSession(styleId, sb.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>
+            {sb.name}
+          </button>
+        ))}
+        <span className="style-desc">{subById(styleId, subId).desc}</span>
         <span className="sb-label">SESSION</span>
-        {[1, 2, 3].map((v) => (
-          <button key={v} className="var-btn" onClick={() => { engine.generateStyle(styleId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
+        {[1, 2, 3, 4].map((v) => (
+          <button key={v} className="var-btn" onClick={() => { engine.loadSession(styleId, subId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
         ))}
       </div>
       <main className="content">
@@ -274,6 +310,7 @@ export default function App() {
         {view === 'mixer' && <Mixer playing={playing} />}
         {view === 'pianoroll' && <PianoRoll pos={pos} playing={playing} />}
         {view === 'rack' && <Rack />}
+        {view === 'library' && <Library onPick={(st, sb, s) => { setStyleId(st); setSubId(sb); engine.loadSession(st, sb, s); setBpm(engine.bpm); force((x) => x + 1); setView('arrange'); }} />}
       </main>
       <footer className="foot">
         <span>PsyReason v4 — one coherent engine: scheduler → voices → channel mixer → FX sends → master chain</span>
