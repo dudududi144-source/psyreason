@@ -558,7 +558,13 @@ export class Engine {
     if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
     if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (on('lead')) {
+      const chordIdx = bar % chordsG.length;
+      const leadSet = useB && s.leadsB ? s.leadsB : s.leads;
+      const arr = leadSet ? leadSet[chordIdx % leadSet.length] : (useB && s.leadB ? s.leadB : s.lead);
+      const L = arr[step];
+      if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); }
+    }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (roleNow === 'intro' && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars); // intro atmosphere
