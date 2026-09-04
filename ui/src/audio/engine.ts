@@ -426,7 +426,11 @@ export class Engine {
     if (lastBar && (on('kick') || section.name === 'BREAK') && step >= 16 - this.rollLen) { this.vSnare(t, (0.2 + 0.15 * (step - (16 - this.rollLen))) * this.rollVel); } // clean noise snare roll
     if (this.shakerOn && on('hats') && step % 2 === 1) this.vShaker(t); // 16th shaker groove
     if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
-    if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) this.vBass(t, b.semi, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); }
+    const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
+    const chordRoot = chordsG[bar % chordsG.length][0];
+    const rootShift = chordRoot - 24 - this.bassRoot;
+    const phraseLast = bar % 4 === 3;
+    if (on('bass')) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
     if (on('hats') && s.hats[step]) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, step % 4 === 2 ? 1 : 0.7); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) this.vLead(t, L, stepDur * 3); }
