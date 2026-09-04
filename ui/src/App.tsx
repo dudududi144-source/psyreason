@@ -3,7 +3,7 @@ import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from '
 import { STYLES, SESSIONS_PER_SUB, subById, libraryStats, FAMILIES } from './audio/generator';
 import { SOUND_LIB, soundCount } from './audio/sounds';
 
-type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library' | 'sounds';
+type View = 'arrange' | 'mixer' | 'pianoroll' | 'rack' | 'library' | 'sounds' | 'form';
 
 // ---------- shared ----------
 function useMeter(id: TrackId | 'master', playing: boolean) {
@@ -321,7 +321,29 @@ function Sounds() {
     </div>
   );
 }
-// ---------- APP ----------
+function FormView() {
+  const forms = SOUND_LIB.form || [];
+  return (
+    <div className="view formview">
+      <div className="lib-head">FORM LIBRARY — {forms.length} track structures. Click to load the whole arrangement.</div>
+      <div className="form-grid">
+        {forms.map((f) => {
+          const bars = f.p.form.reduce((a: number, s: any) => a + s.bars, 0);
+          return (
+            <button key={f.name} className="form-card" onClick={() => { engine.loadArrangement(f.p.form); }}>
+              <span className="form-name">{f.name.replace('FORM • ', '')}</span>
+              <span className="form-meta">{bars} bars • {f.p.form.length} sections</span>
+              <span className="form-seq">{f.p.form.map((s: any) => s.name).join(' → ')}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="hint">Loading a FORM keeps your current style/sounds but rebuilds the track structure. Click timeline sections to jump live.</div>
+    </div>
+  );
+}
+
+// ---------- APP ----------// ---------- APP ----------
 export default function App() {
   const [view, setView] = useState<View>('arrange');
   const [playing, setPlaying] = useState(false);
@@ -348,8 +370,8 @@ export default function App() {
       <header className="top">
         <div className="brand"><h1>PSYREASON</h1><span>WEB DAW — psytrance production system</span></div>
         <nav className="tabs">
-          {(['arrange', 'mixer', 'pianoroll', 'rack', 'library', 'sounds'] as View[]).map((v) => (
-            <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{v === 'pianoroll' ? 'PIANO ROLL' : v.toUpperCase()}</button>
+          {(['arrange', 'form', 'mixer', 'pianoroll', 'rack', 'library', 'sounds'] as View[]).map((v) => (
+            <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{v === 'pianoroll' ? 'PIANO ROLL' : v === 'form' ? 'FORM' : v.toUpperCase()}</button>
           ))}
         </nav>
       </header>
@@ -402,6 +424,7 @@ export default function App() {
         {view === 'pianoroll' && <PianoRoll pos={pos} playing={playing} />}
         {view === 'rack' && <Rack />}
         {view === 'sounds' && <Sounds />}
+        {view === 'form' && <FormView />}
         {view === 'library' && <Library onPick={(st, sb, s) => { setStyleId(st); setSubId(sb); engine.loadSession(st, sb, s); setBpm(engine.bpm); force((x) => x + 1); setView('arrange'); }} />}
       </main>
       <footer className="foot">
