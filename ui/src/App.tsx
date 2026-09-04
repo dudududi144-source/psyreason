@@ -276,12 +276,12 @@ function Sounds() {
       <div className="snd-grid">
         {list.map((pr) => (
           <button key={pr.name} className="lib-session snd-item" style={{ borderColor: '#00ff88', color: '#00ff88' }}
-            onClick={() => { engine.applySound(cat, pr.p); force((x) => x + 1); }}>
+            onClick={() => { engine.previewSound(cat, pr.p); force((x) => x + 1); }}>
             {pr.name}
           </button>
         ))}
       </div>
-      <div className="hint">Click to re-voice instantly. AN = analog, FM = frequency modulation, WT = wavetable.</div>
+      <div className="hint">Click any preset to HEAR it instantly + apply it. AN = analog, FM = frequency modulation, WT = wavetable.</div>
     </div>
   );
 }
@@ -299,7 +299,6 @@ export default function App() {
   useEffect(() => {
     engine.onTick = (bar, step) => setPos({ bar, step });
     engine.loadSession('fullon', 'classic', 1);
-    engine.init();
     setBpm(engine.bpm);
     force((x) => x + 1);
     return () => { engine.onTick = null; };
