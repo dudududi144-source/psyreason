@@ -327,6 +327,10 @@ export class Engine {
     if (id === 'lead' && key === 'rSend') this.setSend('lead', 'r', v);
     if (id === 'pad' && key === 'rSend') this.setSend('pad', 'r', v);
   }
+  applySound(cat: string, p: Record<string, any>) {
+    const target = (this.params as any)[cat];
+    if (target) Object.assign(target, p);
+  }
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
 
   level(id: TrackId | 'master'): number {
