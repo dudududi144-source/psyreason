@@ -469,10 +469,9 @@ export class Engine {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
     const barIn = bar - startBar;
-    const isDropIn = rn === 'dropin';
     const on = (id: TrackId) => {
       if (!section.active.includes(id)) return false;
-      if (isDropIn) {
+      if (((section as any).role || '') === 'dropin') {
         if (id === 'bass') return barIn >= 1;
         if (id === 'hats' || id === 'open') return barIn >= 2;
         if (id === 'lead' || id === 'pad') return barIn >= 4;
