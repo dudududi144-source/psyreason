@@ -395,7 +395,7 @@ export default function App() {
   const [bpm, setBpm] = useState(145);
   const [pos, setPos] = useState({ bar: -1, step: -1 });
   const [audioState, setAudioState] = useState('off');
-  useEffect(() => { const iv = setInterval(() => setAudioState(engine.audioState()), 400); return () => clearInterval(iv); }, []);
+  useEffect(() => { const iv = setInterval(() => { setAudioState(engine.audioState()); setBpm((b) => (b === engine.bpm ? b : engine.bpm)); }, 400); return () => clearInterval(iv); }, []);
   const [, force] = useState(0);
   const [family, setFamily] = useState('PSY MAIN');
   const [styleId, setStyleId] = useState('fullon');
@@ -434,17 +434,17 @@ export default function App() {
       <div className="stylebar sub">
         <span className="sb-label">STYLE</span>
         {STYLES.filter((s) => s.family === family).map((st) => (
-          <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')} style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined} onClick={() => { setStyleId(st.id); setSubId(st.subs[0].id); engine.loadSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{st.name}</button>
+          <button key={st.id} className={'style-chip' + (styleId === st.id ? ' on' : '')} style={styleId === st.id ? { borderColor: st.color, color: st.color } : undefined} onClick={() => { setStyleId(st.id); setSubId(st.subs[0].id); engine.queueSession(st.id, st.subs[0].id, 1); force((x) => x + 1); }}>{st.name}</button>
         ))}
         <span className="sb-label">SUB</span>
         {(STYLES.find((s) => s.id === styleId) || STYLES[0]).subs.map((sb) => (
-          <button key={sb.id} className={'style-chip subchip' + (subId === sb.id ? ' on' : '')} style={subId === sb.id ? { borderColor: '#fff', color: '#fff' } : undefined} onClick={() => { setSubId(sb.id); engine.loadSession(styleId, sb.id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{sb.name}</button>
+          <button key={sb.id} className={'style-chip subchip' + (subId === sb.id ? ' on' : '')} style={subId === sb.id ? { borderColor: '#fff', color: '#fff' } : undefined} onClick={() => { setSubId(sb.id); engine.queueSession(styleId, sb.id, 1); force((x) => x + 1); }}>{sb.name}</button>
         ))}
       </div>
       <div className="stylebar sub">
         <span className="sb-label">SESSION</span>
         {Array.from({ length: 16 }, (_, i) => i + 1).map((v) => (
-          <button key={v} className="var-btn" onClick={() => { engine.loadSession(styleId, subId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
+          <button key={v} className="var-btn" onClick={() => { engine.queueSession(styleId, subId, v); force((x) => x + 1); }}>S{v}</button>
         ))}
       </div>
       <main className="content">
