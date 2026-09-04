@@ -169,6 +169,29 @@ export class Engine {
       'PSY MAIN': { width: 0.6, bright: 1.1 }, 'TECH': { width: 0.4, bright: 0.9 },
     };
     const pt = padTaste[fam]; if (pt) Object.assign(this.params.pad, pt);
+    // PER-FAMILY SIGNATURE: genuine sonic identity per family (lead/bass/drums/feel/FX)
+    const sig: Record<string, any> = {
+      'PSY MAIN': { swing: 0, lead: { ftype: 0, sus: 0.2, voices: 2 }, bass: { ftype: 'lp' }, kick: { sat: 0.5, decay: 0.26, punch: 0.7 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.35, rSend: 0.2 },
+      'GOA & CLASSICS': { swing: 0.15, lead: { ftype: 1, sus: 0.3, voices: 1, wave: 'sawtooth' }, bass: { ftype: 'bp' }, kick: { sat: 0.4, decay: 0.3, punch: 0.5 }, hats: { tone: 7000, metal: 0.35, decay: 0.6 }, dFb: 0.5, dSend: 0.45, rSend: 0.25 },
+      'DARK': { swing: 0, lead: { ftype: 2, sus: 0.1, voices: 2 }, bass: { ftype: 'lp', drive: 0.7 }, kick: { sat: 0.75, decay: 0.21, punch: 0.9 }, hats: { tone: 8200, metal: 0.7, decay: 0.35 }, dFb: 0.35, dSend: 0.3, rSend: 0.3 },
+      'HYPNOTIC': { swing: 0, lead: { ftype: 0, sus: 0.5, voices: 2 }, bass: { ftype: 'lp' }, kick: { sat: 0.4, decay: 0.28, punch: 0.6 }, hats: { tone: 7000, metal: 0.4, decay: 0.5 }, dFb: 0.45, dSend: 0.4, rSend: 0.3 },
+      'CHILL': { swing: 0.25, lead: { ftype: 0, sus: 0.8, voices: 1, wave: 'triangle' }, bass: { ftype: 'lp', sub: 0.9 }, kick: { sat: 0.2, decay: 0.4, punch: 0.3 }, hats: { tone: 6000, metal: 0.25, decay: 0.8 }, dFb: 0.5, dSend: 0.5, rSend: 0.6 },
+      'TRANCE': { swing: 0, lead: { ftype: 0, sus: 0.6, voices: 3 }, bass: { ftype: 'lp' }, kick: { sat: 0.4, decay: 0.28, punch: 0.6 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.4, rSend: 0.45 },
+      'TECH': { swing: 0, lead: { ftype: 1, sus: 0.2, voices: 1 }, bass: { ftype: 'bp' }, kick: { sat: 0.6, decay: 0.24, punch: 0.8 }, hats: { tone: 8000, metal: 0.6, decay: 0.4 }, dFb: 0.3, dSend: 0.3, rSend: 0.2 },
+      'WILD': { swing: 0, lead: { ftype: 2, sus: 0.2, voices: 2 }, bass: { ftype: 'lp', drive: 0.8 }, kick: { sat: 0.85, decay: 0.2, punch: 0.9 }, hats: { tone: 8500, metal: 0.8, decay: 0.3 }, dFb: 0.3, dSend: 0.35, rSend: 0.25 },
+    };
+    const sg = sig[fam];
+    if (sg) {
+      Object.assign(this.params.lead, sg.lead);
+      Object.assign(this.params.bass, sg.bass);
+      Object.assign(this.params.kick, sg.kick);
+      Object.assign(this.params.hats, sg.hats);
+      this.swing = sg.swing;
+      if (this.delayFbGain) this.delayFbGain.gain.value = sg.dFb;
+      this.params.lead.dSend = sg.dSend; this.params.pad.rSend = sg.rSend;
+      if ((this.channels as any).lead) { (this.channels as any).lead.dSend.gain.value = sg.dSend; }
+      if ((this.channels as any).pad) { (this.channels as any).pad.rSend.gain.value = sg.rSend; }
+    }
     // commercial polish: tame harshness so everything sits musically
     this.params.lead.res = Math.min(this.params.lead.res ?? 6, 12);
     this.params.lead.cutoff = Math.min(this.params.lead.cutoff ?? 4000, 6000);
