@@ -461,14 +461,15 @@ export class Engine {
     for (const m of chord) for (const det of [-6, 6]) {
       const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det * ((p as any).det ?? 1);
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff * ((p as any).bright ?? 1); lp.Q.value = 0.4;
-      const plf = ctx.createOscillator(); plf.frequency.value = 0.12; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.35; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.1);
+      const plf = ctx.createOscillator(); plf.frequency.value = 0.1; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.22; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.8);
       const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045, t + 0.08);
-      g.gain.setValueAtTime(0.045, t + Math.max(0.1, dur - 0.08)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      const lvl = 0.04, atk = 0.4, rel = 0.6;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + atk);
+      g.gain.setValueAtTime(lvl, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
       o.connect(lp); lp.connect(g);
       const pn = ctx.createStereoPanner(); pn.pan.value = (det < 0 ? -1 : 1) * (0.25 + 0.5 * ((p as any).width ?? 0.5));
       g.connect(pn); pn.connect(out);
-      o.start(t); o.stop(t + dur + 0.1);
+      o.start(t); o.stop(t + dur + rel + 0.05);
     }
   }
   vClap(t: number) {
