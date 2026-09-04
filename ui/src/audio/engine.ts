@@ -321,6 +321,76 @@ export class Engine {
     n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + 0.08);
   }
 
+  private leadOsc(ctx: AudioContext, p: any, f: number, t: number): OscillatorNode {
+    if (p.engine === 'fm') {
+      const car = ctx.createOscillator(); car.type = 'sine';
+      const mod = ctx.createOscillator(); mod.type = 'sine';
+      const ratio = p.fmRatio ?? 2; const amt = p.fmAmt ?? 2;
+      mod.frequency.value = f * ratio;
+      const mg = ctx.createGain(); mg.gain.value = f * ratio * amt;
+      mod.connect(mg); mg.connect(car.frequency);
+      (car as any)._mod = mod;
+      return car;
+    }
+    if (p.engine === 'wave') {
+      const n = 16; const real = new Float32Array(n); const imag = new Float32Array(n);
+      const wt = p.wt ?? 0.5;
+      for (let h = 1; h < n; h++) {
+        imag[h] = (h % 2 === 1 ? 1 / h : 0) * (1 - wt * 0.5) + (wt > 0.5 ? (1 / (h * h)) * (wt - 0.5) * 2 : 0);
+      }
+      const wave = ctx.createPeriodicWave(real, imag);
+      const o = ctx.createOscillator(); o.setPeriodicWave(wave);
+      return o;
+    }
+    const o = ctx.createOscillator(); o.type = (p.wave as OscillatorType) || 'sawtooth';
+    return o;
+  }
+  vLead(t: number, midi: number, dur: number) {
+    const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
+    const f = mtof(midi);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = p.res;
+    lp.frequency.setValueAtTime(p.cutoff * 1.6 * this.sweep, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, p.cutoff * 0.35 * this.sweep), t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const voicesN = Math.max(1, (p as any).voices ?? 2);
+    const detAmt = (p as any).detune ?? 8;
+    const glide = (p as any).glide ?? 0;
+    for (let vi = 0; vi < voicesN; vi++) {
+      const det = voicesN === 1 ? 0 : (vi - (voicesN - 1) / 2) * detAmt;
+      const o = this.leadOsc(ctx, p as any, f, t);
+      if (glide > 0) { o.frequency.setValueAtTime(f * 0.7, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04); }
+      else o.frequency.value = f;
+      o.detune.value = det;
+      const mod = (o as any)._mod as OscillatorNode | undefined;
+      if ((p as any).vib) { const vl = ctx.createOscillator(); vl.frequency.value = 5.2; const vg = ctx.createGain(); vg.gain.value = (p as any).vib * 9; vl.connect(vg); vg.connect(o.detune); vl.start(t); vl.stop(t + dur + 0.05); }
+      o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
+      if (mod) { mod.start(t); mod.stop(t + dur + 0.05); }
+    }
+    lp.connect(g); g.connect(out);
+  }
+  vPad(t: number, chord: number[], dur: number) {
+    const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
+    for (const m of chord) for (const det of [-6, 6]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff; lp.Q.value = 0.4;
+      const plf = ctx.createOscillator(); plf.frequency.value = 0.12; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.35; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.1);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045, t + 0.08);
+      g.gain.setValueAtTime(0.045, t + Math.max(0.1, dur - 0.08)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      o.connect(lp); lp.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.1);
+    }
+  }
+  vClap(t: number) {
+    const ctx = this.ctx!;
+    const n = ctx.createBufferSource(); n.buffer = this.noise();
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 1.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    for (let i = 0; i < 3; i++) { g.gain.setValueAtTime(0.28, t + i * 0.012); g.gain.exponentialRampToValueAtTime(0.04, t + i * 0.012 + 0.01); }
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    n.connect(bp); bp.connect(g); g.connect(this.channels.kick.bus);
+    n.start(t); n.stop(t + 0.2);
+  }
   private tick = () => {
     const ctx = this.ctx!;
     const stepDur = 60 / this.bpm / 4;
