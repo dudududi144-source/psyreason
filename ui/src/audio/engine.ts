@@ -342,7 +342,9 @@ export class Engine {
   }
 
   async start() {
-    await this.init(); if (this.running) return;
+    await this.init();
+    if (this.ctx && this.ctx.state !== 'running') { try { await this.ctx.resume(); } catch (e) {} }
+    if (this.running) return;
     this.running = true; this.step16 = 0; this.nextTime = this.ctx!.currentTime + 0.1;
     this.timer = window.setInterval(this.tick, 25);
   }
