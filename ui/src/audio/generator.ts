@@ -104,7 +104,33 @@ export const STYLES: StyleDef[] = [
   { id: 'psybreaks', name: 'PSY BREAKS', color: '#ffaa88', family: 'WILD', desc: 'broken beat psy 150', subs: [
     sub({ id: 'breaks', name: 'Psy Breaks', bpm: 150, kickMode: 'breaks', bassChar: 'growl', leadChar: 'twist', drumChar: 'breaky', clap: true, bassStyle: 'driving', leadDensity: 0.5, hatBusy: 0.6, desc: 'broken beat psychedelia' }),
   ]},
+  { id: 'nightpsy', name: 'NIGHT PSY', color: '#5566ff', family: 'DARK', desc: 'deep night drive 148-150', subs: [
+    sub({ id: 'deepnight', name: 'Deep Night', bpm: 148, bassChar: 'sub', leadChar: 'twist', drumChar: 'hard', bassCut: 650, leadDensity: 0.4, padProb: 0.3, desc: 'sub-heavy night drive' }),
+    sub({ id: 'predator', name: 'Predator', bpm: 150, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', bassRes: 9, leadRes: 10, leadDensity: 0.45, desc: 'hunting dark energy' }),
+  ]},
+  { id: 'goatech', name: 'GOA TECH', color: '#ddaa00', family: 'TECH', desc: 'goa meets techno 140-144', subs: [
+    sub({ id: 'goatech', name: 'Goa Tech', bpm: 140, scale: HARM, bassChar: 'acid', leadChar: 'acid', bassStyle: 'hypnotic', bassWave: 'square', leadDensity: 0.35, desc: 'hypnotic acid techno' }),
+    sub({ id: 'warehouse', name: 'Warehouse', bpm: 144, bassChar: 'acid', leadChar: 'pluck', drumChar: 'hard', clap: true, bassDrive: 0.8, leadDensity: 0.3, desc: 'dark warehouse rave' }),
+  ]},
+  { id: 'psycore', name: 'PSYCORE', color: '#ff0055', family: 'WILD', desc: 'extreme 178-182', subs: [
+    sub({ id: 'core', name: 'Core', bpm: 178, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', bassStyle: 'kbb', bassDrive: 0.95, leadDensity: 0.7, leadLeap: 0.7, kickDecay: 0.2, desc: 'relentless core speed' }),
+    sub({ id: 'speedball', name: 'Speedball', bpm: 182, bassChar: 'growl', leadChar: 'twist', drumChar: 'hard', bassStyle: 'kbb', hatBusy: 0.9, leadDensity: 0.8, desc: 'maximum velocity' }),
+  ]},
+  { id: 'ambientpsy', name: 'AMBIENT PSY', color: '#88ddee', family: 'CHILL', desc: 'beatless depths 78-84', subs: [
+    sub({ id: 'deepambient', name: 'Deep Ambient', bpm: 78, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', kickMode: 'half', bassStyle: 'driving', leadDensity: 0.25, padProb: 1, hatBusy: 0.05, openProb: 0.2, desc: 'oceanic depths' }),
+    sub({ id: 'floating', name: 'Floating', bpm: 84, scale: DOR, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', kickMode: 'half', leadDensity: 0.35, padProb: 1, desc: 'weightless floating' }),
+  ]},
+  { id: 'upliftinggoa', name: 'UPLIFTING GOA', color: '#ffbb44', family: 'TRANCE', desc: 'euphoric goa 141-143', subs: [
+    sub({ id: 'sunrisegoa', name: 'Sunrise Goa', bpm: 141, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.75, padProb: 0.9, leadCut: 5400, desc: 'goa sunrise euphoria' }),
+    sub({ id: 'euphoria', name: 'Euphoria', bpm: 143, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.8, leadLeap: 0.45, padProb: 1, leadWave: 'square', desc: 'peak-time hands up' }),
+  ]},
+  { id: 'forestprog', name: 'FOREST PROG', color: '#44aa77', family: 'HYPNOTIC', desc: 'organic hypnotic 134-137', subs: [
+    sub({ id: 'greenprog', name: 'Green Prog', bpm: 134, scale: DOR, bassChar: 'flat', leadChar: 'air', drumChar: 'round', bassStyle: 'hypnotic', leadDensity: 0.3, padProb: 0.6, desc: 'organic forest groove' }),
+    sub({ id: 'mossy', name: 'Mossy', bpm: 137, scale: DOR, bassChar: 'growl', leadChar: 'twist', drumChar: 'round', bassStyle: 'hypnotic', leadDensity: 0.35, padProb: 0.5, desc: 'deep mossy textures' }),
+  ]},
 ];
+
+
 
 export const SESSIONS_PER_SUB = 8;
 
