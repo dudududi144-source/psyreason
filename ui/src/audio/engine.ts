@@ -469,12 +469,21 @@ export class Engine {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
     const barIn = bar - startBar;
-    const on = (id: TrackId) => section.active.includes(id);
+    const isDropIn = rn === 'dropin';
+    const on = (id: TrackId) => {
+      if (!section.active.includes(id)) return false;
+      if (isDropIn) {
+        if (id === 'bass') return barIn >= 1;
+        if (id === 'hats' || id === 'open') return barIn >= 2;
+        if (id === 'lead' || id === 'pad') return barIn >= 4;
+      }
+      return true;
+    };
     const s = this.song as any; const stepDur = 60 / this.bpm / 4;
     t = t + (step % 2 === 1 ? this.swing * stepDur * 0.35 : 0) + (this.humanize > 0 ? (((bar * 31 + step * 7) % 5) - 2) * 0.002 * this.humanize : 0);
     // role-based section detection (smart: new section types plug in without breaking old names)
     const rn = (section as any).role || '';
-    const isDrop = rn === 'drop' || rn === 'drop2' || rn === 'climax' || section.name.startsWith('DROP');
+    const isDrop = rn === 'drop' || rn === 'drop2' || rn === 'climax' || rn === 'dropin' || section.name.startsWith('DROP');
     const isDrop2 = rn === 'drop2' || rn === 'climax' || section.name === 'DROP 2';
     const isBuild = rn === 'build' || section.name.startsWith('BUILD');
     const isBreak = rn === 'break' || rn === 'ambient' || rn === 'acid' || rn === 'half' || section.name === 'BREAK';
