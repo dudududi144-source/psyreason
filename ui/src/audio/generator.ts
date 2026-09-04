@@ -144,6 +144,22 @@ export const STYLES: StyleDef[] = [
     sub({ id: 'slowburn', name: 'Slow Burn', bpm: 129, bassChar: 'flat', leadChar: 'air', drumChar: 'soft', bassStyle: 'hypnotic', leadDensity: 0.25, padProb: 0.7, desc: 'patient dark tension' }),
     sub({ id: 'deepprog', name: 'Deep Prog', bpm: 131, scale: DOR, bassChar: 'sub', leadChar: 'air', drumChar: 'soft', bassStyle: 'offbeat', leadDensity: 0.3, padProb: 0.6, desc: 'submerged progression' }),
   ]},
+  { id: 'deeppsy', name: 'DEEP PSY', color: '#33bb99', family: 'PSY MAIN', desc: 'deep rolling 140', subs: [
+    sub({ id: 'deeproll', name: 'Deep Roll', bpm: 140, bassChar: 'sub', leadChar: 'air', drumChar: 'round', bassStyle: 'rolling', leadDensity: 0.45, padProb: 0.6, desc: 'submerged rolling groove' }),
+    sub({ id: 'ocean', name: 'Ocean', bpm: 141, scale: MIN, bassChar: 'flat', leadChar: 'air', drumChar: 'round', leadDensity: 0.4, padProb: 0.7, desc: 'wide oceanic layers' }),
+  ]},
+  { id: 'ravepsy', name: 'RAVE PSY', color: '#ffcc33', family: 'TECH', desc: 'stabs and sirens 150', subs: [
+    sub({ id: 'stabs', name: 'Stab Machine', bpm: 150, bassChar: 'acid', leadChar: 'pluck', drumChar: 'hard', clap: true, leadDensity: 0.5, desc: 'relentless rave stabs' }),
+    sub({ id: 'siren', name: 'Siren Night', bpm: 151, bassChar: 'acid', leadChar: 'twist', drumChar: 'hard', clap: true, leadRes: 10, leadDensity: 0.55, desc: 'siren-led warehouse' }),
+  ]},
+  { id: 'acidforest', name: 'ACID FOREST', color: '#77cc44', family: 'DARK', desc: 'squelching woods 150', subs: [
+    sub({ id: 'mushroom', name: 'Mushroom', bpm: 150, scale: DOR, bassChar: 'acid', leadChar: 'acid', drumChar: 'hard', bassStyle: 'kbb', leadDensity: 0.45, desc: 'acid squelch in the forest' }),
+    sub({ id: 'spore', name: 'Spore', bpm: 152, bassChar: 'growl', leadChar: 'acid', drumChar: 'hard', leadRes: 12, leadDensity: 0.4, desc: 'dark spore trails' }),
+  ]},
+  { id: 'sunrisetrance', name: 'SUNRISE TRANCE', color: '#ff9966', family: 'TRANCE', desc: 'golden hour 146', subs: [
+    sub({ id: 'golden', name: 'Golden Hour', bpm: 146, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadDensity: 0.75, padProb: 1, desc: 'golden hour euphoria' }),
+    sub({ id: 'horizon', name: 'Horizon', bpm: 147, scale: MAJ, bassChar: 'flat', leadChar: 'super', clap: true, leadLeap: 0.5, padProb: 1, leadWave: 'square', desc: 'endless horizon anthem' }),
+  ]},
 ];
 
 
@@ -152,7 +168,9 @@ export const STYLES: StyleDef[] = [
 
 
 
-export const SESSIONS_PER_SUB = 10;
+
+
+export const SESSIONS_PER_SUB = 12;
 
 export function styleById(id: string): StyleDef { return STYLES.find((s) => s.id === id) || STYLES[0]; }
 export function subById(styleId: string, subId: string): SubStyle {
