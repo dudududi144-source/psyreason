@@ -88,12 +88,12 @@ export class Engine {
   onTick: ((bar: number, step: number, sectionIndex: number) => void) | null = null;
 
   params: Record<TrackId, any> = {
-    kick: { decay: 0.28, punch: 0.5 },
-    bass: { cutoff: 900, res: 6, drive: 0.4, decay: 0.18, sidechain: 1 },
-    hats: { tone: 7500 },
-    open: { tone: 6500 },
-    lead: { cutoff: 4200, res: 5, decay: 0.3, dSend: 0.35, rSend: 0.2 },
-    pad: { cutoff: 1200, rSend: 0.5, dSend: 0 },
+    kick: { decay: 0.28, punch: 0.5, subk: 0.5, sat: 0.35, body: 0.4 },
+    bass: { cutoff: 900, res: 6, drive: 0.4, decay: 0.18, sidechain: 1, pluck: 0.7, sub: 0.4, wave: 'sawtooth' },
+    hats: { tone: 7500, metal: 0.5, decay: 0.5 },
+    open: { tone: 6500, metal: 0.4, decay: 0.5 },
+    lead: { cutoff: 4200, res: 5, decay: 0.3, dSend: 0.35, rSend: 0.2, voices: 2, detune: 8, sus: 0.3 },
+    pad: { cutoff: 1400, rSend: 0.5, dSend: 0, wave: 'sawtooth', det: 8, bright: 0.9, width: 0.6 },
   };
 
   arrangement: Section[] = ARRANGEMENT.map((s) => ({ ...s, active: [...s.active] }));
