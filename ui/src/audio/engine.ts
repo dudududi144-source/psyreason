@@ -555,6 +555,7 @@ export class Engine {
     const isIntroSec = roleNow.startsWith('intro');
     const en = (section as any).energy ?? (isIntroSec ? 0.15 + 0.65 * (barIn / Math.max(1, section.bars)) : isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
     if (step === 0 && barIn === 0 && this.formGain) this.formGain.gain.setTargetAtTime(0.8 + 0.22 * en, t, 0.5); // macro energy arc (smooth)
+    if (isIntroSec && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.76 + 0.28 * prog, t, 0.9); } // intro grows toward the drop
     if (isDrop && bar % 8 === 7 && step === 14) this.vHat(t, true, 0.4); // 8-bar ear candy
     const useB = barIn % 4 >= 2 || isDrop2;
     const lastBar = barIn === section.bars - 1;
