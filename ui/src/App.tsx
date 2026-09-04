@@ -242,7 +242,7 @@ function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => vo
                   <div key={sb.id} className="lib-sub">
                     <div className="lib-sub-head">{sb.name} <em>{sb.bpm} BPM • {sb.desc}</em></div>
                     <div className="lib-sessions">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((v) => (
+                      {Array.from({ length: 16 }, (_, i) => i + 1).map((v) => (
                         <button key={v} className="lib-session" style={{ borderColor: st.color, color: st.color }} onClick={() => onPick(st.id, sb.id, v)}>S{v}</button>
                       ))}
                     </div>
@@ -353,10 +353,10 @@ export default function App() {
       </div>
       <div className="stylebar sub">
         <span className="sb-label">SESSION</span>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((v) => (
+        {Array.from({ length: 16 }, (_, i) => i + 1).map((v) => (
           <button key={v} className="var-btn" onClick={() => { engine.loadSession(styleId, subId, v); setBpm(engine.bpm); force((x) => x + 1); }}>S{v}</button>
         ))}
-        <span className="style-desc">12 curated sessions per sub-style • each with its own timbre flavor • GENERATE for infinite</span>
+        <span className="style-desc">16 curated sessions per sub-style • each with its own timbre flavor • GENERATE for infinite</span>
       </div>
       <main className="content">
         {view === 'arrange' && <Arrange pos={pos} playing={playing} />}
