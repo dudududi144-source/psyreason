@@ -485,6 +485,8 @@ export class Engine {
     if (section.name === 'BREAK' && barIn >= 4 && step % 2 === 1) this.vShaker(t); // break builds percussion
     if (section.name === 'DROP 2' && step % 2 === 1) this.vShaker(t); // drop 2 extra drive
     if (this.openIntoDrop && step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vHat(t, true, 0.8);
+    if (section.name === 'BUILD 2' && lastBar && step === 12) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.72, t, 0.08); } // tension dip
+    if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); }
     if (step === 0 && barIn === 0 && (section.name === 'DROP' || section.name === 'DROP 2')) this.vBass(t, -12, stepDur * 2, 1); // sub drop impact
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[bar % chordsG.length][0];
@@ -494,6 +496,8 @@ export class Engine {
     if (on('hats') && s.hats[step] && !(section.name === 'OUTRO' && barIn >= 6)) { const dropExit = (section.name === 'DROP' || section.name === 'DROP 2') && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (section.name === 'BREAK' && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (section.name === 'BREAK' && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; } // darken then build2 reopens
+    if ((section.name === 'BUILD 2' || section.name === 'DROP 2') && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
     if (section.name === 'BREAK' && barIn === 0 && step === 0) this.vBass(t, 0, stepDur * 8, 0.6);
     if (section.name === 'BREAK' && step === 0 && barIn % 2 === 0) this.vKick(t, 0.45); // half-time heartbeat keeps pulse
