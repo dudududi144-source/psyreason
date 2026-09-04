@@ -29,6 +29,7 @@ function buildBass(): SoundPreset[] {
       name: BW[i % BW.length] + ' Bass ' + String(i + 1).padStart(3, '0'),
       p: {
         wave: waves[i % 2],
+        ftype: ch === 'acid' && t3 > 0.5 ? 'bp' : 'lp',
         cutoff: Math.round(350 + t1 * 1100),
         res: Math.round(2 + t2 * 13),
         drive: +(0.15 + t3 * 0.7).toFixed(2),
@@ -50,6 +51,8 @@ function buildLead(): SoundPreset[] {
     const en = engines[i % 3];
     const p: any = {
       engine: en,
+      ftype: [0, 0, 1, 2][i % 4],
+      sus: t3,
       cutoff: Math.round(2000 + t1 * 4500),
       res: Math.round(2 + t2 * 12),
       decay: +(0.12 + t3 * 0.45).toFixed(2),
@@ -77,6 +80,7 @@ function buildPad(): SoundPreset[] {
         cutoff: Math.round(300 * Math.pow(3500 / 300, t1)),
         det: [2, 6, 12][i % 3],
         bright: [0.6, 1, 1.6][Math.floor(t2 * 2.99)],
+        width: +t2.toFixed(2),
         rSend: +(0.3 + t2 * 0.5).toFixed(2),
       },
     });
@@ -90,13 +94,7 @@ function buildKick(): SoundPreset[] {
     const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9, t3 = (Math.floor(i / 100) % 2);
     out.push({
       name: KW[i % KW.length] + ' Kick ' + String(i + 1).padStart(3, '0'),
-      p: {
-        decay: +(0.18 + t1 * 0.24).toFixed(2),
-        punch: +(0.3 + t2 * 0.6).toFixed(2),
-        body: +(0.2 + t3 * 0.6).toFixed(2),
-        subk: +(0.3 + t1 * 0.5).toFixed(2),
-        sat: +(0.2 + t2 * 0.6).toFixed(2),
-      },
+      p: { decay: +(0.18 + t1 * 0.24).toFixed(2), punch: +(0.3 + t2 * 0.6).toFixed(2), body: +(0.2 + t3 * 0.6).toFixed(2), subk: +(0.3 + t1 * 0.5).toFixed(2), sat: +(0.2 + t2 * 0.6).toFixed(2) },
     });
   }
   return out;
@@ -106,10 +104,7 @@ function buildHats(): SoundPreset[] {
   const HW = ['Classic', 'Tight', 'Loose', 'Metal', 'Soft', 'Busy', 'Airy', 'Dark'];
   for (let i = 0; i < 140; i++) {
     const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9;
-    out.push({
-      name: HW[i % HW.length] + ' Hat ' + String(i + 1).padStart(3, '0'),
-      p: { tone: Math.round(5500 + t1 * 4000), metal: +(0.2 + t2 * 0.7).toFixed(2) },
-    });
+    out.push({ name: HW[i % HW.length] + ' Hat ' + String(i + 1).padStart(3, '0'), p: { tone: Math.round(5500 + t1 * 4000), metal: +(0.2 + t2 * 0.7).toFixed(2), decay: +t2.toFixed(2) } });
   }
   return out;
 }
