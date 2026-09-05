@@ -252,6 +252,11 @@ export class Engine {
     for (const tn of chord) { for (const oct of [-12, 0, 12]) { const c = tn + oct; const d = Math.abs(c - m); if (d < bd) { bd = d; best = c; } } }
     return Math.max(48, Math.min(96, best));
   }
+  private nearestToneLow(m: number, chord: number[]): number {
+    let best = m, bd = 99;
+    for (const tn of chord) { for (const oct of [-24, -12, 0]) { const c = tn + oct; const d = Math.abs(c - m); if (d < bd) { bd = d; best = c; } } }
+    return Math.max(28, Math.min(52, best));
+  }
   generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
     this.seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
@@ -751,12 +756,12 @@ export class Engine {
     if (isBuild && lastBar && step === 12) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.72, t, 0.08); }
     if (step === 0 && barIn === 0 && isDrop) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); this.vImpact(t, 1); } // drop lands with weight
     if (roleNow === 'bridge' && barIn === 0 && step === 0) this.vImpact(t, 0.4); // gentle down-marker into the bridge
-    if (step === 0 && barIn === 0 && isDrop) this.vBass(t, -12, stepDur * 2, 1);
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[chordBar % chordsG.length][0];
     const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
     const phraseLast = bar % 4 === 3;
-    if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { let semiN = b.semi; if (this.followChords && semiN !== 0 && semiN !== 7 && semiN !== 12) semiN = semiN < 4 ? 0 : semiN < 10 ? 7 : 12; const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, semiN + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
+    if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { let note = this.bassRoot + rootShift + b.semi; if (this.followChords) note = this.nearestToneLow(note, chordsG[chordBar % chordsG.length]); const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, note - this.bassRoot + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
+    if (step === 0 && barIn === 0 && isDrop && on('bass')) { const subNote = this.followChords ? this.nearestToneLow(this.bassRoot - 12, chordsG[chordBar % chordsG.length]) : this.bassRoot - 12; this.vBass(t, subNote - this.bassRoot, stepDur * 2, 1); } // snapped drop sub-hit
     if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; let L = arr[step]; if (L !== null && L !== undefined) { if (this.followChords && (step % 4 === 0 || step === 15)) { L = this.nearestTone(L, chordsG[chordBar % chordsG.length]); } this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
