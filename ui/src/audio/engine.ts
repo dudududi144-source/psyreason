@@ -164,7 +164,7 @@ export class Engine {
     if ((sb as any).dSend !== undefined) this.params.lead.dSend = (sb as any).dSend;
     if ((sb as any).rSend !== undefined) { this.params.lead.rSend = (sb as any).rSend; this.params.pad.rSend = (sb as any).rSend; }
     const fam = styleById(styleId).family;
-    this.followChords = fam === 'TRANCE' || fam === 'CHILL' || fam === 'HYPNOTIC';
+    this.followChords = fam === 'TRANCE' || fam === 'CHILL' || fam === 'HYPNOTIC' || fam === 'GOA & CLASSICS';
     this.phraseFills = fam === 'TRANCE' || fam === 'CHILL' || fam === 'GOA & CLASSICS';
     this.breakEcho = fam !== 'DARK' && fam !== 'TECH';
     // family drum + pad taste: each family's default drums/pads sound distinct
