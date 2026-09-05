@@ -639,7 +639,16 @@ export class Engine {
     const stepDur = 60 / this.bpm / 4;
     while (this.nextTime < ctx.currentTime + 0.2) {
       if (this.pendingJump !== null && this.step16 % 16 === 0) { this.step16 = this.pendingJump; this.pendingJump = null; }
-      if (this.pendingSession && this.step16 % 16 === 0) { const ps = this.pendingSession; this.pendingSession = null; this.loadSession(ps.s, ps.sb, ps.ss); this.sweep = 1; this.vHat(this.nextTime, true, 0.7); } // DJ-style switch at bar
+      if (this.pendingSession && this.step16 % 16 === 0) {
+        const ps = this.pendingSession; this.pendingSession = null;
+        this.loadSession(ps.s, ps.sb, ps.ss); this.sweep = 1; this.vHat(this.nextTime, true, 0.7);
+        if (this.master) { // DJ-style dip: mask the song swap, land smooth
+          const tgt = 0.5 + this.masterUI.level * 0.6;
+          this.master.gain.cancelScheduledValues(this.nextTime);
+          this.master.gain.setValueAtTime(0.5, this.nextTime);
+          this.master.gain.setTargetAtTime(tgt, this.nextTime + 0.06, 0.3);
+        }
+      } // DJ-style switch at bar
       this.schedule(this.step16, this.nextTime);
       const g = this.step16;
       const ms = Math.max(0, (this.nextTime - ctx.currentTime) * 1000);
