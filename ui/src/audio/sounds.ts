@@ -275,33 +275,6 @@ function buildTrans(): SoundPreset[] {
   }
   return out;
 }
-const F_FULL = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
-const F_GROOVE = ['kick', 'bass', 'hats'];
-const F_AIR = ['lead', 'pad'];
-const F_MIN = ['kick', 'hats'];
-const F_BUILD = ['kick', 'bass', 'hats', 'open', 'lead'];
-const FS = (name: string, bars: number, active: string[]) => ({ name, bars, active });
-function buildForms(): SoundPreset[] {
-  const T: [string, any[]][] = [
-    ['Classic Full-On', [FS('INTRO', 8, F_GROOVE), FS('BUILD', 4, F_BUILD), FS('DROP', 24, F_FULL), FS('BREAK', 16, F_AIR), FS('BUILD 2', 4, F_BUILD), FS('DROP 2', 24, F_FULL), FS('OUTRO', 8, F_MIN)]],
-    ['Peak Time Club', [FS('DROP', 32, F_FULL), FS('BREAK', 16, F_AIR), FS('DROP 2', 32, F_FULL), FS('OUTRO', 8, F_MIN)]],
-    ['Progressive Journey', [FS('INTRO', 16, F_GROOVE), FS('BUILD', 8, F_BUILD), FS('DROP', 32, F_FULL), FS('BREAK', 24, F_AIR), FS('BUILD 2', 8, F_BUILD), FS('DROP 2', 32, F_FULL), FS('OUTRO', 16, F_MIN)]],
-    ['Morning Uplift', [FS('INTRO', 8, F_AIR), FS('BUILD', 4, F_BUILD), FS('DROP', 24, F_FULL), FS('BREAK', 16, F_AIR), FS('BUILD 2', 4, F_BUILD), FS('DROP 2', 32, F_FULL), FS('OUTRO', 8, F_AIR)]],
-    ['Dark Hypnotic', [FS('INTRO', 16, F_GROOVE), FS('DROP', 48, F_FULL), FS('BREAK', 16, F_AIR), FS('DROP 2', 48, F_FULL), FS('OUTRO', 8, F_MIN)]],
-    ['Radio Edit', [FS('INTRO', 4, F_GROOVE), FS('BUILD', 4, F_BUILD), FS('DROP', 16, F_FULL), FS('BREAK', 8, F_AIR), FS('BUILD 2', 4, F_BUILD), FS('DROP 2', 16, F_FULL), FS('OUTRO', 4, F_MIN)]],
-    ['Afterhours Deep', [FS('INTRO', 16, F_AIR), FS('BUILD', 8, F_BUILD), FS('DROP', 32, F_FULL), FS('BREAK', 24, F_AIR), FS('DROP 2', 32, F_FULL), FS('OUTRO', 16, F_AIR)]],
-    ['Double Drop', [FS('INTRO', 8, F_GROOVE), FS('BUILD', 4, F_BUILD), FS('DROP', 16, F_FULL), FS('MID', 8, F_GROOVE), FS('DROP 2', 16, F_FULL), FS('BREAK', 16, F_AIR), FS('DROP 3', 24, F_FULL), FS('OUTRO', 8, F_MIN)]],
-    ['Minimal Tool', [FS('INTRO', 16, F_MIN), FS('DROP', 32, F_GROOVE), FS('BREAK', 16, F_AIR), FS('DROP 2', 32, F_GROOVE), FS('OUTRO', 16, F_MIN)]],
-    ['Uplifting Anthem', [FS('INTRO', 8, F_AIR), FS('BUILD', 8, F_BUILD), FS('DROP', 24, F_FULL), FS('BREAK', 24, F_AIR), FS('BUILD 2', 8, F_BUILD), FS('DROP 2', 32, F_FULL), FS('OUTRO', 8, F_AIR)]],
-    ['Forest Ritual', [FS('INTRO', 16, F_GROOVE), FS('BUILD', 4, F_BUILD), FS('DROP', 32, F_FULL), FS('BREAK', 24, F_AIR), FS('DROP 2', 32, F_FULL), FS('OUTRO', 16, F_MIN)]],
-    ['Goa Ceremony', [FS('INTRO', 16, F_AIR), FS('BUILD', 8, F_BUILD), FS('DROP', 32, F_FULL), FS('BREAK', 24, F_AIR), FS('BUILD 2', 8, F_BUILD), FS('DROP 2', 32, F_FULL), FS('OUTRO', 16, F_AIR)]],
-    ['Psycore Blast', [FS('INTRO', 4, F_GROOVE), FS('DROP', 24, F_FULL), FS('BREAK', 8, F_AIR), FS('DROP 2', 24, F_FULL), FS('BREAK 2', 8, F_AIR), FS('DROP 3', 24, F_FULL), FS('OUTRO', 4, F_MIN)]],
-    ['Chill Descent', [FS('INTRO', 16, F_AIR), FS('BUILD', 8, F_BUILD), FS('DROP', 24, F_FULL), FS('BREAK', 24, F_AIR), FS('OUTRO', 16, F_AIR)]],
-    ['Sunrise Set', [FS('INTRO', 16, F_AIR), FS('BUILD', 8, F_BUILD), FS('DROP', 32, F_FULL), FS('BREAK', 16, F_AIR), FS('BUILD 2', 8, F_BUILD), FS('DROP 2', 40, F_FULL), FS('OUTRO', 16, F_AIR)]],
-    ['Warehouse Loop', [FS('DROP', 48, F_GROOVE), FS('BREAK', 16, F_AIR), FS('DROP 2', 48, F_GROOVE), FS('OUTRO', 8, F_MIN)]],
-  ];
-  return T.map(([name, form]) => ({ name: 'FORM • ' + name, p: { form } }));
-}
 export const SOUND_LIB: Record<string, SoundPreset[]> = {
   bass: buildBass(),
   lead: buildLead(),
