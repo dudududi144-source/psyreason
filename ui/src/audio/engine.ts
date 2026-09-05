@@ -466,6 +466,20 @@ export class Engine {
     al.start(t); al.stop(t + dur + 0.05);
     lp.connect(g); g.connect(ap); ap.connect(out);
   }
+  vPluck(t: number, midi: number, dur: number, vel = 1) {
+    const ctx = this.ctx!; const p = this.params.lead; const out = this.channels.lead.bus;
+    const f = mtof(midi);
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.2;
+    lp.frequency.setValueAtTime(Math.min(6000, p.cutoff * 1.3), t); lp.frequency.exponentialRampToValueAtTime(500, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.075 * vel, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(lp); lp.connect(g);
+    const pn = ctx.createStereoPanner(); pn.pan.value = ((midi % 5) - 2) * 0.18;
+    g.connect(pn); pn.connect(out);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
   vPad(t: number, chord: number[], dur: number) {
     const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
     const wave = ((p as any).wave as OscillatorType) || 'sawtooth';
@@ -621,6 +635,7 @@ export class Engine {
     if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (isDrop && on('lead') && step % 2 === 1) { const chA = s.chords && s.chords.length ? s.chords : [s.padChord]; const chP = chA[bar % chA.length]; this.vPluck(t, chP[(step >> 1) % chP.length] + 12, stepDur * 1.2, 0.32); }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
