@@ -196,3 +196,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Segoe UI', 'Helvet
 .ps-prev:hover { opacity: 1; }
 .ps-scale { display: flex; flex-direction: column; justify-content: space-between; height: 150px; font-size: 7px; color: var(--dim); text-align: right; padding: 2px 0; letter-spacing: 0; }
 .ps-readout { font-size: 8px; color: var(--dim); letter-spacing: 1px; }
+
+/* view containers */
+.formview { gap: 12px; }
+.rackview { gap: 14px; }
