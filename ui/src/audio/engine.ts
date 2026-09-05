@@ -247,6 +247,11 @@ export class Engine {
     this.syncDelay();
   }
   private syncDelay() { if (this.delayNode) this.delayNode.delayTime.setTargetAtTime((60 / this.bpm) * 0.75, this.ctx ? this.ctx.currentTime : 0, 0.06); }
+  private nearestTone(m: number, chord: number[]): number {
+    let best = m, bd = 99;
+    for (const tn of chord) { for (const oct of [-12, 0, 12]) { const c = tn + oct; const d = Math.abs(c - m); if (d < bd) { bd = d; best = c; } } }
+    return Math.max(48, Math.min(96, best));
+  }
   generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
     this.seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
@@ -744,7 +749,7 @@ export class Engine {
     if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
     if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; let L = arr[step]; if (L !== null && L !== undefined) { if (this.followChords && step % 4 === 0) { L = this.nearestTone(L, chordsG[chordBar % chordsG.length]); } this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (isDrop && on('lead') && step % 2 === 1) { const chA = s.chords && s.chords.length ? s.chords : [s.padChord]; const chP = chA[chordBar % chA.length]; this.vPluck(t, chP[(step >> 1) % chP.length] + 12, stepDur * 1.2, 0.32); }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
