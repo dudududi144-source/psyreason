@@ -458,6 +458,21 @@ export function buildForms(): SoundPreset[] {
     ['Hypnotic Layers', [FS('INTRO',24,GROOVE,'intro'),FS('DROP',48,FULL,'drop'),FS('PERC TRIBAL',8,PERC,'perc'),FS('ACID BREAK',8,ACID,'acid'),FS('RE-ENTRY',8,FULL,'dropin'),FS('DROP 2',48,FULL,'drop2'),FS('OUTRO',16,MIN,'outro')]],
     ['Peak Builder', [FS('INTRO',8,FULL,'intro'),FS('BUILD',4,BUILD,'build'),FS('DROP',16,FULL,'drop'),FS('BUILD 2',4,BUILD,'build'),FS('DROP 2',24,FULL,'drop2'),FS('BREAK',8,AIR,'break'),FS('RE-ENTRY',8,FULL,'dropin'),FS('CLIMAX',32,FULL,'climax'),FS('OUTRO',8,MIN,'outro')]],
   ];
+  // Commercial transition polish: insert a 4-bar BRIDGE (gradual strip-down) before
+  // every break-like section that directly follows a drop, so energy descends smoothly.
+  for (let i = 0; i < T.length; i++) {
+    const form = T[i][1] as any[];
+    const nf: any[] = [];
+    for (let j = 0; j < form.length; j++) {
+      const sec = form[j];
+      const prev = nf[nf.length - 1];
+      const prevIsDrop = prev && (prev.role === 'drop' || prev.role === 'drop2' || prev.role === 'climax');
+      const isBreakLike = sec.role === 'break' || sec.role === 'acid' || sec.role === 'half' || sec.role === 'ambient';
+      if (prevIsDrop && isBreakLike) nf.push(FS('BRIDGE', 4, FULL, 'bridge'));
+      nf.push(sec);
+    }
+    T[i][1] = nf;
+  }
   return T.map(([name, form]) => ({ name: 'FORM \u2022 ' + name, p: { form } }));
 }
 
