@@ -21,6 +21,7 @@ export interface SubStyle {
   leadWave: string; leadCut: number; leadRes: number; leadDecay: number;
   kickDecay: number; punch: number; hatTone: number; kickMode: string;
   leadDensity: number; leadLeap: number; hatBusy: number; openProb: number; padProb: number;
+  padWave: string; padCut: number; padDet: number; padBright: number; padWidth: number;
   desc: string;
 }
 export interface StyleDef { id: string; name: string; color: string; desc: string; family: string; subs: SubStyle[]; }
@@ -33,10 +34,19 @@ const DOR = [0, 2, 3, 5, 7, 9, 10];
 const MAJ = [0, 2, 4, 5, 7, 9, 11];
 
 function sub(o: any): SubStyle {
-  return { scale: PHR, bassStyle: 'rolling', bassWave: 'sawtooth', bassCut: 900, bassRes: 6, bassDrive: 0.4,
+  const s: any = { scale: PHR, bassStyle: 'rolling', bassWave: 'sawtooth', bassCut: 900, bassRes: 6, bassDrive: 0.4,
     leadWave: 'sawtooth', leadCut: 4200, leadRes: 5, leadDecay: 0.3, kickDecay: 0.28, punch: 0.5, hatTone: 7500, kickMode: 'four',
     bassChar: 'pluck', leadChar: 'pluck', drumChar: 'punch', clap: false,
     leadDensity: 0.6, leadLeap: 0.3, hatBusy: 0.5, openProb: 0.7, padProb: 0.6, desc: '', ...o };
+  let h = 2166136261; const idStr = String(s.id ?? 'psy');
+  for (let i = 0; i < idStr.length; i++) { h ^= idStr.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const r = mulberry32((h >>> 0) ^ 0x9e3779b9);
+  s.padWave = ['sawtooth', 'triangle', 'sine'][Math.floor(r() * 3)];
+  s.padCut = Math.round(400 + r() * 1800);
+  s.padDet = Math.round(4 + r() * 10);
+  s.padBright = +(0.7 + r() * 0.4).toFixed(2);
+  s.padWidth = +(0.3 + r() * 0.55).toFixed(2);
+  return s;
 }
 
 export const STYLES: StyleDef[] = [
