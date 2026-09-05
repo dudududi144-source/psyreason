@@ -766,8 +766,9 @@ export class Engine {
     const target = (this.params as any)[cat];
     if (target) {
       Object.assign(target, p);
-      if (cat === 'lead') { target.res = Math.min(target.res ?? 6, 13); target.cutoff = Math.min(target.cutoff ?? 4000, 6500); }
-      if (cat === 'bass') { target.res = Math.min(target.res ?? 6, 11); }
+      if (cat === 'lead') { target.res = Math.min(target.res ?? 6, 13); target.cutoff = Math.min(target.cutoff ?? 4000, 6500); target.detune = Math.min(target.detune ?? 8, 16); }
+      if (cat === 'bass') { target.res = Math.min(target.res ?? 6, 11); target.drive = Math.min(target.drive ?? 0.4, 0.6); }
+      if (cat === 'pad') { target.det = Math.min(target.det ?? 8, 14); target.cutoff = Math.min(target.cutoff ?? 1400, 2400); target.bright = Math.min(target.bright ?? 1, 1.2); }
     }
   }
   setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
