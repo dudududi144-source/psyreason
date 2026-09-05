@@ -261,7 +261,7 @@ export class Engine {
   private nearestToneLow(m: number, chord: number[]): number {
     let best = m, bd = 99;
     for (const tn of chord) { for (const oct of [-24, -12, 0]) { const c = tn + oct; const d = Math.abs(c - m); if (d < bd) { bd = d; best = c; } } }
-    return Math.max(28, Math.min(52, best));
+    return Math.max(28, Math.min(56, best)); // 56: keep octave-fill chord tones of high-root (vi) chords intact
   }
   generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
