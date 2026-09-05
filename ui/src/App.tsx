@@ -324,7 +324,7 @@ const CAT_INFO: Record<string, string> = {
   form: 'Track structure/form - load a full arrangement.',
 };
 
-function Sounds() {
+function Sounds({ setView }: { setView: (v: View) => void }) {
   const [, force] = useState(0);
   const cats = Object.keys(SOUND_LIB);
   const [cat, setCat] = useState('bass');
@@ -332,13 +332,14 @@ function Sounds() {
   const list = SOUND_LIB[cat].filter((pr) => !q || pr.name.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="view library">
-      <div className="lib-head">SOUND LIBRARY — {soundCount()} presets • 3 lead engines (AN/FM/WT) • 5 bass characters</div>
+      <div className="lib-head">SOUND CHANNELS — {soundCount()} presets across {cats.length} channels • click a channel, then a preset to HEAR + apply it</div>
       <div className="snd-tabs">
         {cats.map((c) => (
           <button key={c} className={'style-chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c.toUpperCase()} ({SOUND_LIB[c].length})</button>
         ))}
         <input className="lib-search" style={{ marginLeft: 'auto', width: 180 }} placeholder="search..." value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
+      <div className="hint" style={{ marginTop: 6, color: '#7fd4ff' }}>{CAT_INFO[cat] || ''}</div>
       <div className="snd-grid">
         {list.map((pr) => (
           <button key={pr.name} className="lib-session snd-item" style={{ borderColor: '#00ff88', color: '#00ff88' }}
@@ -347,10 +348,11 @@ function Sounds() {
           </button>
         ))}
       </div>
-      <div className="hint">Click any preset to HEAR it instantly + apply it. AN = analog, FM = frequency modulation, WT = wavetable.</div>
+      <div className="hint">Every channel above is live — nothing runs hidden. AN = analog, FM = frequency modulation, WT = wavetable.</div>
     </div>
   );
 }
+
 const ROLE_E: Record<string, number> = { intro: 0.4, build: 0.6, drop: 1, drop2: 1, dropin: 0.9, climax: 1, break: 0.3, ambient: 0.25, acid: 0.5, perc: 0.55, half: 0.45, outro: 0.3 };
 function FormView() {
   const forms = SOUND_LIB.form || [];
@@ -475,7 +477,7 @@ export default function App() {
         {view === 'mixer' && <Mixer playing={playing} />}
         {view === 'pianoroll' && <PianoRoll pos={pos} playing={playing} />}
         {view === 'rack' && <Rack />}
-        {view === 'sounds' && <Sounds />}
+        {view === 'sounds' && <Sounds setView={setView} />}
         {view === 'library' && <Library onPick={(st, sb, s) => { setStyleId(st); setSubId(sb); engine.loadSession(st, sb, s); setBpm(engine.bpm); force((x) => x + 1); setView('arrange'); }} />}
       </main>
       <Keyboard />
