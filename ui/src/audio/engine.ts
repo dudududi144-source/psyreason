@@ -558,6 +558,13 @@ export class Engine {
         if (id === 'hats' || id === 'open') return barIn >= 2;
         if (id === 'lead' || id === 'pad') return barIn >= 4;
       }
+      if (roleNow === 'bridge') {
+        const frac = barIn / Math.max(1, section.bars);
+        if (id === 'lead' || id === 'pad') return true;
+        if (id === 'bass') return frac < 0.6;
+        if (id === 'kick') return frac < 0.35;
+        if (id === 'hats' || id === 'open') return frac < 0.2;
+      }
       if (roleNow === 'intro') {
         const frac = barIn / Math.max(1, section.bars);
         if (id === 'pad') return true;
@@ -581,7 +588,7 @@ export class Engine {
     const isDrop = rn === 'drop' || rn === 'drop2' || rn === 'climax' || rn === 'dropin' || section.name.startsWith('DROP');
     const isDrop2 = rn === 'drop2' || rn === 'climax' || section.name === 'DROP 2';
     const isBuild = rn === 'build' || section.name.startsWith('BUILD');
-    const isBreak = rn === 'break' || rn === 'ambient' || rn === 'acid' || rn === 'half' || section.name === 'BREAK';
+    const isBreak = rn === 'break' || rn === 'ambient' || rn === 'acid' || rn === 'half' || rn === 'bridge' || section.name === 'BREAK';
     const isPerc = rn === 'perc';
     const isOutro = rn === 'outro' || section.name === 'OUTRO';
     const isIntroSec = roleNow.startsWith('intro');
