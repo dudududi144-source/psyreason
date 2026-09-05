@@ -291,7 +291,7 @@ function genDrums(rng: () => number, st: SubStyle) {
 
 function chordAt(scale: number[], root: number, deg: number): number[] {
   const n = scale.length;
-  return [0, 2, 4].map((off) => { const d = deg + off; return root + scale[d % n] + Math.floor(d / n) * 12; });
+  return [0, 2, 4, 6].map((off) => { const d = deg + off; return root + scale[d % n] + Math.floor(d / n) * 12; });
 }
 function genChords(rng: () => number, st: SubStyle): number[][] {
   const roots = st.scale === MAJ ? [0, 5, 3, 4] : st.scale === PHR ? [0, 0, 5, 0] : st.scale === HARM ? [0, 5, 2, 6] : [0, 5, 2, 6];
