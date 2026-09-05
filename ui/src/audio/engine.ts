@@ -638,8 +638,8 @@ export class Engine {
     const en = (section as any).energy ?? (isIntroSec ? 0.08 + 0.72 * (barIn / Math.max(1, section.bars)) : isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
     if (step === 0 && barIn === 0 && this.formGain && !isIntroSec && roleNow !== 'bridge' && roleNow !== 'break' && roleNow !== 'ambient') this.formGain.gain.setTargetAtTime(0.8 + 0.22 * en, t, 0.5); // macro energy arc (smooth)
     if (isIntroSec && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.62 + 0.4 * prog, t, 1.2); } // intro: gentle entry, grows smoothly toward the drop
-    if (roleNow === 'bridge' && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(1.0 - 0.28 * prog, t, 1.4); } // bridge: energy descends gradually (no cliff)
-    if ((roleNow === 'break' || roleNow === 'ambient') && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.94 - 0.16 * prog, t, 1.6); } // break: stays musical, smooth
+    if (roleNow === 'bridge' && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(1.0 - 0.14 * prog, t, 1.4); } // bridge: glides down toward the break level (no cliff, no bump)
+    if ((roleNow === 'break' || roleNow === 'ambient') && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.86 - 0.1 * prog, t, 1.6); } // break: continues exactly where the bridge ended
     if (isDrop && bar % 8 === 7 && step === 14) this.vHat(t, true, 0.4); // 8-bar ear candy
     const useB = barIn % 4 >= 2 || isDrop2;
     const lastBar = barIn === section.bars - 1;
