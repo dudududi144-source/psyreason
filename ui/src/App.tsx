@@ -18,18 +18,19 @@ function useMeter(id: TrackId | 'master', playing: boolean) {
   return ref;
 }
 
-function Knob({ label, value, min, max, onChange, color }: any) {
+function Knob({ label, value, min, max, onChange, color, size }: any) {
   value = typeof value === 'number' && isFinite(value) ? value : (Number(value) || 0);
   const [drag, setDrag] = useState(false);
   const sy = useRef(0); const sv = useRef(0);
   const rot = -135 + ((value - min) / (max - min)) * 270;
+  const sz = typeof size === 'number' ? size : 56;
   return (
     <div className="k-wrap">
-      <div className="k-body" style={{ borderColor: drag ? color : '#2a2a3a' }}
+      <div className="k-body" style={{ width: sz, height: sz, borderColor: drag ? color : '#2a2a3a' }}
         onMouseDown={(e) => { e.preventDefault(); setDrag(true); sy.current = e.clientY; sv.current = value; }}
         onMouseMove={(e) => { if (!drag) return; onChange(Math.max(min, Math.min(max, sv.current + (sy.current - e.clientY) * 0.006 * (max - min)))); }}
         onMouseUp={() => setDrag(false)} onMouseLeave={() => setDrag(false)}>
-        <div className="k-ind" style={{ transform: 'translateX(-50%) rotate(' + rot + 'deg)', background: color }} />
+        <div className="k-ind" style={{ top: sz * 0.07, height: sz * 0.27, transformOrigin: '50% ' + Math.round(sz * 0.64) + 'px', transform: 'translateX(-50%) rotate(' + rot + 'deg)', background: color }} />
       </div>
       <div className="k-label">{label}</div>
       <div className="k-val" style={{ color }}>{value < 10 ? value.toFixed(2) : Math.round(value)}</div>
@@ -102,50 +103,159 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
   );
 }
 
-// ---------- MIXER ----------
-function ChannelStrip({ id, playing }: { id: TrackId; playing: boolean }) {
-  const [, force] = useState(0);
+// ---------- MIXER (PRO CONSOLE) ----------
+function useMeterPro(id: TrackId | 'master', playing: boolean) {
+  const fill = useRef<HTMLDivElement>(null);
+  const peak = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0; let disp = 0; let pk = 0;
+    const loop = () => {
+      const lv = playing ? engine.level(id) : 0;
+      disp = Math.max(lv, disp * 0.9);
+      pk = Math.max(disp, pk - 0.006);
+      if (fill.current) fill.current.style.height = (Math.min(1, disp) * 100).toFixed(1) + '%';
+      if (peak.current) peak.current.style.bottom = (Math.min(1, pk) * 100).toFixed(1) + '%';
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [id, playing]);
+  return { fill, peak };
+}
+
+function EqCurve({ eq, color }: { eq: { low: number; mid: number; high: number }; color: string }) {
+  const pts: string[] = [];
+  const fmin = Math.log10(40), fmax = Math.log10(16000);
+  for (let i = 0; i <= 72; i++) {
+    const f = Math.pow(10, fmin + (fmax - fmin) * i / 72);
+    const wl = 1 / (1 + Math.pow(f / 160, 2));
+    const wh = Math.pow(f / 7000, 2) / (1 + Math.pow(f / 7000, 2));
+    const wm = Math.max(0, 1 - wl - wh);
+    const db = eq.low * wl + eq.mid * wm + eq.high * wh;
+    const x = (i / 72) * 240;
+    const y = 40 - (db / 12) * 34;
+    pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+  }
+  return (
+    <svg className="eq-svg" viewBox="0 0 240 80" preserveAspectRatio="none">
+      <line x1="0" y1="40" x2="240" y2="40" className="eq-zero" />
+      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="2" />
+    </svg>
+  );
+}
+
+function ProStrip({ id, playing, selected, onSelect, bump }: { id: TrackId; playing: boolean; selected: boolean; onSelect: () => void; bump: () => void }) {
   const meta = TRACKS.find((t) => t.id === id)!;
-  const ch = (engine.channels as any)[id];
-  const ref = useMeter(id, playing);
+  const st = engine.channelUI(id);
+  const { fill, peak } = useMeterPro(id, playing);
+  const act = (fn: () => void) => { fn(); bump(); };
   return (
-    <div className="cchan" style={{ borderColor: meta.color + '55' }}>
-      <div className="cchan-name" style={{ color: meta.color }}>{meta.name}</div>
-      <div className="cchan-meter"><div className="cchan-fill" ref={ref} /></div>
-      <input className="vfader" type="range" min={0} max={1} step={0.01} defaultValue={0.9}
-        onChange={(e) => engine.setFader(id, Number(e.target.value))} />
-      <div className="cchan-ms">
-        <button className={'m-btn' + (ch.mute ? ' on-m' : '')} onClick={() => { engine.setMute(id, !ch.mute); force((x) => x + 1); }}>M</button>
-        <button className={'m-btn' + (ch.solo ? ' on-s' : '')} onClick={() => { engine.setSolo(id, !ch.solo); force((x) => x + 1); }}>S</button>
+    <div className={'pstrip' + (selected ? ' sel' : '')} style={{ borderColor: selected ? meta.color : meta.color + '44' }} onClick={onSelect}>
+      <div className="ps-head" style={{ background: meta.color }}>{meta.name}</div>
+      <div className="ps-eq">
+        <Knob size={38} label="HI" value={st.eq.high} min={-12} max={12} color={meta.color} onChange={(v: number) => act(() => engine.setEq(id, 'high', v))} />
+        <Knob size={38} label="MID" value={st.eq.mid} min={-12} max={12} color={meta.color} onChange={(v: number) => act(() => engine.setEq(id, 'mid', v))} />
+        <Knob size={38} label="LOW" value={st.eq.low} min={-12} max={12} color={meta.color} onChange={(v: number) => act(() => engine.setEq(id, 'low', v))} />
       </div>
-      <div className="cchan-mini">
-        <label title="Tone">T<input type="range" min={0} max={1} step={0.01} defaultValue={1} onChange={(e) => engine.setTone(id, Number(e.target.value))} /></label>
-        <label title="Drive">D<input type="range" min={0} max={1} step={0.01} defaultValue={0} onChange={(e) => engine.setDrive(id, Number(e.target.value))} /></label>
-        <label title="Delay">↦<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'lead' ? 0.35 : 0} onChange={(e) => engine.setSend(id, 'd', Number(e.target.value))} /></label>
-        <label title="Reverb">R<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'pad' ? 0.5 : id === 'lead' ? 0.2 : 0} onChange={(e) => engine.setSend(id, 'r', Number(e.target.value))} /></label>
+      <div className="ps-eq">
+        <Knob size={38} label="DRV" value={st.drive} min={0} max={1} color={meta.color} onChange={(v: number) => act(() => engine.setDrive(id, v))} />
+        <Knob size={38} label="DLY" value={st.d} min={0} max={1} color={meta.color} onChange={(v: number) => act(() => engine.setSend(id, 'd', v))} />
+        <Knob size={38} label="REV" value={st.r} min={0} max={1} color={meta.color} onChange={(v: number) => act(() => engine.setSend(id, 'r', v))} />
+      </div>
+      <div className="ps-core">
+        <div className="ps-meter"><div className="ps-fill" ref={fill} /><div className="ps-peak" ref={peak} /></div>
+        <input className="pfader" type="range" min={0} max={1} step={0.005} value={st.level}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => act(() => engine.setFader(id, Number(e.target.value)))} />
+      </div>
+      <div className="ps-foot">
+        <Knob size={38} label="PAN" value={st.pan} min={-1} max={1} color={meta.color} onChange={(v: number) => act(() => engine.setPan(id, v))} />
+        <div className="ps-ms">
+          <button className={'m-btn' + (st.mute ? ' on-m' : '')} onClick={(e) => { e.stopPropagation(); act(() => engine.setMute(id, !st.mute)); }}>M</button>
+          <button className={'m-btn' + (st.solo ? ' on-s' : '')} onClick={(e) => { e.stopPropagation(); act(() => engine.setSolo(id, !st.solo)); }}>S</button>
+        </div>
       </div>
     </div>
   );
 }
-function MasterStrip({ playing }: { playing: boolean }) {
-  const ref = useMeter('master', playing);
+
+function ProMaster({ playing, bump }: { playing: boolean; bump: () => void }) {
+  const { fill, peak } = useMeterPro('master', playing);
+  const mu = engine.masterUI;
+  const act = (fn: () => void) => { fn(); bump(); };
+  const clip = playing && engine.level('master') > 0.96;
   return (
-    <div className="cchan master">
-      <div className="cchan-name">MASTER</div>
-      <div className="cchan-meter"><div className="cchan-fill" ref={ref} /></div>
-      <input className="vfader" type="range" min={0} max={1} step={0.01} defaultValue={0.7} onChange={(e) => engine.setMasterLevel(Number(e.target.value))} />
-      <div className="cchan-ms"><span className="m-label">EQ→COMP→LIM</span></div>
+    <div className="pstrip master">
+      <div className="ps-head mst">MASTER</div>
+      <div className="ps-eq">
+        <Knob size={38} label="HI" value={mu.eq.high} min={-12} max={12} color="#ffffff" onChange={(v: number) => act(() => engine.setMasterEq('high', v))} />
+        <Knob size={38} label="MID" value={mu.eq.mid} min={-12} max={12} color="#ffffff" onChange={(v: number) => act(() => engine.setMasterEq('mid', v))} />
+        <Knob size={38} label="LOW" value={mu.eq.low} min={-12} max={12} color="#ffffff" onChange={(v: number) => act(() => engine.setMasterEq('low', v))} />
+      </div>
+      <div className="ps-eq">
+        <Knob size={38} label="THR" value={mu.thresh} min={-40} max={0} color="#ffcc00" onChange={(v: number) => act(() => engine.setMasterComp(Math.round(v), mu.ratio))} />
+        <Knob size={38} label="RATIO" value={mu.ratio} min={1} max={8} color="#ffcc00" onChange={(v: number) => act(() => engine.setMasterComp(mu.thresh, Math.round(v * 2) / 2))} />
+        <div className={'lim-led' + (clip ? ' clip' : '')} title="limiter" />
+      </div>
+      <div className="ps-core">
+        <div className="ps-meter"><div className="ps-fill" ref={fill} /><div className="ps-peak" ref={peak} /></div>
+        <input className="pfader" type="range" min={0} max={1} step={0.005} value={mu.level} onChange={(e) => act(() => engine.setMasterLevel(Number(e.target.value)))} />
+      </div>
+      <div className="ps-foot"><span className="m-label">EQ → COMP → LIM</span></div>
     </div>
   );
 }
+
+function FxReturns({ bump }: { bump: () => void }) {
+  const fx = engine.fxState();
+  const act = (fn: () => void) => { fn(); bump(); };
+  return (
+    <div className="fxret">
+      <span className="fxret-title">FX RETURNS</span>
+      <span className="fxret-group">DELAY
+        <Knob size={38} label="FDBK" value={fx.dFb} min={0} max={0.85} color="#00aaff" onChange={(v: number) => act(() => engine.setDelayFb(v))} />
+        <Knob size={38} label="TONE" value={fx.dTone} min={800} max={8000} color="#00aaff" onChange={(v: number) => act(() => engine.setDelayTone(v))} />
+      </span>
+      <span className="fxret-group">REVERB
+        <Knob size={38} label="SPACE" value={fx.space} min={0} max={1.6} color="#aa66ff" onChange={(v: number) => act(() => engine.setReverbSpace(v))} />
+      </span>
+      <span className="fxret-hint">mastering chain active: EQ → COMP → brickwall LIMITER (-1 dB)</span>
+    </div>
+  );
+}
+
+function ChannelDetail({ id }: { id: TrackId }) {
+  const meta = TRACKS.find((t) => t.id === id)!;
+  const st = engine.channelUI(id);
+  return (
+    <div className="cdetail" style={{ borderColor: meta.color + '66' }}>
+      <div className="cd-head" style={{ color: meta.color }}>{meta.name} — EQ CURVE</div>
+      <div className="cd-body">
+        <EqCurve eq={st.eq} color={meta.color} />
+        <div className="cd-nums">
+          <span>LVL {(st.level * 100).toFixed(0)}%</span>
+          <span>PAN {st.pan === 0 ? 'C' : st.pan < 0 ? 'L' + Math.round(-st.pan * 100) : 'R' + Math.round(st.pan * 100)}</span>
+          <span>EQ {st.eq.low.toFixed(1)} / {st.eq.mid.toFixed(1)} / {st.eq.high.toFixed(1)} dB</span>
+          <span>DRV {(st.drive * 100).toFixed(0)}% • DLY {(st.d * 100).toFixed(0)}% • REV {(st.r * 100).toFixed(0)}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Mixer({ playing }: { playing: boolean }) {
+  const [, force] = useState(0);
+  const [sel, setSel] = useState<TrackId>('lead');
+  const bump = useCallback(() => force((x) => x + 1), []);
   return (
-    <div className="view console">
-      <div className="console-row">
-        {TRACKS.map((t) => <ChannelStrip key={t.id} id={t.id} playing={playing} />)}
-        <MasterStrip playing={playing} />
+    <div className="view console-pro">
+      <FxReturns bump={bump} />
+      <div className="cp-row">
+        {TRACKS.map((t) => <ProStrip key={t.id} id={t.id} playing={playing} selected={sel === t.id} onSelect={() => setSel(t.id)} bump={bump} />)}
+        <ProMaster playing={playing} bump={bump} />
       </div>
-      <div className="hint">Console: vertical faders • per-channel Tone/Drive/Delay/Reverb • M/S • master bus right.</div>
+      <ChannelDetail id={sel} />
+      <div className="hint">PRO CONSOLE — vertical faders + peak-hold meters • 3-band EQ / PAN / DRIVE / sends per channel • M/S • click a channel to inspect its EQ curve • MASTER bus with EQ, compressor and limiter.</div>
     </div>
   );
 }
@@ -318,7 +428,7 @@ function Sounds({ setView }: { setView: (v: View) => void }) {
   );
 }
 
-const ROLE_E: Record<string, number> = { intro: 0.4, build: 0.6, drop: 1, drop2: 1, dropin: 0.9, climax: 1, break: 0.3, ambient: 0.25, acid: 0.5, perc: 0.55, half: 0.45, outro: 0.3 };
+const ROLE_E: Record<string, number> = { intro: 0.4, build: 0.6, drop: 1, drop2: 1, dropin: 0.9, climax: 1, bridge: 0.55, break: 0.3, ambient: 0.25, acid: 0.5, perc: 0.55, half: 0.45, outro: 0.3 };
 function FormView() {
   const forms = SOUND_LIB.form || [];
   const [custom, setCustom] = useState<any[]>([]);
@@ -447,7 +557,7 @@ export default function App() {
       </main>
       <Keyboard />
       <footer className="foot">
-        <span>PsyReason v6 — harmony flow + bass variety per family + layered intros | build 2024-h6</span>
+        <span>PsyReason v7 — pro console mixer • rich spread pads • smooth transitions • seeded sound variety | build 2025-m1</span>
         <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
