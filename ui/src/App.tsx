@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRACKS, ARRANGEMENT, TOTAL_BARS, sectionAtBar, TrackId } from './audio/engine';
 import { STYLES, SESSIONS_PER_SUB, subById, libraryStats, FAMILIES, composeForm } from './audio/generator';
 import { SOUND_LIB, soundCount } from './audio/sounds';
@@ -487,4 +487,20 @@ export default function App() {
       </footer>
     </div>
   );
+}
+
+
+export class ErrorBoundary extends React.Component<{ children?: any }, { err: string | null }> {
+  constructor(props: any) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(e: any) { return { err: String(e && e.message ? e.message : e) }; }
+  render() {
+    if (this.state.err) {
+      return <div style={{ padding: 24, color: '#ff6666', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+        <h2>Something went wrong (caught, not blank):</h2>
+        <div>{this.state.err}</div>
+        <button style={{ marginTop: 12 }} onClick={() => location.reload()}>Reload</button>
+      </div>;
+    }
+    return this.props.children;
+  }
 }
