@@ -57,6 +57,8 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
     { id: 'open', cells: s.open.map((v) => (v ? 1 : 0)) },
     { id: 'lead', cells: s.lead.map((v) => (v !== null ? 1 : 0)) },
     { id: 'pad', cells: Array(16).fill(0).map((_, i) => (i === 0 ? 1 : 0)) },
+    { id: 'atmos', cells: Array(16).fill(0).map((_, i) => (i === 0 ? 1 : 0)) },
+    { id: 'fx', cells: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1] },
   ];
   const toggle = (id: TrackId, i: number) => {
     if (id === 'kick') s.kick[i] = !s.kick[i];
@@ -64,7 +66,7 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
     if (id === 'hats') s.hats[i] = !s.hats[i];
     if (id === 'open') s.open[i] = !s.open[i];
     if (id === 'lead') s.lead[i] = s.lead[i] === null ? 69 : null;
-    if (id === 'pad') return;
+    if (id === 'pad' || id === 'atmos' || id === 'fx') return; // bar-level layers (preview with ▶)
     force((x) => x + 1);
   };
   let barAcc = 0;
@@ -106,7 +108,7 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
           );
         })}
       </div>
-      <div className="hint">ARRANGEMENT plays INTRO → BUILD → DROP → BREAK → DROP 2 on loop. Click cells to edit; ▶ previews a track through the mixer.</div>
+      <div className="hint">ARRANGEMENT follows the loaded FORM (pick one in the FORM tab). Click sections to launch live; click cells to edit patterns; ▶ previews a channel through the mixer — FX bar = auto risers/impacts.</div>
     </div>
   );
 }
@@ -510,10 +512,12 @@ export default function App() {
   const [, force] = useState(0);
   const [family, setFamily] = useState('PSY MAIN');
   const [styleId, setStyleId] = useState('fullon');
-  const [subId, setSubId] = useState('classic');
+  const [subId, setSubId] = useState('melodic');
   useEffect(() => {
     engine.onTick = (bar, step) => setPos({ bar, step });
-    engine.loadSession('fullon', 'classic', 1);
+    engine.loadSession('fullon', 'melodic', 1); // boot at maximum quality: the richest default sound
+    const f = (SOUND_LIB.form || []).find((p) => p.name === 'FORM • Classic Full-On Journey');
+    if (f && f.p.form) engine.loadArrangement(f.p.form); // boot with a full commercial journey loaded
     return () => { engine.onTick = null; };
   }, []);
   const toggle = async () => { if (playing) { engine.stop(); setPlaying(false); } else { await engine.start(); setPlaying(true); } };
@@ -569,7 +573,7 @@ export default function App() {
       </main>
       <Keyboard />
       <footer className="foot">
-        <span>PsyReason v7.2 — DAW-grade knobs • quantized session switching • harmony-locked engine | build 2025-m2</span>
+        <span>PsyReason v7.3 ․ every sound has a channel ․ max-quality boot ․ harmony-locked engine | build 2025-m3</span>
         <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
