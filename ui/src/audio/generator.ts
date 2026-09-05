@@ -327,24 +327,6 @@ function genChords(rng: () => number, st: SubStyle): number[][] {
   return roots.map((d) => chordAt(st.scale, 57, d));
 }
 
-function genLeadForChord(rng: () => number, st: SubStyle, chord: number[]): (number | null)[] {
-  const lead: (number | null)[] = Array(16).fill(null);
-  const tones = chord.map((t) => t + 12);
-  let cur = tones[0];
-  for (let i = 0; i < 16; i++) {
-    const prob = i % 4 === 0 ? 0.9 : st.leadDensity;
-    if (rng() < prob) {
-      const r = rng();
-      if (i % 4 === 0 || r < 0.35) cur = tones[Math.floor(rng() * tones.length)];
-      else if (r < 0.75) cur = cur + pick(rng, [-2, -1, 1, 2]);
-      else cur = tones[Math.floor(rng() * tones.length)] + pick(rng, [0, 12]);
-      lead[i] = cur;
-    }
-  }
-  if (lead[0] === null) lead[0] = tones[0];
-  return lead;
-}
-
 export function generateSongForSub(st: SubStyle, seed: number): SongData {
   const rng = mulberry32(seed);
   const lead = genLead(rng, st); const leadB = genLead(rng, st);
@@ -429,9 +411,6 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
 
 
 
-// legacy wrappers
-export function generateSongForStyle(styleId: string, seed: number): SongData { return generateSongForSub(subById(styleId, 'classic'), seed); }
-export function generateArrangementForStyle(styleId: string, seed: number): Section[] { return generateArrangementForSub(subById(styleId, 'classic'), seed); }
 export function generateSong(seed: number): SongData { return generateSongForSub(STYLES[0].subs[0], seed); }
 export function generateArrangement(seed: number): Section[] { return generateArrangementForSub(STYLES[0].subs[0], seed); }
 export function generateTrack(id: TrackId, seed: number, current: SongData): SongData {
