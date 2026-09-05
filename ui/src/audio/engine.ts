@@ -175,6 +175,7 @@ export class Engine {
       'TECH': { width: 0.4, bright: 0.9, wave: 'sawtooth', det: 3 },
     };
     const pt = padTaste[fam]; if (pt) Object.assign(this.params.pad, pt);
+    if ((sb as any).padWave !== undefined) Object.assign(this.params.pad, { wave: (sb as any).padWave, cutoff: (sb as any).padCut, det: (sb as any).padDet, bright: (sb as any).padBright, width: (sb as any).padWidth });
     // PER-FAMILY SIGNATURE: genuine sonic identity per family (lead/bass/drums/feel/FX)
     const sig: Record<string, any> = {
       'PSY MAIN': { swing: 0, lead: { ftype: 0, sus: 0.2, voices: 2 }, bass: { ftype: 'lp', pluck: 0.9, wave: 'sawtooth', res: 5, cutoff: 900, drive: 0.4, sub: 0.35 }, kick: { sat: 0.5, decay: 0.26, punch: 0.7 }, hats: { tone: 7500, metal: 0.5, decay: 0.5 }, dFb: 0.4, dSend: 0.35, rSend: 0.2 },
