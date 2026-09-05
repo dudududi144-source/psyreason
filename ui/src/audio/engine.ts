@@ -83,6 +83,7 @@ export class Engine {
   delayFbGain: GainNode | null = null; delayLp: BiquadFilterNode | null = null; reverbOut: GainNode | null = null;
   padVar = 0.5; // seeded 0..1 pad character per session
   padHold: number[] | null = null; padWasOn = false; // legato pad: let a chord ring across its full 2 bars
+  padVoicing = 0; // session pad voicing style (0 spread / 1 deep bed / 2 airy power)
   // persistent mixer state (valid before + after audio init)
   chUI: Record<string, { level: number; pan: number; eq: { low: number; mid: number; high: number }; drive: number; tone: number; d: number; r: number }> = {
     kick:  { level: 0.93, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0 },
@@ -217,6 +218,25 @@ export class Engine {
       if ((this.channels as any).lead) { (this.channels as any).lead.dSend.gain.value = sg.dSend; }
       if ((this.channels as any).pad) { (this.channels as any).pad.rSend.gain.value = sg.rSend; }
     }
+    // SESSION DNA: every session gets its own kick/bass/lead character - no two sessions sound alike
+    const dna = mulberry32((this.seed ^ 0x9e37b1) >>> 0);
+    const kp = this.params.kick as any;
+    kp.sweepMul = 0.9 + dna() * 0.25;   // pitch-sweep depth/speed
+    kp.clickMul = 0.75 + dna() * 0.55;  // transient brightness
+    kp.decay = Math.max(0.16, Math.min(0.5, kp.decay + (dna() - 0.5) * 0.1));
+    kp.punch = Math.max(0.2, Math.min(1, kp.punch + (dna() - 0.5) * 0.24));
+    kp.subk = Math.max(0.2, Math.min(1, (kp.subk ?? 0.5) + (dna() - 0.5) * 0.3));
+    kp.body = Math.max(0.15, Math.min(0.85, (kp.body ?? 0.3) + (dna() - 0.5) * 0.25));
+    kp.sat = Math.max(0.1, Math.min(0.9, (kp.sat ?? 0.4) + (dna() - 0.5) * 0.25));
+    const bp = this.params.bass as any;
+    bp.cutoff = Math.round(Math.max(300, Math.min(1400, bp.cutoff * (0.88 + dna() * 0.24))));
+    bp.pluck = Math.max(0.1, Math.min(1, (bp.pluck ?? 0.6) + (dna() - 0.5) * 0.3));
+    bp.sub = Math.max(0.15, Math.min(1, (bp.sub ?? 0.4) + (dna() - 0.5) * 0.3));
+    bp.drive = Math.max(0.08, Math.min(0.5, (bp.drive ?? 0.3) + (dna() - 0.5) * 0.16));
+    const ldp = this.params.lead as any;
+    ldp.cutoff = Math.round(Math.max(1500, Math.min(6000, ldp.cutoff * (0.9 + dna() * 0.2))));
+    ldp.detune = Math.max(2, Math.min(18, (ldp.detune ?? 8) + Math.round((dna() - 0.5) * 5)));
+    this.padVoicing = Math.floor(dna() * 3);
     // commercial polish: tame harshness so everything sits musically
     this.params.lead.res = Math.min(this.params.lead.res ?? 6, 9);
     this.params.lead.cutoff = Math.min(this.params.lead.cutoff ?? 4000, 5500);
@@ -313,10 +333,11 @@ export class Engine {
   vKick(t: number, vel = 1) {
     const ctx = this.ctx!; const p = this.params.kick as any; const out = this.channels.kick.bus;
     const punch = p.punch ?? 0.5, body = p.body ?? 0.3, subk = p.subk ?? 0.5, sat = p.sat ?? 0.4, decay = p.decay ?? 0.28;
+    const sweepMul = p.sweepMul ?? 1, clickMul = p.clickMul ?? 1;
     // body osc: wide pitch sweep shaped by punch/body
     const o = ctx.createOscillator(); o.type = body > 0.62 ? 'triangle' : 'sine';
-    o.frequency.setValueAtTime(120 + 130 * punch, t);
-    o.frequency.exponentialRampToValueAtTime(36 + 16 * body, t + 0.05 + 0.06 * body);
+    o.frequency.setValueAtTime((120 + 130 * punch) * sweepMul, t);
+    o.frequency.exponentialRampToValueAtTime(36 + 16 * body, t + (0.05 + 0.06 * body) * sweepMul);
     const ws = ctx.createWaveShaper(); ws.curve = this.driveCurve(0.15 + sat * 0.95);
     const g = ctx.createGain();
     g.gain.setValueAtTime(1.15 * vel, t);
@@ -331,9 +352,9 @@ export class Engine {
     so.connect(sg); sg.connect(out); so.start(t); so.stop(t + decay * 1.2);
     // click: brightness shaped by punch
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800 + 1200 * punch;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = (1800 + 1200 * punch) * Math.min(1.5, clickMul);
     const ng = ctx.createGain();
-    ng.gain.setValueAtTime((0.08 + 0.4 * punch) * vel, t);
+    ng.gain.setValueAtTime((0.08 + 0.4 * punch) * vel * clickMul, t);
     ng.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
     n.connect(hp); hp.connect(ng); ng.connect(out);
     n.start(t); n.stop(t + 0.02);
@@ -368,7 +389,7 @@ export class Engine {
     g.connect(out); sg.connect(out);
     const ck = ctx.createBufferSource(); ck.buffer = this.noise();
     const chp = ctx.createBiquadFilter(); chp.type = 'highpass'; chp.frequency.value = 2500;
-    const cg = ctx.createGain(); cg.gain.setValueAtTime(0.12 * accent, t); cg.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    const cg = ctx.createGain(); cg.gain.setValueAtTime(0.12 * accent * (0.25 + 0.75 * pl), t); cg.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
     ck.connect(chp); chp.connect(cg); cg.connect(out);
     ck.start(t); ck.stop(t + 0.03);
     o.start(t); o.stop(t + dur + 0.05); sub.start(t); sub.stop(t + dur + 0.05);
@@ -513,10 +534,16 @@ export class Engine {
     const rel = 1.0 + 0.6 * pv; // long tail overlaps the next chord -> continuous wash
     const lvl = 0.05 * (1 - 0.3 * soft);
     // SPREAD VOICING: root+5th low, 3rd (+7th) an octave up -> open, harmonic, wide
+    const voc = this.padVoicing; // session pad character: 0 spread / 1 deep bed / 2 airy power
     let notes: number[];
-    if (chord.length >= 4) notes = [chord[0], chord[2], chord[1] + 12, chord[3] + 12];
-    else if (chord.length === 3) notes = [chord[0], chord[0] + 7, chord[1] + 12, chord[2] + 12]; // root, 5th, 3rd+oct, 5th+oct (open, consonant)
-    else notes = [...chord, chord[0] + 12];
+    if (chord.length >= 4) {
+      if (voc === 1) notes = [chord[0] - 12, chord[1], chord[2], chord[3] + 12];      // deep warm bed (root dropped)
+      else if (voc === 2) notes = [chord[0], chord[2], chord[0] + 12, chord[3] + 12]; // airy power voicing (open, modal)
+      else notes = [chord[0], chord[2], chord[1] + 12, chord[3] + 12];                // classic spread
+    } else if (chord.length === 3) {
+      if (voc === 1) notes = [chord[0] - 12, chord[1], chord[2], chord[0] + 12];
+      else notes = [chord[0], chord[0] + 7, chord[1] + 12, chord[2] + 12];            // root, 5th, 3rd+oct, 5th+oct
+    } else notes = [...chord, chord[0] + 12];
     // sub warmth under the root (mono, center)
     const subO = ctx.createOscillator(); subO.type = 'sine'; subO.frequency.value = mtof(notes[0] - 12);
     const subG = ctx.createGain();
@@ -575,6 +602,32 @@ export class Engine {
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
     n.connect(bp); bp.connect(g); g.connect(this.channels.kick.bus);
     n.start(t); n.stop(t + 0.2);
+  }
+  vRiser(t: number, dur: number, vel = 1) {
+    // white-noise sweep up into the drop (commercial transition glue)
+    const ctx = this.ctx!; const out = this.master!;
+    const n = ctx.createBufferSource(); n.buffer = this.noise(); n.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+    bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(6500, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.14 * vel, t + dur * 0.85); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const pn = ctx.createStereoPanner(); const plfo = ctx.createOscillator(); plfo.frequency.value = 0.4;
+    const pg = ctx.createGain(); pg.gain.value = 0.35; plfo.connect(pg); pg.connect(pn.pan);
+    n.connect(bp); bp.connect(g); g.connect(pn); pn.connect(out);
+    n.start(t); n.stop(t + dur + 0.05); plfo.start(t); plfo.stop(t + dur + 0.05);
+  }
+  vImpact(t: number, vel = 1) {
+    // sub-drop + filtered noise splash marking a section entry
+    const ctx = this.ctx!; const out = this.master!;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.5);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.5 * vel, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 1.3);
+    const n = ctx.createBufferSource(); n.buffer = this.noise();
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(9000, t); lp.frequency.exponentialRampToValueAtTime(400, t + 0.8);
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.22 * vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+    n.connect(lp); lp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.85);
   }
   private tick = () => {
     const ctx = this.ctx!;
@@ -679,8 +732,10 @@ export class Engine {
     if (isPerc && step % 2 === 1) this.vShaker(t);
     if (isPerc && step % 4 === 2) this.vHat(t, false, 0.8);
     if (this.openIntoDrop && step === 0 && barIn === 0 && isDrop) this.vHat(t, true, 0.8);
+    if (isBuild && section.bars >= 2 && barIn === section.bars - 2 && step === 0) this.vRiser(t, stepDur * 32, 0.9); // sweep into the drop
     if (isBuild && lastBar && step === 12) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.72, t, 0.08); }
-    if (step === 0 && barIn === 0 && isDrop) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); }
+    if (step === 0 && barIn === 0 && isDrop) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); this.vImpact(t, 1); } // drop lands with weight
+    if (roleNow === 'bridge' && barIn === 0 && step === 0) this.vImpact(t, 0.4); // gentle down-marker into the bridge
     if (step === 0 && barIn === 0 && isDrop) this.vBass(t, -12, stepDur * 2, 1);
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
     const chordRoot = chordsG[chordBar % chordsG.length][0];
