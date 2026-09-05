@@ -454,7 +454,7 @@ export class Engine {
     const shg = ctx.createGain(); shg.gain.value = 0.06; sh.connect(shg); shg.connect(lp);
     sh.start(t); sh.stop(t + dur + 0.05);
     const ap = ctx.createStereoPanner();
-    const al = ctx.createOscillator(); al.frequency.value = 0.4; const alg = ctx.createGain(); alg.gain.value = 0.35; al.connect(alg); alg.connect(ap.pan);
+    const al = ctx.createOscillator(); al.frequency.value = 0.3; const alg = ctx.createGain(); alg.gain.value = 0.18; al.connect(alg); alg.connect(ap.pan);
     al.start(t); al.stop(t + dur + 0.05);
     lp.connect(g); g.connect(ap); ap.connect(out);
   }
