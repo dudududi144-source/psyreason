@@ -302,6 +302,28 @@ function MasterMeter({ playing }: { playing: boolean }) {
   return <div className="t-meter-fill" ref={ref} />;
 }
 // ---------- APP ----------
+const CAT_INFO: Record<string, string> = {
+  bass: 'Bass timbres - 5 characters (pluck/flat/acid/sub/growl). Applied to the BASS channel.',
+  lead: 'Lead timbres - 3 engines (analog/FM/wavetable). Applied to the LEAD channel.',
+  pad: 'Pad/atmosphere timbres. Applied to the PAD channel.',
+  kick: 'Kick drum tunings. Applied to the KICK channel.',
+  hats: 'Hi-hat tunings. Applied to the HATS channel.',
+  fx: 'Global FX - delay feedback/tone, reverb space. Applied to master sends.',
+  chords: 'Chord progressions. Sets the harmonic content for pads/bass.',
+  grooves: 'Groove feel - swing, humanize, shaker on/off.',
+  master: 'Master EQ + compressor shaping.',
+  kits: 'Full drum kits - kick+hats+clap+shaker combos.',
+  keys: 'Key/root transposition for the whole track.',
+  arp: 'Arpeggiator - turns the lead into arp patterns (up/down/updown/random).',
+  sidechain: 'Sidechain pump depth for bass/lead/pad.',
+  atmos: 'Atmospheric drone layer toggle + level.',
+  basspat: 'Bass rhythm patterns (rolling/offbeat/kbb/hypnotic/driving).',
+  drumpat: 'Drum/hat patterns (offbeat/busy/sparse/shuffle).',
+  hooks: 'Lead melody hooks (rising/falling/wave/jump/anthem).',
+  transitions: 'Transition tools - roll length, open-into-drop, roll velocity.',
+  form: 'Track structure/form - load a full arrangement.',
+};
+
 function Sounds() {
   const [, force] = useState(0);
   const cats = Object.keys(SOUND_LIB);
