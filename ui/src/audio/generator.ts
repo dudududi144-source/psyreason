@@ -250,15 +250,24 @@ export function sessionSeed(subId: string, session: number): number {
 const LEAD_ROOT = 69;
 
 function genLead(rng: () => number, st: SubStyle): (number | null)[] {
+  const n = st.scale.length;
   const lead: (number | null)[] = Array(16).fill(null);
+  // build a 4-note motif (the memorable "riff")
   let deg = Math.floor(rng() * 3);
+  const motif: number[] = [];
+  for (let k = 0; k < 4; k++) {
+    motif.push(deg);
+    const leap = rng() < st.leadLeap;
+    const move = leap ? pick(rng, [-2, -1, 1, 2, 3]) : (rng() < 0.5 ? 1 : -1);
+    deg = Math.max(0, Math.min(n * 2 - 1, deg + move));
+  }
+  // lay the motif across the bar; vary the second half for interest
   for (let i = 0; i < 16; i++) {
     const prob = i % 4 === 0 ? 0.9 : st.leadDensity;
     if (rng() < prob) {
-      const leap = rng() < st.leadLeap;
-      const move = leap ? pick(rng, [-3, -2, 2, 3, 4]) : (rng() < 0.5 ? 1 : -1);
-      deg = Math.max(0, Math.min(st.scale.length * 2 - 1, deg + move));
-      lead[i] = LEAD_ROOT + st.scale[deg % st.scale.length] + Math.floor(deg / st.scale.length) * 12;
+      let d = motif[i % 4];
+      if (i >= 8 && rng() < 0.35) d = Math.max(0, Math.min(n * 2 - 1, d + pick(rng, [-1, 1, 2])));
+      lead[i] = LEAD_ROOT + st.scale[d % n] + Math.floor(d / n) * 12;
     }
   }
   if (lead[0] === null) lead[0] = LEAD_ROOT;
