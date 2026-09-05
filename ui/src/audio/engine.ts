@@ -815,7 +815,7 @@ export class Engine {
   pendingJump: number | null = null;
   pendingSession: { s: string; sb: string; ss: number } | null = null;
   trackOnPrev: Record<string, boolean> = {};
-  queueSession(s: string, sb: string, ss: number) { this.pendingSession = { s, sb, ss }; }
+  queueSession(s: string, sb: string, ss: number) { if (!this.running) { this.loadSession(s, sb, ss); } else { this.pendingSession = { s, sb, ss }; } }
   newSessionKeepForm(session: number) {
     const arr = this.arrangement;
     this.loadSession(this.styleId, this.subId, session);
