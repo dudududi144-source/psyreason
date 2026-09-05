@@ -2,7 +2,7 @@
 // lookahead scheduler (sample-accurate), channel mixer with meters,
 // FX send buses (delay/reverb), real sidechain ducking, song arrangement.
 
-export type TrackId = 'kick' | 'bass' | 'hats' | 'open' | 'lead' | 'pad' | 'atmos';
+export type TrackId = 'kick' | 'bass' | 'hats' | 'open' | 'lead' | 'pad' | 'atmos' | 'fx';
 
 export const TRACKS: { id: TrackId; name: string; color: string }[] = [
   { id: 'kick', name: 'KICK', color: '#ff4444' },
@@ -12,6 +12,7 @@ export const TRACKS: { id: TrackId; name: string; color: string }[] = [
   { id: 'lead', name: 'LEAD', color: '#00aaff' },
   { id: 'pad', name: 'PAD', color: '#aa66ff' },
   { id: 'atmos', name: 'ATMOS', color: '#66ffcc' },
+  { id: 'fx', name: 'FX', color: '#ff66ff' },
 ];
 
 export interface Section { name: string; bars: number; active: TrackId[]; }
@@ -93,6 +94,7 @@ export class Engine {
     lead:  { level: 0.66, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0.35, r: 0.2 },
     pad:   { level: 0.62, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0.5 },
     atmos: { level: 0.5, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0.55 },
+    fx: { level: 0.8, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0.25, r: 0.35 },
   };
   masterUI = { level: 0.58, eq: { low: 1.5, mid: 0.4, high: -1 }, thresh: -18, ratio: 2 };
   channels = {} as Record<TrackId, Channel>;
@@ -652,7 +654,7 @@ export class Engine {
   }
   vRiser(t: number, dur: number, vel = 1) {
     // white-noise sweep up into the drop (commercial transition glue)
-    const ctx = this.ctx!; const out = this.master!;
+    const ctx = this.ctx!; const out = this.channels.fx.bus; // routed through the FX channel (fader/meter/EQ like everything else)
     const n = ctx.createBufferSource(); n.buffer = this.noise(); n.loop = true;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
     bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(6500, t + dur);
@@ -665,7 +667,7 @@ export class Engine {
   }
   vImpact(t: number, vel = 1) {
     // sub-drop + filtered noise splash marking a section entry
-    const ctx = this.ctx!; const out = this.master!;
+    const ctx = this.ctx!; const out = this.channels.fx.bus; // routed through the FX channel
     const o = ctx.createOscillator(); o.type = 'sine';
     o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.5);
     const g = ctx.createGain(); g.gain.setValueAtTime(0.5 * vel, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
@@ -759,6 +761,7 @@ export class Engine {
     if (isBuild) this.sweep = Math.min(1, 0.15 + (barIn / Math.max(1, section.bars)) * 0.9);
     if (step === 0) {
       for (const tr of TRACKS) {
+        if (tr.id === 'fx') continue; // FX return channel is always live (its triggers are role-gated)
         const ch = (this.channels as any)[tr.id]; if (!ch) continue;
         const onNow = on(tr.id);
         const wasOn = this.trackOnPrev[tr.id];
@@ -1087,6 +1090,7 @@ export class Engine {
     if (id === 'open') this.vHat(t, true);
     if (id === 'lead') { [69, 70, 72, 69].forEach((m, i) => this.vLead(t + i * 0.16, m, 0.4)); }
     if (id === 'pad') this.vPad(t, this.song.padChord, 2.5);
+    if (id === 'fx') { this.vRiser(t, 1.2, 0.8); this.vImpact(t + 1.3, 0.9); }
   }
 }
 
