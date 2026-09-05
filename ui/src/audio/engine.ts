@@ -290,25 +290,28 @@ export class Engine {
   // ---------- voices ----------
   vKick(t: number, vel = 1) {
     const ctx = this.ctx!; const p = this.params.kick as any; const out = this.channels.kick.bus;
-    // layered: body osc + sub tail + click, through soft saturation
-    const o = ctx.createOscillator(); o.type = (p.body ?? 0.3) > 0.6 ? 'triangle' : 'sine';
-    o.frequency.setValueAtTime(150 + 50 * (p.punch ?? 0.5), t);
-    o.frequency.exponentialRampToValueAtTime(40 + 8 * (p.body ?? 0.3), t + 0.09);
-    const ws = ctx.createWaveShaper(); ws.curve = this.driveCurve(0.3 + ((this.params.kick as any).sat ?? 0.4));
+    const punch = p.punch ?? 0.5, body = p.body ?? 0.3, subk = p.subk ?? 0.5, sat = p.sat ?? 0.4, decay = p.decay ?? 0.28;
+    // body osc: wide pitch sweep shaped by punch/body
+    const o = ctx.createOscillator(); o.type = body > 0.62 ? 'triangle' : 'sine';
+    o.frequency.setValueAtTime(120 + 130 * punch, t);
+    o.frequency.exponentialRampToValueAtTime(36 + 16 * body, t + 0.05 + 0.06 * body);
+    const ws = ctx.createWaveShaper(); ws.curve = this.driveCurve(0.15 + sat * 0.95);
     const g = ctx.createGain();
     g.gain.setValueAtTime(1.15 * vel, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + p.decay);
+    g.gain.exponentialRampToValueAtTime(0.001, t + decay);
     o.connect(ws); ws.connect(g); g.connect(out);
-    o.start(t); o.stop(t + p.decay + 0.05);
-    const so = ctx.createOscillator(); so.type = 'sine'; so.frequency.value = 42;
+    o.start(t); o.stop(t + decay + 0.05);
+    // sub tail: freq + level shaped by body/subk
+    const so = ctx.createOscillator(); so.type = 'sine'; so.frequency.value = 34 + 12 * body;
     const sg = ctx.createGain();
-    sg.gain.setValueAtTime(0.42 * (p.subk ?? 0.5), t);
-    sg.gain.exponentialRampToValueAtTime(0.001, t + p.decay * 1.1);
-    so.connect(sg); sg.connect(out); so.start(t); so.stop(t + p.decay * 1.2);
+    sg.gain.setValueAtTime((0.1 + 0.4 * subk) * vel, t);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + decay * 1.1);
+    so.connect(sg); sg.connect(out); so.start(t); so.stop(t + decay * 1.2);
+    // click: brightness shaped by punch
     const n = ctx.createBufferSource(); n.buffer = this.noise();
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2000;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800 + 1200 * punch;
     const ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.35 * (p.punch ?? 0.5), t);
+    ng.gain.setValueAtTime((0.08 + 0.4 * punch) * vel, t);
     ng.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
     n.connect(hp); hp.connect(ng); ng.connect(out);
     n.start(t); n.stop(t + 0.02);
