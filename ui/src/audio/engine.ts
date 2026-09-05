@@ -82,6 +82,7 @@ export class Engine {
   delayNode: DelayNode | null = null;
   delayFbGain: GainNode | null = null; delayLp: BiquadFilterNode | null = null; reverbOut: GainNode | null = null;
   padVar = 0.5; // seeded 0..1 pad character per session
+  padHold: number[] | null = null; padWasOn = false; // legato pad: let a chord ring across its full 2 bars
   // persistent mixer state (valid before + after audio init)
   chUI: Record<string, { level: number; pan: number; eq: { low: number; mid: number; high: number }; drive: number; tone: number; d: number; r: number }> = {
     kick:  { level: 0.93, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0 },
@@ -119,6 +120,7 @@ export class Engine {
     this.seed = sessionSeed(sb.id, session);
     this.padVar = mulberry32((this.seed ^ 0x51ab7e) >>> 0)(); // unique pad character per session
     this.trackOnPrev = {}; // clean section fades for the new song
+    this.padHold = null; this.padWasOn = false;
     this.song = generateSongForSub(sb, this.seed);
     this.arrangement = this.stripOutro(generateArrangementForSub(sb, this.seed));
     this.bpm = sb.bpm;
@@ -507,13 +509,13 @@ export class Engine {
     const width = ((p as any).width ?? 0.6);
     const cutoff = Math.min(3400, p.cutoff * ((p as any).bright ?? 1));
     const pv = this.padVar; // session-seeded pad character 0..1
-    const atk0 = (0.45 + 0.5 * pv) * (1 + 0.6 * soft);
-    const rel = 0.8 + 0.5 * pv;
+    const atk0 = (0.3 + 0.35 * pv) * (1 + 0.8 * soft); // bloom faster so chords actually speak
+    const rel = 1.0 + 0.6 * pv; // long tail overlaps the next chord -> continuous wash
     const lvl = 0.05 * (1 - 0.3 * soft);
     // SPREAD VOICING: root+5th low, 3rd (+7th) an octave up -> open, harmonic, wide
     let notes: number[];
     if (chord.length >= 4) notes = [chord[0], chord[2], chord[1] + 12, chord[3] + 12];
-    else if (chord.length === 3) notes = [chord[0], chord[2], chord[1] + 12, chord[1] + 12];
+    else if (chord.length === 3) notes = [chord[0], chord[0] + 7, chord[1] + 12, chord[2] + 12]; // root, 5th, 3rd+oct, 5th+oct (open, consonant)
     else notes = [...chord, chord[0] + 12];
     // sub warmth under the root (mono, center)
     const subO = ctx.createOscillator(); subO.type = 'sine'; subO.frequency.value = mtof(notes[0] - 12);
@@ -527,7 +529,7 @@ export class Engine {
       const plf = ctx.createOscillator(); plf.frequency.value = 0.06 + 0.025 * ni + 0.02 * pv;
       const pg = ctx.createGain(); pg.gain.value = cutoff * 0.08; plf.connect(pg); pg.connect(lp.frequency);
       plf.start(t); plf.stop(t + dur + rel + 0.1);
-      const a = Math.min(atk0 + ni * 0.06, dur * 0.7);
+      const a = Math.min(atk0 + ni * 0.04, dur * 0.6);
       const nlvl = lvl * (ni === 0 ? 1.05 : 0.95);
       for (const sign of [-1, 1]) {
         const o = ctx.createOscillator(); o.type = wave; o.frequency.value = mtof(m);
@@ -592,6 +594,7 @@ export class Engine {
     const bar = Math.floor(g / 16) % this.totalBars(); const step = g % 16;
     const { section, startBar } = sectionAtBarIn(this.arrangement, bar);
     const barIn = bar - startBar;
+    const chordBar = Math.floor(bar / 2); // harmony moves every 2 bars -> pads/bass/plucks flow as one progression
     const roleNow = ((section as any).role || '');
     const on = (id: TrackId) => {
       if (!section.active.includes(id)) return false;
@@ -680,18 +683,29 @@ export class Engine {
     if (step === 0 && barIn === 0 && isDrop) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.9, t, 0.04); }
     if (step === 0 && barIn === 0 && isDrop) this.vBass(t, -12, stepDur * 2, 1);
     const chordsG = s.chords && s.chords.length ? s.chords : [s.padChord];
-    const chordRoot = chordsG[bar % chordsG.length][0];
+    const chordRoot = chordsG[chordBar % chordsG.length][0];
     const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
     const phraseLast = bar % 4 === 3;
     if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
     if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
     if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; const L = arr[step]; if (L !== null && L !== undefined) { this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
-    if (isDrop && on('lead') && step % 2 === 1) { const chA = s.chords && s.chords.length ? s.chords : [s.padChord]; const chP = chA[bar % chA.length]; this.vPluck(t, chP[(step >> 1) % chP.length] + 12, stepDur * 1.2, 0.32); }
+    if (isDrop && on('lead') && step % 2 === 1) { const chA = s.chords && s.chords.length ? s.chords : [s.padChord]; const chP = chA[chordBar % chA.length]; this.vPluck(t, chP[(step >> 1) % chP.length] + 12, stepDur * 1.2, 0.32); }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
-    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; const softPad = (isIntroSec || roleNow === 'ambient' || roleNow === 'bridge') ? 1 : 0; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16, softPad); }
+    if (step === 0) {
+      if (on('pad')) {
+        const chords = s.chords && s.chords.length ? s.chords : [s.padChord];
+        const ch = chords[chordBar % chords.length];
+        const cont = this.padWasOn && this.padHold === ch && barIn !== 0; // same chord continues -> let it ring (legato, no re-swallow)
+        if (!cont) {
+          const softPad = (isIntroSec || roleNow === 'ambient' || roleNow === 'bridge') ? 1 : 0;
+          this.vPad(t, ch, stepDur * 32, softPad); // sustain covers the full 2-bar chord
+        }
+        this.padHold = ch; this.padWasOn = true;
+      } else { this.padWasOn = false; }
+    }
     if (on('atmos') && step === 0 && barIn === 0) this.vAtmos(t, stepDur * 16 * section.bars);
   }
   async start() {
@@ -884,9 +898,9 @@ export class Engine {
   private stripOutro(arr: any[]) { return arr.filter((s) => (s.role || '') !== 'outro' && s.name !== 'OUTRO' && !String(s.name).includes('OUTRO')); }
   loadArrangement(sections: { name: string; bars: number; active: string[] }[]) {
     this.arrangement = this.stripOutro(sections as any);
-    this.step16 = 0; this.pendingJump = null;
+    this.step16 = 0; this.pendingJump = null; this.padHold = null; this.padWasOn = false;
   }
-  jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
+  jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; this.padHold = null; this.padWasOn = false; }
   setMasterLevel(v: number) { this.masterUI.level = v; if (this.master && this.ctx) this.master.gain.setTargetAtTime(0.5 + v * 0.6, this.ctx.currentTime, 0.03); else if (this.master) this.master.gain.value = 0.5 + v * 0.6; }
   setMasterEq(band: 'low' | 'mid' | 'high', db: number) {
     this.masterUI.eq[band] = db;
