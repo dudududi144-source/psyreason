@@ -326,8 +326,8 @@ export class Engine {
       ld.setTargetAtTime(1, t + 0.03, 0.08);
       const pd = this.channels.pad.duck.gain;
       pd.cancelScheduledValues(t);
-      pd.setValueAtTime(1 - 0.14 * this.params.bass.sidechain, t);
-      pd.setTargetAtTime(1, t + 0.03, 0.13);
+      pd.setValueAtTime(1 - 0.06 * this.params.bass.sidechain, t);
+      pd.setTargetAtTime(1, t + 0.05, 0.2);
     }
   }
   vBass(t: number, semi: number, dur: number, accent = 1) {
