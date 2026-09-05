@@ -404,7 +404,8 @@ export function generateTrack(id: TrackId, seed: number, current: SongData): Son
 export function libraryStats() {
   const subs = STYLES.reduce((a, s) => a + s.subs.length, 0);
   return { styles: STYLES.length, subs, sessions: subs * SESSIONS_PER_SUB };
-}function buildForms(): SoundPreset[] {
+}
+export function buildForms(): SoundPreset[] {
   const FULL = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
   const GROOVE = ['kick', 'bass', 'hats'];
   const AIR = ['lead', 'pad'];
