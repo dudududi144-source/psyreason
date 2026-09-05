@@ -237,6 +237,12 @@ export class Engine {
     ldp.cutoff = Math.round(Math.max(1500, Math.min(6000, ldp.cutoff * (0.9 + dna() * 0.2))));
     ldp.detune = Math.max(2, Math.min(18, (ldp.detune ?? 8) + Math.round((dna() - 0.5) * 5)));
     this.padVoicing = Math.floor(dna() * 3);
+    const pp = this.params.pad as any;
+    pp.det = Math.max(3, Math.min(16, (pp.det ?? 8) + Math.round((dna() - 0.5) * 6)));
+    pp.bright = Math.max(0.55, Math.min(1.35, (pp.bright ?? 1) + (dna() - 0.5) * 0.35));
+    pp.width = Math.max(0.3, Math.min(0.95, (pp.width ?? 0.6) + (dna() - 0.5) * 0.3));
+    pp.cutoff = Math.round(Math.max(500, Math.min(2600, (pp.cutoff ?? 1500) * (0.85 + dna() * 0.35))));
+    if (dna() < 0.35) pp.wave = ['sawtooth', 'triangle', 'sine'][Math.floor(dna() * 3)]; // timbre variety across sessions
     // commercial polish: tame harshness so everything sits musically
     this.params.lead.res = Math.min(this.params.lead.res ?? 6, 9);
     this.params.lead.cutoff = Math.min(this.params.lead.cutoff ?? 4000, 5500);
@@ -427,6 +433,15 @@ export class Engine {
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     n.connect(hp); hp.connect(g); g.connect(out);
     n.start(t); n.stop(t + dur + 0.02);
+    // definition ring: short resonant tick gives the hat presence/quality
+    const ring = ctx.createOscillator(); ring.type = 'triangle';
+    ring.frequency.value = tone * 1.32;
+    const rbp = ctx.createBiquadFilter(); rbp.type = 'bandpass'; rbp.frequency.value = tone * 1.32; rbp.Q.value = 1.2;
+    const rg = ctx.createGain();
+    rg.gain.setValueAtTime(0.1 * vel * (0.5 + (p.metal ?? 0.5)), t);
+    rg.gain.exponentialRampToValueAtTime(0.0005, t + (open ? 0.09 : 0.022));
+    ring.connect(rbp); rbp.connect(rg); rg.connect(out);
+    ring.start(t); ring.stop(t + 0.1);
     const base = tone * 0.72;
     const ratios = [1.0, 1.483, 1.921, 2.547, 3.112, 3.894];
     const bright = (p.metal ?? 0.5);
@@ -461,6 +476,23 @@ export class Engine {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.07, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
     n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + 0.08);
+  }
+  vPerc(t: number, vel = 1, base = 640) {
+    // organic conga/bongo layer (percussion quality)
+    const ctx = this.ctx!; const out = this.channels.open.bus;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(base * 1.6, t);
+    o.frequency.exponentialRampToValueAtTime(base, t + 0.025);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.22 * vel, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = base * 1.8; bp.Q.value = 0.8;
+    o.connect(bp); bp.connect(g); g.connect(out);
+    o.start(t); o.stop(t + 0.15);
+    const n = ctx.createBufferSource(); n.buffer = this.noise();
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3500;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.06 * vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
+    n.connect(hp); hp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.02);
   }
 
   private leadOsc(ctx: AudioContext, p: any, f: number, t: number): OscillatorNode {
@@ -541,7 +573,7 @@ export class Engine {
     const cutoff = Math.min(3400, p.cutoff * ((p as any).bright ?? 1));
     const pv = this.padVar; // session-seeded pad character 0..1
     const atk0 = (0.3 + 0.35 * pv) * (1 + 0.8 * soft); // bloom faster so chords actually speak
-    const rel = 1.0 + 0.6 * pv; // long tail overlaps the next chord -> continuous wash
+    const rel = 1.3 + 0.9 * pv; // long tail bleeds into the next chord -> continuous wash
     const lvl = 0.05 * (1 - 0.3 * soft);
     // SPREAD VOICING: root+5th low, 3rd (+7th) an octave up -> open, harmonic, wide
     const voc = this.padVoicing; // session pad character: 0 spread / 1 deep bed / 2 airy power
@@ -578,7 +610,7 @@ export class Engine {
           sl.connect(sgn); sgn.connect(o.detune); sl.start(t); sl.stop(t + dur + rel + 0.1);
         }
         const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(nlvl, t + a);
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(nlvl * 0.55, t + a * 0.45); g.gain.linearRampToValueAtTime(nlvl, t + a); // organic swell
         g.gain.setValueAtTime(nlvl, t + Math.max(a, dur)); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
         o.connect(lp); lp.connect(g);
         const pn = ctx.createStereoPanner(); pn.pan.value = sign * (0.25 + 0.55 * width) * (ni % 2 === 0 ? 1 : -1);
@@ -612,6 +644,11 @@ export class Engine {
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
     n.connect(bp); bp.connect(g); g.connect(this.channels.kick.bus);
     n.start(t); n.stop(t + 0.2);
+    const n2 = ctx.createBufferSource(); n2.buffer = this.noise();
+    const lp2 = ctx.createBiquadFilter(); lp2.type = 'bandpass'; lp2.frequency.value = 900; lp2.Q.value = 0.8;
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.12, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+    n2.connect(lp2); lp2.connect(g2); g2.connect(this.channels.kick.bus);
+    n2.start(t); n2.stop(t + 0.15);
   }
   vRiser(t: number, dur: number, vel = 1) {
     // white-noise sweep up into the drop (commercial transition glue)
@@ -751,6 +788,7 @@ export class Engine {
     if (isDrop2 && step % 2 === 1) this.vShaker(t);
     if (isPerc && step % 2 === 1) this.vShaker(t);
     if (isPerc && step % 4 === 2) this.vHat(t, false, 0.8);
+    if (isPerc && (step === 3 || step === 7 || step === 11 || step === 15)) this.vPerc(t, step % 8 === 3 ? 0.9 : 0.5, step % 8 === 3 ? 720 : 560); // syncopated congas
     if (this.openIntoDrop && step === 0 && barIn === 0 && isDrop) this.vHat(t, true, 0.8);
     if (isBuild && section.bars >= 2 && barIn === section.bars - 2 && step === 0) this.vRiser(t, stepDur * 32, 0.9); // sweep into the drop
     if (isBuild && lastBar && step === 12) { this.master!.gain.cancelScheduledValues(t); this.master!.gain.setTargetAtTime(0.72, t, 0.08); }
