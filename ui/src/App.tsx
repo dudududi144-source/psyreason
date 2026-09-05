@@ -22,14 +22,22 @@ function Knob({ label, value, min, max, onChange, color, size }: any) {
   value = typeof value === 'number' && isFinite(value) ? value : (Number(value) || 0);
   const [drag, setDrag] = useState(false);
   const sy = useRef(0); const sv = useRef(0);
+  const cb = useRef(onChange); cb.current = onChange; // always-current callback for window listeners
   const rot = -135 + ((value - min) / (max - min)) * 270;
   const sz = typeof size === 'number' ? size : 56;
+  useEffect(() => {
+    if (!drag) return;
+    const move = (e: MouseEvent) => cb.current(Math.max(min, Math.min(max, sv.current + (sy.current - e.clientY) * 0.006 * (max - min))));
+    const up = () => setDrag(false);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  }, [drag, min, max]);
   return (
     <div className="k-wrap">
-      <div className="k-body" style={{ width: sz, height: sz, borderColor: drag ? color : '#2a2a3a' }}
+      <div className="k-body" style={{ width: sz, height: sz, borderColor: drag ? color : '#2a2a3a', cursor: 'ns-resize' }}
         onMouseDown={(e) => { e.preventDefault(); setDrag(true); sy.current = e.clientY; sv.current = value; }}
-        onMouseMove={(e) => { if (!drag) return; onChange(Math.max(min, Math.min(max, sv.current + (sy.current - e.clientY) * 0.006 * (max - min)))); }}
-        onMouseUp={() => setDrag(false)} onMouseLeave={() => setDrag(false)}>
+        onWheel={(e) => { const dir = e.deltaY < 0 ? 1 : -1; cb.current(Math.max(min, Math.min(max, value + dir * (max - min) * 0.02))); }}>
         <div className="k-ind" style={{ top: sz * 0.07, height: sz * 0.27, transformOrigin: '50% ' + Math.round(sz * 0.64) + 'px', transform: 'translateX(-50%) rotate(' + rot + 'deg)', background: color }} />
       </div>
       <div className="k-label">{label}</div>
@@ -293,10 +301,10 @@ function PianoRoll({ pos, playing }: { pos: { bar: number; step: number }; playi
 
 // ---------- RACK ----------
 const KNOB_CFG: Record<TrackId, { key: string; label: string; min: number; max: number }[]> = {
-  bass: [ { key: 'cutoff', label: 'CUTOFF', min: 100, max: 4000 }, { key: 'res', label: 'RESO', min: 0, max: 12 }, { key: 'drive', label: 'DRIVE', min: 0, max: 1 }, { key: 'sub', label: 'SUB', min: 0, max: 1 }, { key: 'sidechain', label: 'PUMP', min: 0, max: 1 } ],
-  lead: [ { key: 'cutoff', label: 'CUTOFF', min: 200, max: 6500 }, { key: 'res', label: 'RESO', min: 0, max: 13 }, { key: 'decay', label: 'DECAY', min: 0.1, max: 0.8 }, { key: 'detune', label: 'DETUNE', min: 0, max: 20 }, { key: 'dSend', label: 'DELAY', min: 0, max: 1 } ],
+  bass: [ { key: 'cutoff', label: 'CUTOFF', min: 100, max: 4000 }, { key: 'res', label: 'RESO', min: 0, max: 12 }, { key: 'drive', label: 'DRIVE', min: 0, max: 1 }, { key: 'pluck', label: 'PLUCK', min: 0, max: 1 }, { key: 'sub', label: 'SUB', min: 0, max: 1 }, { key: 'sidechain', label: 'PUMP', min: 0, max: 1 } ],
+  lead: [ { key: 'cutoff', label: 'CUTOFF', min: 200, max: 6500 }, { key: 'res', label: 'RESO', min: 0, max: 13 }, { key: 'decay', label: 'DECAY', min: 0.1, max: 0.8 }, { key: 'sus', label: 'SUSTAIN', min: 0, max: 1 }, { key: 'detune', label: 'DETUNE', min: 0, max: 20 }, { key: 'voices', label: 'VOICES', min: 1, max: 3 }, { key: 'dSend', label: 'DELAY', min: 0, max: 1 } ],
   pad: [ { key: 'cutoff', label: 'CUTOFF', min: 200, max: 5000 }, { key: 'width', label: 'WIDTH', min: 0, max: 1 }, { key: 'bright', label: 'BRIGHT', min: 0.5, max: 1.6 }, { key: 'rSend', label: 'REVERB', min: 0, max: 1 } ],
-  kick: [ { key: 'decay', label: 'DECAY', min: 0.1, max: 0.6 }, { key: 'punch', label: 'PUNCH', min: 0, max: 1 }, { key: 'sat', label: 'SAT', min: 0, max: 1 }, { key: 'subk', label: 'SUB', min: 0, max: 1 } ],
+  kick: [ { key: 'decay', label: 'DECAY', min: 0.1, max: 0.6 }, { key: 'punch', label: 'PUNCH', min: 0, max: 1 }, { key: 'body', label: 'BODY', min: 0, max: 1 }, { key: 'sat', label: 'SAT', min: 0, max: 1 }, { key: 'subk', label: 'SUB', min: 0, max: 1 } ],
   hats: [ { key: 'tone', label: 'TONE', min: 3000, max: 12000 }, { key: 'metal', label: 'METAL', min: 0, max: 1 }, { key: 'decay', label: 'DECAY', min: 0, max: 1 } ],
   open: [ { key: 'tone', label: 'TONE', min: 3000, max: 12000 }, { key: 'metal', label: 'METAL', min: 0, max: 1 } ],
 };
@@ -344,7 +352,7 @@ function Library({ onPick }: { onPick: (st: string, sb: string, s: number) => vo
   const ql = q.toLowerCase();
   return (
     <div className="view library">
-      <div className="lib-head">LIBRARY — {stats.styles} styles • {stats.subs} sub-styles • {stats.sessions} sessions • 46 sounds</div>
+      <div className="lib-head">LIBRARY — {stats.styles} styles • {stats.subs} sub-styles • {stats.sessions} sessions • {soundCount()} sound presets</div>
       <input className="lib-search" placeholder="search style / sub-style..." value={q} onChange={(e) => setQ(e.target.value)} />
       {FAMILIES.map((fam) => {
         const styles = STYLES.filter((s) => s.family === fam)
@@ -531,7 +539,7 @@ export default function App() {
       <div className="stylebar">
         <span className="sb-label">FAMILY</span>
         {FAMILIES.map((f) => (
-          <button key={f} className={'style-chip fam' + (family === f ? ' on' : '')} onClick={() => { setFamily(f); const st = STYLES.find((s) => s.family === f) || STYLES[0]; setStyleId(st.id); setSubId(st.subs[0].id); engine.loadSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{f}</button>
+          <button key={f} className={'style-chip fam' + (family === f ? ' on' : '')} onClick={() => { setFamily(f); const st = STYLES.find((s) => s.family === f) || STYLES[0]; setStyleId(st.id); setSubId(st.subs[0].id); engine.queueSession(st.id, st.subs[0].id, 1); setBpm(engine.bpm); force((x) => x + 1); }}>{f}</button>
         ))}
       </div>
       <div className="stylebar sub">
@@ -561,7 +569,7 @@ export default function App() {
       </main>
       <Keyboard />
       <footer className="foot">
-        <span>PsyReason v7 — pro console mixer • rich spread pads • smooth transitions • seeded sound variety | build 2025-m1</span>
+        <span>PsyReason v7.2 — DAW-grade knobs • quantized session switching • harmony-locked engine | build 2025-m2</span>
         <span>{playing ? 'RUNNING' : 'IDLE'} • AUDIO: {audioState} • {bpm} BPM • {engine.totalBars()}-bar arrangement • seed {engine.seed}</span>
       </footer>
     </div>
