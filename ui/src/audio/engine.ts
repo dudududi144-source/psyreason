@@ -464,19 +464,28 @@ export class Engine {
   }
   vPad(t: number, chord: number[], dur: number) {
     const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
-    const detAmt = Math.min(14, ((p as any).det ?? 6));
-    for (const m of chord) for (const sign of [-1, 1]) {
-      const o = ctx.createOscillator(); o.type = ((p as any).wave as OscillatorType) || 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = sign * detAmt;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.cutoff * ((p as any).bright ?? 1); lp.Q.value = 0.3;
-      const plf = ctx.createOscillator(); plf.frequency.value = 0.08; const pg = ctx.createGain(); pg.gain.value = p.cutoff * 0.1; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 0.8);
-      const g = ctx.createGain();
-      const lvl = 0.062, atk = 0.4, rel = 0.7;
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + atk);
-      g.gain.setValueAtTime(lvl, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
-      o.connect(lp); lp.connect(g);
-      const pn = ctx.createStereoPanner(); pn.pan.value = sign * (0.25 + 0.45 * ((p as any).width ?? 0.5));
-      g.connect(pn); pn.connect(out);
-      o.start(t); o.stop(t + dur + rel + 0.05);
+    const wave = ((p as any).wave as OscillatorType) || 'sawtooth';
+    const detAmt = Math.min(20, ((p as any).det ?? 8));
+    const width = ((p as any).width ?? 0.6);
+    const cutoff = Math.min(3200, p.cutoff * ((p as any).bright ?? 1));
+    const atk = 0.55, rel = 0.85, lvl = 0.045;
+    // spread voicing: base chord + octave-up 3rd for openness/width
+    const notes: number[] = [...chord];
+    if (chord.length >= 2) notes.push(chord[1] + 12);
+    for (let ni = 0; ni < notes.length; ni++) {
+      const m = notes[ni];
+      for (const sign of [-1, 1]) {
+        const o = ctx.createOscillator(); o.type = wave; o.frequency.value = mtof(m); o.detune.value = sign * detAmt;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; lp.Q.value = 0.35;
+        const plf = ctx.createOscillator(); plf.frequency.value = 0.07; const pg = ctx.createGain(); pg.gain.value = cutoff * 0.07; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 1);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + atk);
+        g.gain.setValueAtTime(lvl, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
+        o.connect(lp); lp.connect(g);
+        const pn = ctx.createStereoPanner(); pn.pan.value = (ni % 2 === 0 ? sign : -sign) * (0.3 + 0.5 * width);
+        g.connect(pn); pn.connect(out);
+        o.start(t); o.stop(t + dur + rel + 0.05);
+      }
     }
   }
   vAtmos(t: number, dur: number) {
