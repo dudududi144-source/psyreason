@@ -94,10 +94,16 @@ function buildKick(): SoundPreset[] {
   const out: SoundPreset[] = [];
   const KW = ['Thump', 'Punch', 'Round', 'Tight', 'Deep', 'Click', 'Big', 'Soft', 'Hard', 'Sub'];
   for (let i = 0; i < 160; i++) {
-    const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9, t3 = (Math.floor(i / 100) % 2);
+    const r = rng(9000 + i * 137);
     out.push({
       name: KW[i % KW.length] + ' Kick ' + String(i + 1).padStart(3, '0'),
-      p: { decay: +(0.18 + t1 * 0.24).toFixed(2), punch: +(0.3 + t2 * 0.6).toFixed(2), body: +(0.2 + t3 * 0.6).toFixed(2), subk: +(0.3 + t1 * 0.5).toFixed(2), sat: +(0.2 + t2 * 0.6).toFixed(2) },
+      p: {
+        decay: +(0.16 + r() * 0.3).toFixed(2),
+        punch: +(0.25 + r() * 0.7).toFixed(2),
+        body: +(0.15 + r() * 0.7).toFixed(2),
+        subk: +(0.25 + r() * 0.6).toFixed(2),
+        sat: +(0.15 + r() * 0.7).toFixed(2),
+      },
     });
   }
   return out;
