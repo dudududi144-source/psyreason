@@ -151,7 +151,7 @@ function ProStrip({ id, playing, selected, onSelect, bump }: { id: TrackId; play
   const act = (fn: () => void) => { fn(); bump(); };
   return (
     <div className={'pstrip' + (selected ? ' sel' : '')} style={{ borderColor: selected ? meta.color : meta.color + '44' }} onClick={onSelect}>
-      <div className="ps-head" style={{ background: meta.color }}>{meta.name}</div>
+      <div className="ps-head" style={{ background: meta.color }}>{meta.name}<button className="ps-prev" title="preview channel" onClick={(e) => { e.stopPropagation(); engine.preview(id); }}>▶</button></div>
       <div className="ps-eq">
         <Knob size={38} label="HI" value={st.eq.high} min={-12} max={12} color={meta.color} onChange={(v: number) => act(() => engine.setEq(id, 'high', v))} />
         <Knob size={38} label="MID" value={st.eq.mid} min={-12} max={12} color={meta.color} onChange={(v: number) => act(() => engine.setEq(id, 'mid', v))} />
@@ -164,10 +164,12 @@ function ProStrip({ id, playing, selected, onSelect, bump }: { id: TrackId; play
       </div>
       <div className="ps-core">
         <div className="ps-meter"><div className="ps-fill" ref={fill} /><div className="ps-peak" ref={peak} /></div>
+        <div className="ps-scale"><span>0</span><span>-6</span><span>-12</span><span>-24</span></div>
         <input className="pfader" type="range" min={0} max={1} step={0.005} value={st.level}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => act(() => engine.setFader(id, Number(e.target.value)))} />
       </div>
+      <div className="ps-readout">{st.level > 0.001 ? (20 * Math.log10(st.level)).toFixed(1) + ' dB' : '-∞ dB'}</div>
       <div className="ps-foot">
         <Knob size={38} label="PAN" value={st.pan} min={-1} max={1} color={meta.color} onChange={(v: number) => act(() => engine.setPan(id, v))} />
         <div className="ps-ms">
@@ -199,8 +201,10 @@ function ProMaster({ playing, bump }: { playing: boolean; bump: () => void }) {
       </div>
       <div className="ps-core">
         <div className="ps-meter"><div className="ps-fill" ref={fill} /><div className="ps-peak" ref={peak} /></div>
+        <div className="ps-scale"><span>0</span><span>-6</span><span>-12</span><span>-24</span></div>
         <input className="pfader" type="range" min={0} max={1} step={0.005} value={mu.level} onChange={(e) => act(() => engine.setMasterLevel(Number(e.target.value)))} />
       </div>
+      <div className="ps-readout">{mu.level > 0.001 ? (20 * Math.log10(mu.level)).toFixed(1) + ' dB' : '-∞ dB'}</div>
       <div className="ps-foot"><span className="m-label">EQ → COMP → LIM</span></div>
     </div>
   );
