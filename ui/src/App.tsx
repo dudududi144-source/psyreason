@@ -98,46 +98,11 @@ function Arrange({ pos, playing }: { pos: { bar: number; step: number }; playing
         })}
       </div>
       <div className="hint">ARRANGEMENT plays INTRO → BUILD → DROP → BREAK → DROP 2 on loop. Click cells to edit; ▶ previews a track through the mixer.</div>
-      <div className="mixer compact">
-        {[...TRACKS.map((t) => t.id), 'master'].map((id) => <Strip key={id} id={id as any} playing={playing} />)}
-      </div>
     </div>
   );
 }
 
 // ---------- MIXER ----------
-// Strip is a real component (hooks at top level - no crash)
-function Strip({ id, playing }: { id: TrackId | 'master'; playing: boolean }) {
-  const [, force] = useState(0);
-  const meta = id === 'master' ? { name: 'MST', color: '#ffffff' } : TRACKS.find((t) => t.id === id)!;
-  const ch = id === 'master' ? null : (engine.channels as any)[id];
-  const ref = useMeter(id, playing);
-  return (
-    <div className="cstrip" style={{ borderColor: (meta as any).color + '55' }}>
-      <div className="cstrip-top">
-        <span className="cstrip-name" style={{ color: (meta as any).color }}>{(meta as any).name}</span>
-        <div className="cstrip-meter"><div className="cstrip-fill" ref={ref} /></div>
-      </div>
-      {ch && (
-        <div className="cstrip-btns">
-          <button className={'m-btn' + (ch.mute ? ' on-m' : '')} onClick={() => { engine.setMute(id as TrackId, !ch.mute); force((x) => x + 1); }}>M</button>
-          <button className={'m-btn' + (ch.solo ? ' on-s' : '')} onClick={() => { engine.setSolo(id as TrackId, !ch.solo); force((x) => x + 1); }}>S</button>
-        </div>
-      )}
-      <input className="cfader" type="range" min={0} max={1} step={0.01} defaultValue={0.9} title="Level"
-        onChange={(e) => engine.setFader(id as TrackId, Number(e.target.value))} />
-      {ch && (
-        <div className="cstrip-mini">
-          <label title="Tone (lowpass)">T<input type="range" min={0} max={1} step={0.01} defaultValue={1} onChange={(e) => engine.setTone(id as TrackId, Number(e.target.value))} /></label>
-          <label title="Drive">D<input type="range" min={0} max={1} step={0.01} defaultValue={0} onChange={(e) => engine.setDrive(id as TrackId, Number(e.target.value))} /></label>
-          <label title="Delay send">↦<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'lead' ? 0.35 : 0} onChange={(e) => engine.setSend(id as TrackId, 'd', Number(e.target.value))} /></label>
-          <label title="Reverb send">R<input type="range" min={0} max={1} step={0.01} defaultValue={id === 'pad' ? 0.5 : id === 'lead' ? 0.2 : 0} onChange={(e) => engine.setSend(id as TrackId, 'r', Number(e.target.value))} /></label>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ChannelStrip({ id, playing }: { id: TrackId; playing: boolean }) {
   const [, force] = useState(0);
   const meta = TRACKS.find((t) => t.id === id)!;
