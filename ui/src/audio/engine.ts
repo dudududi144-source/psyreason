@@ -727,7 +727,8 @@ export class Engine {
     if (this.clapOn && on('kick') && (step === 4 || step === 12)) this.vClap(t);
     if (on('kick') || isBreak) {
       const secondLast = barIn === section.bars - 2;
-      if (secondLast && step % 4 === 0) this.vSnare(t, 0.16);
+      const quietBreak = roleNow === 'ambient' || roleNow === 'half'; // no stray drums inside floating breaks
+      if (secondLast && step % 4 === 0 && !quietBreak) this.vSnare(t, 0.16);
       if (lastBar && step < 16 - this.rollLen && step % 2 === 0) this.vSnare(t, 0.22);
       if (lastBar && step >= 16 - this.rollLen) this.vSnare(t, (0.2 + 0.18 * (step - (16 - this.rollLen))) * this.rollVel);
     }
@@ -746,10 +747,10 @@ export class Engine {
     const chordRoot = chordsG[chordBar % chordsG.length][0];
     const rootShift = this.followChords ? chordRoot - 24 - this.bassRoot : 0;
     const phraseLast = bar % 4 === 3;
-    if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, b.semi + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
+    if (on('bass') && !(isOutro && barIn >= 4)) { const arr = useB && s.bassB ? s.bassB : s.bass; const b = arr[step]; if (b.on) { let semiN = b.semi; if (this.followChords && semiN !== 0 && semiN !== 7 && semiN !== 12) semiN = semiN < 4 ? 0 : semiN < 10 ? 7 : 12; const oct = this.phraseFills && phraseLast && step >= 12 ? 12 : 0; this.vBass(t, semiN + rootShift + oct, stepDur * 0.92, ((this.params.bass as any).pluck ?? 0.6) > 0.7 && step % 4 === 2 ? 1.5 : 1); } }
     if (on('hats') && s.hats[step] && !(isOutro && barIn >= 6)) { const dropExit = isDrop && lastBar && step > 8; if (!dropExit) this.vHat(t, false, (step % 4 === 2 ? 1 : 0.7) * (0.85 + 0.3 * (((step * 13 + bar) % 4) / 3))); }
     if (on('open') && s.open[step]) this.vHat(t, true);
-    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; let L = arr[step]; if (L !== null && L !== undefined) { if (this.followChords && step % 4 === 0) { L = this.nearestTone(L, chordsG[chordBar % chordsG.length]); } this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
+    if (on('lead')) { const arr = useB && s.leadB ? s.leadB : s.lead; let L = arr[step]; if (L !== null && L !== undefined) { if (this.followChords && (step % 4 === 0 || step === 15)) { L = this.nearestTone(L, chordsG[chordBar % chordsG.length]); } this.vLead(t, L, stepDur * 3); if (isBreak && this.breakEcho) this.vLead(t + stepDur * 4, L, stepDur * 2, 0.4); } }
     if (isDrop && on('lead') && step % 2 === 1) { const chA = s.chords && s.chords.length ? s.chords : [s.padChord]; const chP = chA[chordBar % chA.length]; this.vPluck(t, chP[(step >> 1) % chP.length] + 12, stepDur * 1.2, 0.32); }
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
