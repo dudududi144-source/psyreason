@@ -313,7 +313,17 @@ function chordAt(scale: number[], root: number, deg: number): number[] {
   return [0, 2, 4, 6].map((off) => { const d = deg + off; return root + scale[d % n] + Math.floor(d / n) * 12; });
 }
 function genChords(rng: () => number, st: SubStyle): number[][] {
-  const roots = st.scale === MAJ ? [0, 5, 3, 4] : st.scale === PHR ? [0, 0, 5, 0] : st.scale === HARM ? [0, 5, 2, 6] : [0, 5, 2, 6];
+  // harmonic variety: each scale has a POOL of musical progressions, seeded per session
+  const pools = st.scale === MAJ
+    ? [[0, 5, 3, 4], [0, 3, 5, 4], [0, 4, 5, 3], [5, 3, 0, 4]]
+    : st.scale === PHR
+    ? [[0, 0, 5, 0], [0, 1, 0, 5], [0, 0, 1, 0], [0, 5, 0, 1]]
+    : st.scale === HARM
+    ? [[0, 5, 2, 6], [0, 2, 5, 6], [0, 5, 0, 2]]
+    : st.scale === DOR
+    ? [[0, 5, 2, 6], [0, 3, 2, 5]]
+    : [[0, 5, 2, 6], [0, 1, 5, 6], [0, 2, 6, 5], [0, 6, 5, 6]];
+  const roots = pools[Math.floor(rng() * pools.length)];
   return roots.map((d) => chordAt(st.scale, 57, d));
 }
 
