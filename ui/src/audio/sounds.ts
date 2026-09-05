@@ -25,19 +25,22 @@ function buildBass(): SoundPreset[] {
   const BW = ['Rolling', 'Night', 'Acid', 'Sub', 'Growl', 'Hypno', 'Punch', 'Twang', 'Deep', 'Square'];
   const base: Record<string, any> = { pluck: { pluck: 1, sub: 0.3 }, flat: { pluck: 0.25, sub: 0.5 }, acid: { pluck: 0.85, sub: 0.2 }, sub: { pluck: 0.3, sub: 0.95 }, growl: { pluck: 0.6, sub: 0.6 } };
   for (let i = 0; i < 300; i++) {
-    const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9, t3 = (Math.floor(i / 100) % 3) / 2;
-    const ch = chars[i % 5]; const bb = base[ch];
+    const r = rng(11000 + i * 131); // unique seeded character per preset (no repeating i%loops)
+    const ch = chars[Math.floor(r() * chars.length)]; const bb = base[ch];
+    const cutoff = Math.round(350 + r() * 1150);
+    const res = Math.round(2 + r() * 13);
+    const drive = +(0.12 + r() * 0.68).toFixed(2);
     out.push({
-      name: BW[i % BW.length] + ' Bass ' + String(i + 1).padStart(3, '0'),
+      name: BW[Math.floor(r() * BW.length)] + ' Bass ' + String(i + 1).padStart(3, '0'),
       p: {
-        wave: waves[i % 2],
-        ftype: ch === 'acid' && t3 > 0.5 ? 'bp' : 'lp',
-        cutoff: Math.round(350 + t1 * 1100),
-        res: Math.round(2 + t2 * 13),
-        drive: +(0.15 + t3 * 0.7).toFixed(2),
-        pluck: +Math.min(1, bb.pluck * (0.7 + t2 * 0.6)).toFixed(2),
-        sub: +Math.min(1, bb.sub * (0.7 + t1 * 0.6)).toFixed(2),
-        glide: ch === 'acid' ? +(0.2 + t1 * 0.4).toFixed(2) : 0,
+        wave: waves[Math.floor(r() * waves.length)],
+        ftype: ch === 'acid' && r() > 0.5 ? 'bp' : 'lp',
+        cutoff,
+        res,
+        drive,
+        pluck: +Math.min(1, bb.pluck * (0.7 + r() * 0.6)).toFixed(2),
+        sub: +Math.min(1, bb.sub * (0.7 + r() * 0.6)).toFixed(2),
+        glide: ch === 'acid' ? +(0.2 + r() * 0.4).toFixed(2) : (r() < 0.12 ? +(r() * 0.25).toFixed(2) : 0),
       },
     });
   }
@@ -45,27 +48,27 @@ function buildBass(): SoundPreset[] {
 }
 function buildLead(): SoundPreset[] {
   const out: SoundPreset[] = [];
-  const engines = ['analog', 'fm', 'wave'];
   const waves = ['sawtooth', 'square', 'triangle'];
   const LW = ['Scream', 'Anthem', 'Pluck', 'Twist', 'Air', 'Acid', 'Rise', 'Hook', 'Stab', 'Echo', 'Bell', 'Siren'];
   for (let i = 0; i < 300; i++) {
-    const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9, t3 = (Math.floor(i / 100) % 3) / 2;
-    const en = engines[i % 3];
+    const r = rng(15000 + i * 137); // unique seeded character per preset
+    const er = r();
+    const en = er < 0.5 ? 'analog' : er < 0.75 ? 'fm' : 'wave';
     const p: any = {
       engine: en,
-      ftype: [0, 0, 1, 2][i % 4],
-      sus: t3,
-      cutoff: Math.round(2000 + t1 * 4500),
-      res: Math.round(2 + t2 * 12),
-      decay: +(0.12 + t3 * 0.45).toFixed(2),
-      voices: [1, 2, 2, 3][i % 4],
-      detune: Math.round(4 + t2 * 16),
-      vib: t3 > 0.5 ? 0.5 : 0,
+      ftype: [0, 0, 1, 2][Math.floor(r() * 4)],
+      sus: +(r() * 0.9).toFixed(2),
+      cutoff: Math.round(1800 + r() * 4700),
+      res: Math.round(2 + r() * 11),
+      decay: +(0.12 + r() * 0.5).toFixed(2),
+      voices: [1, 2, 2, 3, 3][Math.floor(r() * 5)],
+      detune: Math.round(3 + r() * 15),
+      vib: r() > 0.6 ? +(0.3 + r() * 0.4).toFixed(2) : 0,
     };
-    if (en === 'analog') p.wave = waves[i % 3];
-    if (en === 'fm') { p.fmRatio = [1, 1.5, 2, 2.5, 3][i % 5]; p.fmAmt = +(0.8 + t1 * 2.2).toFixed(2); }
-    if (en === 'wave') p.wt = +t2.toFixed(2);
-    out.push({ name: LW[i % LW.length] + ' ' + (en === 'fm' ? 'FM' : en === 'wave' ? 'WT' : 'AN') + ' ' + String(i + 1).padStart(3, '0'), p });
+    if (en === 'analog') p.wave = waves[Math.floor(r() * waves.length)];
+    if (en === 'fm') { p.fmRatio = [1, 1.5, 2, 2.5, 3, 4][Math.floor(r() * 6)]; p.fmAmt = +(0.6 + r() * 2.6).toFixed(2); }
+    if (en === 'wave') p.wt = +r().toFixed(2);
+    out.push({ name: LW[Math.floor(r() * LW.length)] + ' ' + (en === 'fm' ? 'FM' : en === 'wave' ? 'WT' : 'AN') + ' ' + String(i + 1).padStart(3, '0'), p });
   }
   return out;
 }
@@ -96,13 +99,13 @@ function buildKick(): SoundPreset[] {
   for (let i = 0; i < 160; i++) {
     const r = rng(9000 + i * 137);
     out.push({
-      name: KW[i % KW.length] + ' Kick ' + String(i + 1).padStart(3, '0'),
+      name: KW[Math.floor(r() * KW.length)] + ' Kick ' + String(i + 1).padStart(3, '0'),
       p: {
-        decay: +(0.16 + r() * 0.3).toFixed(2),
-        punch: +(0.25 + r() * 0.7).toFixed(2),
-        body: +(0.15 + r() * 0.7).toFixed(2),
-        subk: +(0.25 + r() * 0.6).toFixed(2),
-        sat: +(0.15 + r() * 0.7).toFixed(2),
+        decay: +(0.14 + r() * 0.34).toFixed(2),
+        punch: +(0.2 + r() * 0.8).toFixed(2),
+        body: +(0.15 + r() * 0.75).toFixed(2),
+        subk: +(0.2 + r() * 0.7).toFixed(2),
+        sat: +(0.1 + r() * 0.8).toFixed(2),
       },
     });
   }
@@ -112,8 +115,8 @@ function buildHats(): SoundPreset[] {
   const out: SoundPreset[] = [];
   const HW = ['Classic', 'Tight', 'Loose', 'Metal', 'Soft', 'Busy', 'Airy', 'Dark'];
   for (let i = 0; i < 140; i++) {
-    const t1 = (i % 10) / 9, t2 = (Math.floor(i / 10) % 10) / 9;
-    out.push({ name: HW[i % HW.length] + ' Hat ' + String(i + 1).padStart(3, '0'), p: { tone: Math.round(5500 + t1 * 4000), metal: +(0.2 + t2 * 0.7).toFixed(2), decay: +t2.toFixed(2) } });
+    const r = rng(19000 + i * 139); // unique seeded tuning per preset
+    out.push({ name: HW[Math.floor(r() * HW.length)] + ' Hat ' + String(i + 1).padStart(3, '0'), p: { tone: Math.round(5200 + r() * 4300), metal: +(0.15 + r() * 0.75).toFixed(2), decay: +(r() * 0.95).toFixed(2) } });
   }
   return out;
 }
