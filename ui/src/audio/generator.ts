@@ -42,10 +42,10 @@ function sub(o: any): SubStyle {
   for (let i = 0; i < idStr.length; i++) { h ^= idStr.charCodeAt(i); h = Math.imul(h, 16777619); }
   const r = mulberry32((h >>> 0) ^ 0x9e3779b9);
   s.padWave = ['sawtooth', 'triangle', 'sine'][Math.floor(r() * 3)];
-  s.padCut = Math.round(400 + r() * 1800);
-  s.padDet = Math.round(4 + r() * 10);
-  s.padBright = +(0.7 + r() * 0.4).toFixed(2);
-  s.padWidth = +(0.3 + r() * 0.55).toFixed(2);
+  s.padCut = Math.round(350 + r() * 2050);
+  s.padDet = Math.round(3 + r() * 13);
+  s.padBright = +(0.6 + r() * 0.6).toFixed(2);
+  s.padWidth = +(0.2 + r() * 0.75).toFixed(2);
   return s;
 }
 
