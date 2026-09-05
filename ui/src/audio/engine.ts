@@ -62,10 +62,11 @@ export function defaultSong(): SongData {
 
 export const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
-import { generateSong, generateTrack, generateArrangement, generateSongForSub, generateArrangementForSub, styleById, subById, sessionSeed } from './generator';
+import { generateSong, generateTrack, generateArrangement, generateSongForSub, generateArrangementForSub, styleById, subById, sessionSeed, mulberry32 } from './generator';
 
 interface Channel {
-  bus: GainNode; duck: GainNode; fader: GainNode; pan: StereoPannerNode; an: AnalyserNode;
+  bus: GainNode; duck: GainNode; eqL: BiquadFilterNode; eqM: BiquadFilterNode; eqH: BiquadFilterNode;
+  tone: BiquadFilterNode; drv: WaveShaperNode; fader: GainNode; pan: StereoPannerNode; an: AnalyserNode;
   dSend: GainNode; rSend: GainNode;
   mute: boolean; solo: boolean; level: number;
 }
@@ -74,12 +75,24 @@ export class Engine {
   ctx: AudioContext | null = null;
   master: GainNode | null = null;
   formGain: GainNode | null = null;
-  msat: WaveShaperNode | null = null;
   eqLow: BiquadFilterNode | null = null; eqMid: BiquadFilterNode | null = null; eqHigh: BiquadFilterNode | null = null;
   comp: DynamicsCompressorNode | null = null; limiter: DynamicsCompressorNode | null = null;
   masterAn: AnalyserNode | null = null;
   delayIn: GainNode | null = null; reverbIn: GainNode | null = null;
+  delayNode: DelayNode | null = null;
   delayFbGain: GainNode | null = null; delayLp: BiquadFilterNode | null = null; reverbOut: GainNode | null = null;
+  padVar = 0.5; // seeded 0..1 pad character per session
+  // persistent mixer state (valid before + after audio init)
+  chUI: Record<string, { level: number; pan: number; eq: { low: number; mid: number; high: number }; drive: number; tone: number; d: number; r: number }> = {
+    kick:  { level: 0.93, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0 },
+    bass:  { level: 0.88, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0 },
+    hats:  { level: 0.42, pan: 0.1, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0 },
+    open:  { level: 0.44, pan: -0.1, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0.15 },
+    lead:  { level: 0.66, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0.35, r: 0.2 },
+    pad:   { level: 0.62, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0.5 },
+    atmos: { level: 0.5, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0.55 },
+  };
+  masterUI = { level: 0.58, eq: { low: 1.5, mid: 0.4, high: -1 }, thresh: -18, ratio: 2 };
   channels = {} as Record<TrackId, Channel>;
   song: SongData = defaultSong();
   bpm = 145;
@@ -104,6 +117,8 @@ export class Engine {
     const sb = subById(styleId, subId);
     this.styleId = styleId; this.subId = subId;
     this.seed = sessionSeed(sb.id, session);
+    this.padVar = mulberry32((this.seed ^ 0x51ab7e) >>> 0)(); // unique pad character per session
+    this.trackOnPrev = {}; // clean section fades for the new song
     this.song = generateSongForSub(sb, this.seed);
     this.arrangement = this.stripOutro(generateArrangementForSub(sb, this.seed));
     this.bpm = sb.bpm;
@@ -122,9 +137,9 @@ export class Engine {
       pluck: { voices: 1, detune: 4, glide: 0, resBoost: 2 }, air: { voices: 2, detune: 8, glide: 0, resBoost: -2 },
       twist: { voices: 2, detune: 20, glide: 0.3, resBoost: 5 } };
     const DC: Record<string, any> = {
-      punch: { decay: 0.24, punch: 0.7, metal: 0.6, body: 0.3 }, round: { decay: 0.32, punch: 0.4, metal: 0.4, body: 0.7 },
-      soft: { decay: 0.4, punch: 0.25, metal: 0.2, body: 0.6 }, hard: { decay: 0.2, punch: 0.9, metal: 0.8, body: 0.2 },
-      breaky: { decay: 0.26, punch: 0.6, metal: 0.5, body: 0.4 } };
+      punch: { decay: 0.24, punch: 0.7, metal: 0.6, body: 0.3, subk: 0.45 }, round: { decay: 0.32, punch: 0.4, metal: 0.4, body: 0.7, subk: 0.6 },
+      soft: { decay: 0.4, punch: 0.25, metal: 0.2, body: 0.6, subk: 0.7 }, hard: { decay: 0.2, punch: 0.9, metal: 0.8, body: 0.2, subk: 0.35 },
+      breaky: { decay: 0.26, punch: 0.6, metal: 0.5, body: 0.4, subk: 0.5 } };
     Object.assign(this.params.bass, BC[sb.bassChar] || BC.pluck);
     const lc = LC[sb.leadChar] || LC.pluck;
     Object.assign(this.params.lead, lc);
@@ -196,6 +211,7 @@ export class Engine {
       this.swing = sg.swing;
       if (this.delayFbGain) this.delayFbGain.gain.value = sg.dFb;
       this.params.lead.dSend = sg.dSend; this.params.pad.rSend = sg.rSend;
+      this.chUI.lead.d = sg.dSend; this.chUI.pad.r = sg.rSend;
       if ((this.channels as any).lead) { (this.channels as any).lead.dSend.gain.value = sg.dSend; }
       if ((this.channels as any).pad) { (this.channels as any).pad.rSend.gain.value = sg.rSend; }
     }
@@ -206,7 +222,9 @@ export class Engine {
     this.params.bass.drive = Math.min(this.params.bass.drive ?? 0.3, 0.4);
     this.crashOn = (sb as any).crash !== undefined ? (sb as any).crash : sb.padProb > 0.5;
     this.shakerOn = (sb as any).shaker !== undefined ? (sb as any).shaker : sb.hatBusy > 0.45;
+    this.syncDelay();
   }
+  private syncDelay() { if (this.delayNode) this.delayNode.delayTime.setTargetAtTime((60 / this.bpm) * 0.75, this.ctx ? this.ctx.currentTime : 0, 0.06); }
   generateStyle(styleId: string, session: number) { this.loadSession(styleId, this.subId, session); }
   generate(seed?: number) {
     this.seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
@@ -224,51 +242,53 @@ export class Engine {
     const AC = window.AudioContext || (window as any).webkitAudioContext;
     const ctx = new AC(); this.ctx = ctx;
 
-    // master chain: gain -> EQ(3) -> compressor -> limiter -> analyser -> out
-    this.master = ctx.createGain(); this.master.gain.value = 0.85;
-    this.eqLow = ctx.createBiquadFilter(); this.eqLow.type = 'lowshelf'; this.eqLow.frequency.value = 120; this.eqLow.gain.value = 1.5;
-    this.eqMid = ctx.createBiquadFilter(); this.eqMid.type = 'peaking'; this.eqMid.frequency.value = 1800; this.eqMid.gain.value = 0.4; this.eqMid.Q.value = 0.8;
-    this.eqHigh = ctx.createBiquadFilter(); this.eqHigh.type = 'highshelf'; this.eqHigh.frequency.value = 9000; this.eqHigh.gain.value = -1.0;
-    this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = -18; this.comp.ratio.value = 2; this.comp.attack.value = 0.02; this.comp.release.value = 0.25;
-    this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -1.5; this.limiter.ratio.value = 20; this.limiter.attack.value = 0.003; this.limiter.release.value = 0.15;
+    // master chain: gain -> EQ(3) -> compressor -> limiter -> analyser -> out (fully wired, staged for headroom)
+    this.master = ctx.createGain(); this.master.gain.value = 0.5 + this.masterUI.level * 0.6;
+    this.eqLow = ctx.createBiquadFilter(); this.eqLow.type = 'lowshelf'; this.eqLow.frequency.value = 120; this.eqLow.gain.value = this.masterUI.eq.low;
+    this.eqMid = ctx.createBiquadFilter(); this.eqMid.type = 'peaking'; this.eqMid.frequency.value = 1800; this.eqMid.gain.value = this.masterUI.eq.mid; this.eqMid.Q.value = 0.8;
+    this.eqHigh = ctx.createBiquadFilter(); this.eqHigh.type = 'highshelf'; this.eqHigh.frequency.value = 9000; this.eqHigh.gain.value = this.masterUI.eq.high;
+    this.comp = ctx.createDynamicsCompressor(); this.comp.threshold.value = this.masterUI.thresh; this.comp.ratio.value = this.masterUI.ratio; this.comp.attack.value = 0.02; this.comp.release.value = 0.25;
+    this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -1.0; this.limiter.ratio.value = 20; this.limiter.attack.value = 0.002; this.limiter.release.value = 0.12;
     this.masterAn = ctx.createAnalyser(); this.masterAn.fftSize = 512;
     this.formGain = ctx.createGain(); this.formGain.gain.value = 1;
     this.master.connect(this.formGain); this.formGain.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
-    this.msat = ctx.createWaveShaper(); this.msat.curve = this.driveCurve(0.35); this.msat.oversample = '2x';
     this.eqHigh.connect(this.comp); this.comp.connect(this.limiter); this.limiter.connect(this.masterAn); this.masterAn.connect(ctx.destination);
 
     // FX buses
     const dIn = ctx.createGain(); const dNode = ctx.createDelay(2); dNode.delayTime.value = (60 / this.bpm) * 0.75;
     const dFb = ctx.createGain(); dFb.gain.value = 0.4; const dLp = ctx.createBiquadFilter(); dLp.type = 'lowpass'; dLp.frequency.value = 3200;
     dIn.connect(dNode); dNode.connect(dLp); dLp.connect(dFb); dFb.connect(dNode); dLp.connect(this.master);
-    this.delayIn = dIn; this.delayFbGain = dFb; this.delayLp = dLp;
+    this.delayIn = dIn; this.delayFbGain = dFb; this.delayLp = dLp; this.delayNode = dNode;
     const rIn = ctx.createGain(); const conv = ctx.createConvolver(); conv.buffer = this.makeImpulse(2.2, 2.6);
     const rOut = ctx.createGain(); rOut.gain.value = 1;
     rIn.connect(conv); conv.connect(rOut); rOut.connect(this.master); this.reverbIn = rIn; this.reverbOut = rOut;
 
-    // channels
+    // channels: bus -> duck(sidechain) -> EQ(L/M/H) -> tone -> drive -> fader -> pan -> meter -> master
     for (const t of TRACKS) {
+      const st = this.chUI[t.id];
       const bus = ctx.createGain();
       const duck = ctx.createGain();
-      const LV: Record<string, number> = { kick: 0.93, bass: 0.88, hats: 0.42, open: 0.44, lead: 0.66, pad: 0.62 };
-      const fader = ctx.createGain(); fader.gain.value = LV[t.id] ?? 0.8;
-      const pan = ctx.createStereoPanner();
+      const eqL = ctx.createBiquadFilter(); eqL.type = 'lowshelf'; eqL.frequency.value = 150; eqL.gain.value = st.eq.low;
+      const eqM = ctx.createBiquadFilter(); eqM.type = 'peaking'; eqM.frequency.value = 1000; eqM.Q.value = 0.9; eqM.gain.value = st.eq.mid;
+      const eqH = ctx.createBiquadFilter(); eqH.type = 'highshelf'; eqH.frequency.value = 6000; eqH.gain.value = st.eq.high;
+      const fader = ctx.createGain(); fader.gain.value = st.level;
+      const pan = ctx.createStereoPanner(); pan.pan.value = st.pan;
       const an = ctx.createAnalyser(); an.fftSize = 256;
-      const dSend = ctx.createGain(); dSend.gain.value = 0;
-      const rSend = ctx.createGain(); rSend.gain.value = 0;
-      const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 18000;
-      const drv = ctx.createWaveShaper(); drv.curve = this.driveCurve(0.0001);
-      bus.connect(duck); duck.connect(tone); tone.connect(drv); drv.connect(fader); fader.connect(pan); pan.connect(an); an.connect(this.master);
+      const dSend = ctx.createGain(); dSend.gain.value = st.d;
+      const rSend = ctx.createGain(); rSend.gain.value = st.r;
+      const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 200 + st.tone * 16000;
+      const drv = ctx.createWaveShaper(); drv.curve = this.driveCurve(Math.max(0.0001, st.drive));
+      bus.connect(duck); duck.connect(eqL); eqL.connect(eqM); eqM.connect(eqH); eqH.connect(tone); tone.connect(drv); drv.connect(fader); fader.connect(pan); pan.connect(an); an.connect(this.master);
       bus.connect(dSend); dSend.connect(dIn);
       bus.connect(rSend); rSend.connect(rIn);
-      this.channels[t.id] = { bus, duck, tone, drv, fader, pan, an, dSend, rSend, mute: false, solo: false, level: 0.9 };
+      this.channels[t.id] = { bus, duck, eqL, eqM, eqH, tone, drv, fader, pan, an, dSend, rSend, mute: false, solo: false, level: st.level };
     }
-    // default sends
-    this.channels.lead.dSend.gain.value = this.params.lead.dSend;
-    this.channels.lead.rSend.gain.value = this.params.lead.rSend;
-    this.channels.pad.rSend.gain.value = this.params.pad.rSend;
-    this.channels.open.rSend.gain.value = 0.15;
-    this.channels.atmos.rSend.gain.value = 0.55;
+    // default sends follow current synth params, mirrored into chUI so the console shows truth
+    this.chUI.lead.d = this.params.lead.dSend; this.channels.lead.dSend.gain.value = this.params.lead.dSend;
+    this.chUI.lead.r = this.params.lead.rSend; this.channels.lead.rSend.gain.value = this.params.lead.rSend;
+    this.chUI.pad.r = this.params.pad.rSend; this.channels.pad.rSend.gain.value = this.params.pad.rSend;
+    this.channels.open.rSend.gain.value = Math.max(this.chUI.open.r, 0.15);
+    this.channels.atmos.rSend.gain.value = Math.max(this.chUI.atmos.r, 0.55);
   }
 
   makeImpulse(sec: number, decay: number): AudioBuffer {
@@ -480,27 +500,49 @@ export class Engine {
     g.connect(pn); pn.connect(out);
     o.start(t); o.stop(t + dur + 0.05);
   }
-  vPad(t: number, chord: number[], dur: number) {
+  vPad(t: number, chord: number[], dur: number, soft = 0) {
     const ctx = this.ctx!; const p = this.params.pad; const out = this.channels.pad.bus;
     const wave = ((p as any).wave as OscillatorType) || 'sawtooth';
-    const detAmt = Math.min(20, ((p as any).det ?? 8));
+    const detAmt = Math.min(22, ((p as any).det ?? 8));
     const width = ((p as any).width ?? 0.6);
-    const cutoff = Math.min(3200, p.cutoff * ((p as any).bright ?? 1));
-    const atk = 0.55, rel = 0.85, lvl = 0.045;
-    // spread voicing: base chord + octave-up 3rd for openness/width
-    const notes: number[] = [...chord];
-    if (chord.length >= 2) notes.push(chord[1] + 12);
+    const cutoff = Math.min(3400, p.cutoff * ((p as any).bright ?? 1));
+    const pv = this.padVar; // session-seeded pad character 0..1
+    const atk0 = (0.45 + 0.5 * pv) * (1 + 0.6 * soft);
+    const rel = 0.8 + 0.5 * pv;
+    const lvl = 0.05 * (1 - 0.3 * soft);
+    // SPREAD VOICING: root+5th low, 3rd (+7th) an octave up -> open, harmonic, wide
+    let notes: number[];
+    if (chord.length >= 4) notes = [chord[0], chord[2], chord[1] + 12, chord[3] + 12];
+    else if (chord.length === 3) notes = [chord[0], chord[2], chord[1] + 12, chord[1] + 12];
+    else notes = [...chord, chord[0] + 12];
+    // sub warmth under the root (mono, center)
+    const subO = ctx.createOscillator(); subO.type = 'sine'; subO.frequency.value = mtof(notes[0] - 12);
+    const subG = ctx.createGain();
+    subG.gain.setValueAtTime(0.0001, t); subG.gain.linearRampToValueAtTime(lvl * 0.55, t + Math.min(atk0 * 1.3, dur * 0.8));
+    subG.gain.setValueAtTime(lvl * 0.55, t + Math.max(atk0, dur)); subG.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
+    subO.connect(subG); subG.connect(out); subO.start(t); subO.stop(t + dur + rel + 0.05);
     for (let ni = 0; ni < notes.length; ni++) {
       const m = notes[ni];
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff * (1 - ni * 0.05); lp.Q.value = 0.3;
+      const plf = ctx.createOscillator(); plf.frequency.value = 0.06 + 0.025 * ni + 0.02 * pv;
+      const pg = ctx.createGain(); pg.gain.value = cutoff * 0.08; plf.connect(pg); pg.connect(lp.frequency);
+      plf.start(t); plf.stop(t + dur + rel + 0.1);
+      const a = Math.min(atk0 + ni * 0.06, dur * 0.7);
+      const nlvl = lvl * (ni === 0 ? 1.05 : 0.95);
       for (const sign of [-1, 1]) {
-        const o = ctx.createOscillator(); o.type = wave; o.frequency.value = mtof(m); o.detune.value = sign * detAmt;
-        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; lp.Q.value = 0.35;
-        const plf = ctx.createOscillator(); plf.frequency.value = 0.07; const pg = ctx.createGain(); pg.gain.value = cutoff * 0.07; plf.connect(pg); pg.connect(lp.frequency); plf.start(t); plf.stop(t + dur + 1);
+        const o = ctx.createOscillator(); o.type = wave; o.frequency.value = mtof(m);
+        o.detune.value = sign * detAmt * (1 + 0.25 * pv);
+        // shimmer: slow detune drift on alternating voices (organic chorus depth)
+        if (sign > 0 && ni % 2 === 0) {
+          const sl = ctx.createOscillator(); sl.frequency.value = 0.05 + 0.04 * pv;
+          const sgn = ctx.createGain(); sgn.gain.value = detAmt * 0.5;
+          sl.connect(sgn); sgn.connect(o.detune); sl.start(t); sl.stop(t + dur + rel + 0.1);
+        }
         const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + atk);
-        g.gain.setValueAtTime(lvl, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(nlvl, t + a);
+        g.gain.setValueAtTime(nlvl, t + Math.max(a, dur)); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
         o.connect(lp); lp.connect(g);
-        const pn = ctx.createStereoPanner(); pn.pan.value = (ni % 2 === 0 ? sign : -sign) * (0.3 + 0.5 * width);
+        const pn = ctx.createStereoPanner(); pn.pan.value = sign * (0.25 + 0.55 * width) * (ni % 2 === 0 ? 1 : -1);
         g.connect(pn); pn.connect(out);
         o.start(t); o.stop(t + dur + rel + 0.05);
       }
@@ -594,8 +636,10 @@ export class Engine {
     const isOutro = rn === 'outro' || section.name === 'OUTRO';
     const isIntroSec = roleNow.startsWith('intro');
     const en = (section as any).energy ?? (isIntroSec ? 0.08 + 0.72 * (barIn / Math.max(1, section.bars)) : isDrop ? 1 : isBuild ? 0.6 : isBreak ? 0.3 : isPerc ? 0.55 : isOutro ? 0.35 : 0.5);
-    if (step === 0 && barIn === 0 && this.formGain) this.formGain.gain.setTargetAtTime(0.8 + 0.22 * en, t, 0.5); // macro energy arc (smooth)
-    if (isIntroSec && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.76 + 0.28 * prog, t, 0.9); } // intro grows toward the drop
+    if (step === 0 && barIn === 0 && this.formGain && !isIntroSec && roleNow !== 'bridge' && roleNow !== 'break' && roleNow !== 'ambient') this.formGain.gain.setTargetAtTime(0.8 + 0.22 * en, t, 0.5); // macro energy arc (smooth)
+    if (isIntroSec && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.62 + 0.4 * prog, t, 1.2); } // intro: gentle entry, grows smoothly toward the drop
+    if (roleNow === 'bridge' && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(1.0 - 0.28 * prog, t, 1.4); } // bridge: energy descends gradually (no cliff)
+    if ((roleNow === 'break' || roleNow === 'ambient') && step === 0) { const prog = barIn / Math.max(1, section.bars); this.formGain!.gain.setTargetAtTime(0.94 - 0.16 * prog, t, 1.6); } // break: stays musical, smooth
     if (isDrop && bar % 8 === 7 && step === 14) this.vHat(t, true, 0.4); // 8-bar ear candy
     const useB = barIn % 4 >= 2 || isDrop2;
     const lastBar = barIn === section.bars - 1;
@@ -647,7 +691,7 @@ export class Engine {
     if (isBreak && step === 0) { const prog = barIn / Math.max(1, section.bars); (this.params.pad as any).bright = 1.1 - 0.4 * prog; }
     if ((isBuild || isDrop2) && step === 0 && barIn === 0) (this.params.pad as any).bright = 1.1;
     if (this.droneOn && on('pad') && step === 0 && barIn === 0) this.vDrone(t, 33, stepDur * 16 * section.bars);
-    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16); }
+    if (on('pad') && step === 0) { const chords = s.chords && s.chords.length ? s.chords : [s.padChord]; const ch = chords[bar % chords.length]; const softPad = (isIntroSec || roleNow === 'ambient' || roleNow === 'bridge') ? 1 : 0; this.vPad(t, isBreak ? [ch[0], ch[1] + 12, ch[2] + 12] : ch, stepDur * 16, softPad); }
     if (on('atmos') && step === 0 && barIn === 0) this.vAtmos(t, stepDur * 16 * section.bars);
   }
   async start() {
@@ -667,11 +711,26 @@ export class Engine {
   stop() { this.running = false; if (this.timer !== null) { window.clearInterval(this.timer); this.timer = null; } if (this.onTick) this.onTick(-1, -1, -1); }
 
   // ---------- mixer ----------
-  setFader(id: TrackId, v: number) { const c = this.channels[id]; if (!c) return; c.level = v; this.applyMix(); }
+  setFader(id: TrackId, v: number) { const st = this.chUI[id]; if (st) st.level = v; const c = this.channels[id]; if (!c) return; c.level = v; this.applyMix(); }
   setMute(id: TrackId, m: boolean) { const c = this.channels[id]; if (!c) return; c.mute = m; this.applyMix(); }
   setSolo(id: TrackId, s: boolean) { const c = this.channels[id]; if (!c) return; c.solo = s; this.applyMix(); }
-  setPan(id: TrackId, v: number) { const c = this.channels[id]; if (c) c.pan.pan.value = v; }
-  setSend(id: TrackId, kind: 'd' | 'r', v: number) { const c = this.channels[id]; if (!c) return; if (kind === 'd') c.dSend.gain.value = v; else c.rSend.gain.value = v; }
+  setPan(id: TrackId, v: number) { const st = this.chUI[id]; if (st) st.pan = v; const c = this.channels[id]; if (c) c.pan.pan.value = v; }
+  setEq(id: TrackId, band: 'low' | 'mid' | 'high', db: number) {
+    const st = this.chUI[id]; if (st) st.eq[band] = db;
+    const c = this.channels[id]; if (!c) return;
+    const n = band === 'low' ? c.eqL : band === 'mid' ? c.eqM : c.eqH;
+    n.gain.value = db;
+  }
+  setSend(id: TrackId, kind: 'd' | 'r', v: number) {
+    const st = this.chUI[id]; if (st) { if (kind === 'd') st.d = v; else st.r = v; }
+    const c = this.channels[id]; if (!c) return;
+    if (kind === 'd') c.dSend.gain.value = v; else c.rSend.gain.value = v;
+  }
+  channelUI(id: TrackId) {
+    const st = this.chUI[id] || { level: 0.8, pan: 0, eq: { low: 0, mid: 0, high: 0 }, drive: 0, tone: 1, d: 0, r: 0 };
+    const c = this.channels[id];
+    return { level: st.level, pan: st.pan, eq: { ...st.eq }, drive: st.drive, tone: st.tone, d: st.d, r: st.r, mute: c ? c.mute : false, solo: c ? c.solo : false };
+  }
   private applyMix() {
     const anySolo = TRACKS.some((t) => this.channels[t.id] && this.channels[t.id].solo);
     for (const t of TRACKS) { const c = this.channels[t.id]; if (!c) continue;
@@ -701,8 +760,8 @@ export class Engine {
       return;
     }
     if (cat === 'master') {
-      if (this.eqLow && p.low !== undefined) { this.eqLow.gain.value = p.low; if (this.eqMid) this.eqMid.gain.value = p.mid; if (this.eqHigh) this.eqHigh.gain.value = p.high; }
-      if (this.comp && p.thresh !== undefined) { this.comp.threshold.value = p.thresh; this.comp.ratio.value = p.ratio; }
+      if (this.eqLow && p.low !== undefined) { this.eqLow.gain.value = p.low; if (this.eqMid) this.eqMid.gain.value = p.mid; if (this.eqHigh) this.eqHigh.gain.value = p.high; this.masterUI.eq = { low: p.low, mid: p.mid, high: p.high }; }
+      if (this.comp && p.thresh !== undefined) { this.comp.threshold.value = p.thresh; this.comp.ratio.value = p.ratio; this.masterUI.thresh = p.thresh; this.masterUI.ratio = p.ratio; }
       return;
     }
     if (cat === 'kits') {
@@ -811,7 +870,7 @@ export class Engine {
       if (cat === 'pad') { target.det = Math.min(target.det ?? 8, 14); target.cutoff = Math.min(target.cutoff ?? 1400, 2400); target.bright = Math.min(target.bright ?? 1, 1.2); }
     }
   }
-  setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); if (this.delayIn && this.ctx) { /* delay time lives on node created in init; find via graph not stored; keep simple */ } }
+  setBpm(v: number) { this.bpm = Math.max(90, Math.min(200, v)); this.syncDelay(); }
 
   pendingJump: number | null = null;
   pendingSession: { s: string; sb: string; ss: number } | null = null;
@@ -828,9 +887,19 @@ export class Engine {
     this.step16 = 0; this.pendingJump = null;
   }
   jumpToSection(index: number) { let b = 0; for (let i = 0; i < index && i < this.arrangement.length; i++) b += this.arrangement[i].bars; this.pendingJump = b * 16; }
-  setMasterLevel(v: number) { if (this.master) this.master.gain.value = 0.5 + v * 0.6; }
-  setTone(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.tone.frequency.value = 200 + v * 16000; }
-  setDrive(id: string, v: number) { const c = (this.channels as any)[id]; if (c) c.drv.curve = this.driveCurve(v); }
+  setMasterLevel(v: number) { this.masterUI.level = v; if (this.master && this.ctx) this.master.gain.setTargetAtTime(0.5 + v * 0.6, this.ctx.currentTime, 0.03); else if (this.master) this.master.gain.value = 0.5 + v * 0.6; }
+  setMasterEq(band: 'low' | 'mid' | 'high', db: number) {
+    this.masterUI.eq[band] = db;
+    const n = band === 'low' ? this.eqLow : band === 'mid' ? this.eqMid : this.eqHigh;
+    if (n) n.gain.value = db;
+  }
+  setMasterComp(thresh: number, ratio: number) { this.masterUI.thresh = thresh; this.masterUI.ratio = ratio; if (this.comp) { this.comp.threshold.value = thresh; this.comp.ratio.value = ratio; } }
+  fxState() { return { dFb: this.delayFbGain ? this.delayFbGain.gain.value : 0.4, dTone: this.delayLp ? this.delayLp.frequency.value : 3200, space: this.reverbOut ? this.reverbOut.gain.value : 1 }; }
+  setDelayFb(v: number) { if (this.delayFbGain) this.delayFbGain.gain.value = v; }
+  setDelayTone(v: number) { if (this.delayLp) this.delayLp.frequency.value = v; }
+  setReverbSpace(v: number) { if (this.reverbOut) this.reverbOut.gain.value = v; }
+  setTone(id: string, v: number) { const st = this.chUI[id]; if (st) st.tone = v; const c = (this.channels as any)[id]; if (c) c.tone.frequency.value = 200 + v * 16000; }
+  setDrive(id: string, v: number) { const st = this.chUI[id]; if (st) st.drive = v; const c = (this.channels as any)[id]; if (c) c.drv.curve = this.driveCurve(v); }
   async playVoice(track: string, midi: number) {
     await this.init(); if (this.ctx && this.ctx.state !== 'running') { try { await this.ctx.resume(); } catch (e) {} }
     const t = this.ctx!.currentTime + 0.02; const sd = 60 / this.bpm / 4;
