@@ -1,6 +1,8 @@
 // PsyReason Sound Library v2 - HUNDREDS of presets, procedurally curated
 // 3 synth engines for leads (analog / fm / wavetable), 5 bass characters, full drum tuning
 
+import { buildForms as buildFormsGen } from './generator';
+
 export interface SoundPreset { name: string; p: Record<string, any>; }
 
 function rng(seed: number) {
@@ -310,7 +312,7 @@ export const SOUND_LIB: Record<string, SoundPreset[]> = {
   drumpat: buildDrumPat(),
   hooks: buildHooks(),
   transitions: buildTrans(),
-  form: buildForms(),
+  form: buildFormsGen(),
 };
 
 export function soundCount(): number {
