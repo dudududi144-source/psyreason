@@ -344,6 +344,20 @@ export function generateSongForSub(st: SubStyle, seed: number): SongData {
   return { kick: d.kick, bass, hats: d.hats, open: d.open, lead, padChord: chords[0], bassB, leadB, chords } as SongData;
 }
 
+function withBridges(arr: any[], full: string[]): any[] {
+  // commercial transition polish: 4-bar BRIDGE before every break-like section that follows a drop
+  const out: any[] = [];
+  for (let j = 0; j < arr.length; j++) {
+    const sec = arr[j];
+    const prev = out[out.length - 1];
+    const prevIsDrop = prev && (prev.role === 'drop' || prev.role === 'drop2' || prev.role === 'climax');
+    const isBreakLike = sec.role === 'break' || sec.role === 'ambient' || sec.role === 'acid' || sec.role === 'half';
+    if (prevIsDrop && isBreakLike) out.push({ name: 'BRIDGE', bars: 4, active: [...full], role: 'bridge' });
+    out.push(sec);
+  }
+  return out;
+}
+
 export function generateArrangementForSub(st: SubStyle, seed: number): Section[] {
   const rng = mulberry32(seed ^ 0x9e3779b9);
   const all: TrackId[] = ['kick', 'bass', 'hats', 'open', 'lead', 'pad'];
@@ -358,7 +372,7 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
   const peak = (st.punch ?? 0.5) >= 0.8 && st.padProb <= 0.35;
   const d1 = pick(rng, [24, 24, 32]); const d2 = pick(rng, [24, 32]);
   if (chill) {
-    return [
+    return withBridges([
       { name: 'AMBIENT INTRO', bars: 16, active: intro, role: 'intro' },
       { name: 'BUILD', bars: 4, active: build, role: 'build' },
       { name: 'DROP', bars: d1, active: all, role: 'drop' },
@@ -366,10 +380,10 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
       { name: 'BUILD 2', bars: 4, active: build, role: 'build' },
       { name: 'DROP 2', bars: d2, active: all, role: 'drop2' },
       { name: 'OUTRO', bars: 16, active: outro, role: 'outro' },
-    ];
+    ], all);
   }
   if (hypnotic) {
-    return [
+    return withBridges([
       { name: 'INTRO', bars: 16, active: intro, role: 'intro' },
       { name: 'BUILD', bars: 4, active: build, role: 'build' },
       { name: 'DROP', bars: 32, active: all, role: 'drop' },
@@ -378,10 +392,10 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
       { name: 'BREAK', bars: 8, active: breakSec, role: 'break' },
       { name: 'CLIMAX', bars: 16, active: all, role: 'climax' },
       { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
-    ];
+    ], all);
   }
   if (peak) {
-    return [
+    return withBridges([
       { name: 'INTRO', bars: 8, active: intro, role: 'intro' },
       { name: 'BUILD', bars: 4, active: build, role: 'build' },
       { name: 'DROP', bars: 24, active: all, role: 'drop' },
@@ -390,9 +404,9 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
       { name: 'DROP 2', bars: 24, active: all, role: 'drop2' },
       { name: 'CLIMAX', bars: 16, active: all, role: 'climax' },
       { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
-    ];
+    ], all);
   }
-  return [
+  return withBridges([
     { name: 'INTRO', bars: 16, active: intro, role: 'intro' },
     { name: 'BUILD', bars: 4, active: build, role: 'build' },
     { name: 'DROP', bars: d1, active: all, role: 'drop' },
@@ -400,7 +414,7 @@ export function generateArrangementForSub(st: SubStyle, seed: number): Section[]
     { name: 'BUILD 2', bars: 4, active: build, role: 'build' },
     { name: 'DROP 2', bars: d2, active: all, role: 'drop2' },
     { name: 'OUTRO', bars: 8, active: outro, role: 'outro' },
-  ];
+  ], all);
 }
 
 
@@ -510,5 +524,5 @@ export function composeForm(seed: number) {
   f.push(FS(r() > 0.5 ? 'RE-ENTRY' : 'DROP 2', pk([16, 24, 32]), FULL, r() > 0.5 ? 'dropin' : 'drop2'));
   if (r() > 0.55) f.push(FS('CLIMAX', pk([16, 24, 32]), FULL, 'climax'));
   f.push(FS('OUTRO', pk([8, 16]), MIN, 'outro'));
-  return f;
+  return withBridges(f, FULL);
 }
